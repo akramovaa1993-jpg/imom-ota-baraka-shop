@@ -65,3 +65,11 @@ V13.5 START:
 - O‘rniga Parkent tumani interaktiv OpenStreetMap xaritasi qo‘shildi.
 - Buyurtmani kuzatish endi Savatga o‘xshash katta premium yon panelda ochiladi.
 - Mahsulot rasmi lightbox kattalashtirish saqlandi.
+
+V13.6 FULL EDITOR:
+- Sahifalar / SEO bo'limidan saytning asosiy ko'rinadigan ma'lumotlari tahrirlanadi.
+- Logotip JPG/PNG/WEBP yuklash va standart logoga qaytarish.
+- Logotip o'lchamini 48-100 px oralig'ida boshqarish.
+- Tagline, katalog yozuvlari, korxona rekvizitlari, Parkent xaritasi, aloqa, footer va SEO sozlamalari.
+- Mahsulot/Ombor bo'limida yangi kategoriya qo'shish, nomlarini UZ/RU/EN tahrirlash va o'chirish.
+- Admin va sayt logotiplari biroz kattalashtirildi.

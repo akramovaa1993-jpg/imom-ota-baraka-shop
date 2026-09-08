@@ -1,27 +1,19 @@
-IMOM OTA BARAKA — VELORA.UZ v13 ORIGINAL
+IMOM OTA BARAKA — VELORA.UZ V13.6 FINAL ORIGINAL FULL EDITOR
 
-Start:
-  npm install
-  npm start
+Boshlash:
+npm o'rnatish
+npm boshlanishi
 
-Online admin:
-  /admin.html
+Onlayn administrator:
+/admin.html
 
-Required Render Environment Variables:
-  TELEGRAM_BOT_TOKEN
-  TELEGRAM_CHAT_ID
-  ADMIN_USERNAME
-  ADMIN_PASSWORD
-  SESSION_SECRET
+V13.6:
+- To'liq Sahifalar / SEO muharriri
+- Logotip yuklash va o'lchamini boshqarish
+- Korxona rekvizitlari va xarita tahriri
+- Footer / aloqa / katalog matnlari
+- Yangi kategoriya qo'shish
+- Mahsulot rasmlari va zoom
+- Katta buyurtma kuzatuv paneli
 
-Optional staff roles:
-  OPERATOR_USERNAME / OPERATOR_PASSWORD
-  STOCK_USERNAME / STOCK_PASSWORD
-
-Health:
-  /health
-  /api/status
-
-See V13_UPDATE.txt for the full feature list.
-
-V13.2 FINAL: bosh sahifadagi katta hero logo bloki olib tashlandi; admin Mahsulotlar/Ombor jadvali saqlandi; mahsulot qo‘shish/tahrirlash alohida modal oynaga o‘tkazildi; mahsulot rasmi yuklash saqlandi.
+Render muhit o'zgaruvchilari avvalgidek qoladi.
