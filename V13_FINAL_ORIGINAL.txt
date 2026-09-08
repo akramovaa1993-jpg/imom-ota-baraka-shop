@@ -1,10 +1,7 @@
-V13.3 FINAL ORIGINAL — VELORA.UZ
+V13.4 FINAL ORIGINAL — VELORA.UZ
 
-- “Mashhur mahsulotlar” sarlavhasi olib tashlandi.
-- Saralash: Tavsiya etiladi / Narx: arzon / Narx: qimmat / Yangi — bir qator tugmalar.
-- Biz haqimizda bo‘limidagi eski 100% / 0 so‘m / 24/7 blok o‘rniga korxona rekvizitlari joylashtirildi.
-- Korxona: “GANIYEV IMOM” OILAVIY KORXONA
-- MFO: 00482
-- Hisob raqami: 20208000807368873001
-- STIR: 312669814
-- Qolgan V13 funksiyalari saqlandi.
+- Sayt ochilishi bilan mahsulotlar katalogi birinchi ko‘rinadi.
+- Katalog saralash tugmalari: Tavsiya etiladi / Narx: arzon / Narx: qimmat / Yangi.
+- JS xatosi tuzatildi: olib tashlangan hero elementlari sabab mahsulotlar render bo‘lmay qolmaydi.
+- Korxona rekvizitlari 3 qator: 1) firma nomi; 2) STIR va MFO; 3) hisob raqami.
+- Qolgan v13 funksiyalari saqlangan.
