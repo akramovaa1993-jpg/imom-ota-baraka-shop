@@ -1,0 +1,24 @@
+IMOM OTA BARAKA v11 — ONLINE ADMIN
+
+YANGI FUNKSIYALAR:
+- /admin.html orqali login/parol bilan online admin
+- Buyurtmalar tarixi va statuslari
+- Telegram statusi bilan admin statusi sinxron
+- Sotuv statistikasi
+- Mahsulot qoldig‘i (stock)
+- Buyurtma berilganda qoldiq avtomatik kamayadi
+- Mahsulot/kategoriya/sayt sozlamalari serverda saqlanadi
+
+RENDER ENVIRONMENT GA QO'SHING:
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=mustahkam_parol
+SESSION_SECRET=uzun_tasodifiy_maxfiy_qator
+
+MUHIM: DATA SAQLANISHI
+Hozirgi v11 fayl bazasi DATA_DIR/shop.json da ishlaydi. Render Free instancening diski doimiy emas: redeploy/restartda ma'lumot yo'qolishi mumkin. Production uchun Render Persistent Disk (pullik) yoki tashqi Postgres/Supabase bazasi ulash kerak.
+
+Render Persistent Disk ishlatsangiz mount path masalan /var/data qilib, Environment da:
+DATA_DIR=/var/data
+
+Admin URL:
+https://SIZNING-SAYTINGIZ/admin.html

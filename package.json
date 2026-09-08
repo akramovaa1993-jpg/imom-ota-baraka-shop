@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "10.0.0",
+  "version": "11.0.0",
   "private": true,
-  "description": "Imom Ota Baraka premium shop with secure Telegram orders and inline order-status buttons",
+  "description": "Imom Ota Baraka v11 with online admin, orders, stock and Telegram status sync",
   "scripts": {
     "start": "node server.js"
   },

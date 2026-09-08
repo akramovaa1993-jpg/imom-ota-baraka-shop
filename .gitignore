@@ -1,4 +1,4 @@
-node_modules/
 .env
-npm-debug.log*
-.DS_Store
+node_modules/
+data/shop.json
+*.log
