@@ -15,7 +15,7 @@ app.use(express.static(__dirname));
 app.get('/api/status', (req,res) => {
   res.json({
     ok:true,
-    version:'10.0.0',
+version:'10.1.0',
     telegramConfigured:Boolean(BOT_TOKEN && CHAT_ID),
     chatIdConfigured:Boolean(CHAT_ID),
     orderStatusButtons:true
@@ -131,31 +131,58 @@ async function handleCallback(q){
 
 async function pollTelegram(){
   if(polling || !BOT_TOKEN) return;
+
   polling = true;
   console.log('Telegram order-status buttons: polling started');
+
+  // Agar oldin webhook o‘rnatilgan bo‘lsa, polling uchun uni o‘chiramiz
+  try {
+    await tgCall('deleteWebhook', {
+      drop_pending_updates: false
+    });
+  } catch (e) {
+    console.error('Telegram deleteWebhook:', e.message || e);
+  }
+
   while(true){
     try{
-      const r = await fetch(`${TG}/getUpdates?timeout=25&offset=${updateOffset}&allowed_updates=${encodeURIComponent(JSON.stringify(['callback_query']))}`);
-      const data = await r.json();
-      if(data.ok && Array.isArray(data.result)){
-        for(const u of data.result){
-          updateOffset = Math.max(updateOffset, Number(u.update_id)+1);
-          if(u.callback_query) await handleCallback(u.callback_query);
+      const updates = await tgCall('getUpdates', {
+        timeout: 25,
+        offset: updateOffset,
+        allowed_updates: ['callback_query']
+      });
+
+      if(Array.isArray(updates)){
+        for(const u of updates){
+          updateOffset = Math.max(
+            updateOffset,
+            Number(u.update_id) + 1
+          );
+
+          if(u.callback_query){
+            await handleCallback(u.callback_query);
+          }
         }
-      }else{
-        console.error('Telegram polling:',data.description||data);
-        await new Promise(r=>setTimeout(r,3000));
       }
+
     }catch(e){
-      console.error('Telegram polling error:',e.message||e);
-      await new Promise(r=>setTimeout(r,3000));
+      console.error(
+        'Telegram polling error:',
+        e.message || e
+      );
+
+      await new Promise(resolve =>
+        setTimeout(resolve, 3000)
+      );
     }
   }
 }
-
-app.listen(PORT,()=>{
-  console.log(`Imom Ota Baraka v10: http://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Imom Ota Baraka v10.1: http://localhost:${PORT}`);
   console.log(`Telegram CHAT_ID: ${CHAT_ID ? 'configured' : 'MISSING'}`);
-  console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN && !BOT_TOKEN.includes('YANGI_TOKENNI') ? 'configured' : 'MISSING / placeholder'}`);
-  if(BOT_TOKEN && CHAT_ID) pollTelegram();
+  console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN ? 'configured' : 'MISSING'}`);
+
+  if (BOT_TOKEN && CHAT_ID) {
+    pollTelegram();
+  }
 });
