@@ -56,3 +56,12 @@ V13 PRODUCT IMAGE UPDATE:
 - Mahsulot rasmi preview va olib tashlash tugmasi mavjud.
 
 V13.2 FINAL: bosh sahifadagi katta hero logo bloki olib tashlandi; admin Mahsulotlar/Ombor jadvali saqlandi; mahsulot qo‘shish/tahrirlash alohida modal oynaga o‘tkazildi; mahsulot rasmi yuklash saqlandi.
+
+V13.4.1: Mahsulot rasmini bosganda katta lightbox oynada ochish qo‘shildi. ESC, fon yoki × bilan yopiladi.
+
+
+V13.5 START:
+- Mahsulotlar ostidagi 4 ta xizmat kartasi olib tashlandi.
+- O‘rniga Parkent tumani interaktiv OpenStreetMap xaritasi qo‘shildi.
+- Buyurtmani kuzatish endi Savatga o‘xshash katta premium yon panelda ochiladi.
+- Mahsulot rasmi lightbox kattalashtirish saqlandi.
