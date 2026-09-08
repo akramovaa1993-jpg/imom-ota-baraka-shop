@@ -1,4 +1,4 @@
-IMOM OTA BARAKA — BarkaMarket.uz v12
+IMOM OTA BARAKA — VELORA.UZ v12
 
 YANGILIKLAR:
 - Admin sarlavhasi: IMOM OTA BARAKA.
@@ -9,10 +9,10 @@ YANGILIKLAR:
 - Biz haqimizda UZ/RU/EN sarlavha va matnlarini o‘zgartirish.
 - Aloqa UZ/RU/EN matnlari, telefon, Telegram, emailni o‘zgartirish.
 - Sayt nomi va domen nomini admin orqali boshqarish.
-- Standart domen nomi: barkamarket.uz.
+- Standart domen nomi: velora.uz.
 - 3 dizayn: Zamonaviy / Classic / Original.
 - Logo admin orqali yuklanadi va saytda sferik/premium ko‘rinishda chiqadi.
 - Telegram buyurtma/status va ombor funksiyalari saqlab qolindi.
 
 DOMEN ESLATMA:
-barkamarket.uz brauzerda haqiqiy ochilishi uchun domen sotib olingan bo‘lishi va Render > Custom Domains orqali DNS ulanishi kerak. Kod canonical/SEO uchun barkamarket.uz ga tayyorlandi.
+velora.uz brauzerda haqiqiy ochilishi uchun domen sotib olingan bo‘lishi va Render > Custom Domains orqali DNS ulanishi kerak. Kod canonical/SEO uchun velora.uz ga tayyorlandi.

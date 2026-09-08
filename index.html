@@ -1,124 +1,41 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IMOM OTA BARAKA — BarkaMarket.uz</title>
-  <meta name="description" content="BarkaMarket.uz — IMOM OTA BARAKA premium internet do‘koni. Sifatli mahsulotlar, qulay buyurtma va tez yetkazib berish.">
-  <meta name="keywords" content="Imom Ota Baraka, internet do'kon, mahsulotlar, Uzbekistan, онлайн магазин">
-  <meta name="theme-color" content="#087a4b">
-  <meta property="og:title" content="IMOM OTA BARAKA — BarkaMarket.uz">
-  <meta property="og:description" content="Premium internet do‘kon">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="logo.png">
-  <link rel="icon" href="logo.png">
-  <link rel="stylesheet" href="style.css">
-
-  <meta property="og:site_name" content="BarkaMarket.uz">
-  <meta property="og:url" content="https://barkamarket.uz/">
-  <link rel="canonical" href="https://barkamarket.uz/">
-  <meta name="robots" content="index,follow,max-image-preview:large">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"OnlineStore","name":"Imom Ota Baraka","telephone":"+998901361211","sameAs":["https://t.me/imomotabaraka"],"description":"Imom Ota Baraka premium internet-do‘koni."}</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IMOM OTA BARAKA — VELORA.UZ</title>
+<meta name="description" content="VELORA.UZ — Parkent tumani bo‘ylab bepul yetkazib beruvchi IMOM OTA BARAKA internet do‘koni.">
+<meta name="theme-color" content="#07584c"><meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:title" content="IMOM OTA BARAKA — VELORA.UZ"><meta property="og:type" content="website"><meta property="og:image" content="logo.png"><meta property="og:url" content="https://velora.uz/"><link rel="canonical" href="https://velora.uz/"><link rel="icon" href="logo.png"><link rel="stylesheet" href="style.css">
 </head>
-<body data-theme="modern">
-<header class="header">
-  <div class="container nav">
-    <a class="brand" href="#"><img src="logo.png" alt="Imom Ota Baraka logo"><span id="brandName">IMOM OTA<br><b>BARAKA</b></span></a>
-    <nav class="desktop-nav">
-      <a href="#home" data-i18n="home">Bosh sahifa</a>
-      <a href="#products" data-i18n="products">Mahsulotlar</a>
-      <a href="#about" data-i18n="about">Biz haqimizda</a>
-      <a href="#contact" data-i18n="contact">Aloqa</a>
-    </nav>
-    <div class="nav-actions">
-      <select id="language" aria-label="Language">
-        <option value="uz">UZ</option><option value="ru">RU</option><option value="en">EN</option>
-      </select>
-      <button class="cart-btn" id="cartBtn" aria-label="Cart">🛒 <span id="cartCount">0</span></button>
-      <button class="menu-btn" id="menuBtn">☰</button>
-    </div>
-  </div>
-  <div class="mobile-nav" id="mobileNav">
-    <a href="#home" data-i18n="home">Bosh sahifa</a>
-    <a href="#products" data-i18n="products">Mahsulotlar</a>
-    <a href="#about" data-i18n="about">Biz haqimizda</a>
-    <a href="#contact" data-i18n="contact">Aloqa</a>
-  </div>
-</header>
+<body data-theme="original">
+<div class="topbar"><div class="container topbar-in"><span>🌿 <b id="topDomain">VELORA.UZ</b> — <span id="tagline">Sifat, ishonch, baraka!</span></span><div><a id="topPhone" href="tel:+998901361211">☎ +998 90 136 12 11</a><a id="topTelegram" href="https://t.me/imomotabaraka" target="_blank">✈ Telegram</a></div></div></div>
+<header class="header"><div class="container nav">
+<a class="brand" href="#home"><span class="sphere-logo"><img src="logo.png" alt="IMOM OTA BARAKA"></span><span><b id="brandDomain">BARKAMARKET.UZ</b><small id="brandName">IMOM OTA BARAKA</small></span></a>
+<div class="search-wrap"><input id="searchInput" placeholder="Mahsulot qidirish..."><button id="searchBtn">⌕</button></div>
+<nav class="desktop-nav"><a href="#home" data-i18n="home">Bosh sahifa</a><a href="#products" data-i18n="products">Mahsulotlar</a><a href="#about" data-i18n="about">Biz haqimizda</a><a href="#contact" data-i18n="contact">Aloqa</a></nav>
+<div class="nav-actions"><button id="favoritesBtn" class="icon-btn" title="Sevimlilar">♡ <span id="favCount">0</span></button><button id="trackBtn" class="icon-btn" title="Buyurtmani kuzatish">⌖</button><button class="cart-btn" id="cartBtn">🛒 <span id="cartCount">0</span></button><select id="language"><option value="uz">UZ</option><option value="ru">RU</option><option value="en">EN</option></select><button class="menu-btn" id="menuBtn">☰</button></div>
+</div><div class="mobile-nav" id="mobileNav"><a href="#home" data-i18n="home">Bosh sahifa</a><a href="#products" data-i18n="products">Mahsulotlar</a><a href="#about" data-i18n="about">Biz haqimizda</a><a href="#contact" data-i18n="contact">Aloqa</a></div></header>
 
 <main>
-<section class="hero" id="home">
-  <div class="hero-glow"></div>
-  <div class="container hero-grid">
-    <div class="hero-copy reveal">
-      <span class="eyebrow" data-i18n="eyebrow">HALOL • SIFATLI • ISHONCHLI</span>
-      <h1 data-i18n="heroTitle">Baraka bilan tanlang.</h1>
-      <p data-i18n="heroText">Siz uchun saralangan sifatli mahsulotlar. Zamonaviy xarid tajribasi, ishonchli xizmat va tez yetkazib berish.</p>
-      <div class="hero-buttons">
-        <a class="btn primary" href="#products" data-i18n="shopNow">Xarid qilish</a>
-        <a class="btn ghost" href="#about" data-i18n="learnMore">Batafsil</a>
-      </div>
-      <div class="trust-row">
-        <span>✓ <b data-i18n="quality">Sifat nazorati</b></span>
-        <span>✓ <b data-i18n="delivery">Tez yetkazish</b></span>
-        <span>✓ <b data-i18n="support">24/7 aloqa</b></span>
-      </div>
-    </div>
-    <div class="hero-card reveal">
-      <div class="floating-badge">BARAKA ✦</div>
-      <img src="logo.png" alt="Imom Ota Baraka">
-      <div class="card-caption"><small data-i18n="welcome">Xush kelibsiz</small><strong id="heroBrandName">IMOM OTA BARAKA</strong><span id="heroDomain" class="site-domain">barkamarket.uz</span></div>
-    </div>
-  </div>
-</section>
+<section class="hero" id="home"><div class="hero-orb orb1"></div><div class="hero-orb orb2"></div><div class="container hero-grid">
+<div class="hero-copy reveal"><span class="eyebrow" id="heroEyebrow">SIFAT • ISHONCH • BARAKA</span><h1 id="heroTitle">Har bir xonadonga — sifat va baraka.</h1><p id="heroText">Parkent tumani bo‘ylab bepul yetkazib berish, qulay buyurtma va ishonchli xizmat.</p><div class="hero-buttons"><a class="btn primary" href="#products">Mahsulotlarni ko‘rish →</a><button class="btn ghost" id="heroTrackBtn">Buyurtmani kuzatish</button></div><div class="trust-row"><span>🚚 <b>Bepul yetkazish</b><small>Parkent tumani</small></span><span>📍 <b>GPS lokatsiya</b><small>Aniq manzil</small></span><span>🤖 <b>Telegram status</b><small>Tezkor nazorat</small></span></div></div>
+<div class="hero-showcase reveal"><div class="showcase-ring"><img src="logo.png" alt="IMOM OTA BARAKA"></div><div class="showcase-card"><b>IMOM OTA BARAKA</b><span id="heroDomain">velora.uz</span><small>Original premium shopping experience</small></div><div class="float-chip c1">✓ Sifat</div><div class="float-chip c2">🚚 Bepul</div><div class="float-chip c3">★ 4.9</div></div>
+</div></section>
 
-<section class="section" id="products">
-  <div class="container">
-    <div class="section-head">
-      <div><span class="eyebrow" data-i18n="catalogEyebrow">SARALANGAN KATALOG</span><h2 data-i18n="catalogTitle">Mashhur mahsulotlar</h2></div>
-      <div class="filters" id="categoryFilters"></div>
-    </div>
-    <div class="products" id="productGrid"></div>
-  </div>
-</section>
+<section class="category-strip"><div class="container"><div class="category-scroll" id="categoryStrip"></div></div></section>
 
-<section class="story" id="about">
-  <div class="container story-grid">
-    <div class="story-image reveal"><img src="logo.png" alt="Imom Ota Baraka"></div>
-    <div class="story-copy reveal">
-      <span class="eyebrow" data-i18n="aboutEyebrow">BIZNING QADRIYATLAR</span>
-      <h2 data-i18n="aboutTitle">Baraka — sifat va ishonchdan boshlanadi.</h2>
-      <p data-i18n="aboutText">Imom Ota Baraka brendi mijozga sifatli mahsulot, shaffof xizmat va yoqimli xarid tajribasini taqdim etishga intiladi.</p>
-      <div class="stats"><div><b>100%</b><span data-i18n="stat1">Sifatga e’tibor</span></div><div><b>24/7</b><span data-i18n="stat2">Mijozlar yordami</span></div><div><b>3</b><span data-i18n="stat3">Til</span></div></div>
-    </div>
-  </div>
-</section>
+<section class="section" id="products"><div class="container"><div class="section-head"><div><span class="eyebrow">SARALANGAN KATALOG</span><h2 id="catalogTitle">Mashhur mahsulotlar</h2></div><div class="catalog-tools"><select id="sortSelect"><option value="featured">Tavsiya etiladi</option><option value="priceAsc">Narx: arzon</option><option value="priceDesc">Narx: qimmat</option><option value="new">Yangi</option></select><div class="filters" id="categoryFilters"></div></div></div><div class="products" id="productGrid"></div></div></section>
 
-<section class="newsletter" id="contact">
-  <div class="container newsletter-inner">
-    <div><span class="eyebrow">IMOM OTA BARAKA</span><h2 data-i18n="contactTitle">Yangiliklardan xabardor bo‘ling.</h2><p data-i18n="contactText">Aksiyalar va yangi mahsulotlar haqida birinchi bo‘lib bilib oling.</p></div>
-    <form id="subscribe"><input type="email" placeholder="Email manzilingiz" required><button class="btn primary" data-i18n="subscribe">Obuna bo‘lish</button></form>
-  </div>
-</section>
-<div id="reviewModal" class="review-modal"></div>
-<div id="checkoutModal" class="checkout-modal"></div>
+<section class="benefits"><div class="container benefit-grid"><div>🚚<b>Parkent bo‘ylab bepul</b><span>Hududni tanlang, biz yetkazamiz</span></div><div>📍<b>Lokatsiya yuborish</b><span>Google Maps orqali aniq manzil</span></div><div>🎟<b>Promo kodlar</b><span>Maxsus chegirmalardan foydalaning</span></div><div>📦<b>Buyurtma kuzatuvi</b><span>Statusni istalgan payt tekshiring</span></div></div></section>
+
+<section class="story" id="about"><div class="container story-grid"><div class="story-visual reveal"><span class="sphere-logo giant"><img src="logo.png" alt="IMOM OTA BARAKA"></span><div class="story-badge">BARKAMARKET.UZ</div></div><div class="story-copy reveal"><span class="eyebrow">BIZ HAQIMIZDA</span><h2 id="aboutTitle">IMOM OTA BARAKA — ishonchli tanlov.</h2><p id="aboutText">Biz mijozlarimizga sifatli mahsulot, shaffof xizmat, tezkor aloqa va qulay xarid tajribasini taqdim etamiz.</p><div class="stats"><div><b>100%</b><span>Sifatga e’tibor</span></div><div><b>0 so‘m</b><span>Yetkazib berish</span></div><div><b>24/7</b><span>Onlayn buyurtma</span></div></div></div></div></section>
+
+<section class="newsletter" id="contact"><div class="container newsletter-inner"><div><span class="eyebrow">ALOQA</span><h2 id="contactTitle">Biz bilan bog‘laning</h2><p id="contactText">Savol, taklif va buyurtmalar uchun Telegram yoki telefon orqali murojaat qiling.</p></div><div class="contact-actions"><a id="contactPhoneBtn" class="btn primary" href="tel:+998901361211">☎ Qo‘ng‘iroq</a><a id="contactTelegramBtn" class="btn telegram" href="https://t.me/imomotabaraka" target="_blank">✈ Telegram</a></div></div></section>
 </main>
 
-<footer class="footer">
-  <div class="container footer-grid">
-    <div class="brand footer-brand"><img src="logo.png" alt=""><span id="footerBrandName">IMOM OTA<br><b>BARAKA</b></span></div>
-    <div><h4 data-i18n="links">Havolalar</h4><a href="#home" data-i18n="home">Bosh sahifa</a><a href="#products" data-i18n="products">Mahsulotlar</a><a href="#about" data-i18n="about">Biz haqimizda</a></div>
-    <div><h4 data-i18n="contact">Aloqa</h4><a id="contactPhone" href="tel:+998901361211">+998 90 136 12 11</a><a id="contactTelegram" href="https://t.me/imomotabaraka" target="_blank" rel="noopener">t.me/imomotabaraka</a><a id="contactEmail" href="mailto:info@imomotamarket.uz">info@imomotamarket.uz</a></div>
-  </div>
-  <div class="copyright">© 2026 Imom Ota Baraka. <span data-i18n="rights">Barcha huquqlar himoyalangan.</span></div>
-</footer>
+<footer class="footer"><div class="container footer-grid"><div class="footer-brand"><span class="sphere-logo small"><img src="logo.png" alt=""></span><div><b id="footerName">IMOM OTA BARAKA</b><span id="footerDomain">velora.uz</span><small id="footerTagline">Sifat, ishonch, baraka!</small></div></div><div><h4>Tezkor havolalar</h4><a href="#home">Bosh sahifa</a><a href="#products">Mahsulotlar</a><a href="#about">Biz haqimizda</a><a href="#contact">Aloqa</a></div><div><h4>Aloqa</h4><a id="contactPhone" href="tel:+998901361211">+998 90 136 12 11</a><a id="contactTelegram" href="https://t.me/imomotabaraka" target="_blank">Telegram</a><a id="contactEmail" href="mailto:info@imomotamarket.uz">info@imomotamarket.uz</a></div><div><h4>Xizmat</h4><a href="#" id="footerTrack">Buyurtmani kuzatish</a><span>🚚 Parkent tumani — bepul</span><span>💳 Naqd / karta / o‘tkazma</span></div></div><div class="copyright">© 2026 IMOM OTA BARAKA • VELORA.UZ</div></footer>
 
-<div class="cart-panel" id="cartPanel">
-  <div class="cart-header"><h3 data-i18n="cart">Savat</h3><button id="closeCart">×</button></div>
-  <div id="cartItems" class="cart-items"></div>
-  <div class="cart-bottom"><strong><span data-i18n="total">Jami</span>: <span id="cartTotal">0 so‘m</span></strong><button class="btn primary" id="checkout" data-i18n="checkout">Buyurtma berish</button></div>
-</div>
-<div class="overlay" id="overlay"></div>
-<script src="script.js"></script>
-</body>
-</html>
+<div class="cart-panel" id="cartPanel"><div class="cart-header"><div><h3>Savat</h3><small id="cartSub">0 ta mahsulot</small></div><button id="closeCart">×</button></div><div id="cartItems" class="cart-items"></div><div class="promo-row"><input id="cartPromo" placeholder="Promo kod"><button id="applyPromo">Qo‘llash</button></div><div class="cart-totals"><div><span>Mahsulotlar</span><b id="cartSubtotal">0 so‘m</b></div><div><span>Chegirma</span><b id="cartDiscount">0 so‘m</b></div><div class="grand"><span>Jami</span><b id="cartTotal">0 so‘m</b></div><small>🚚 Yetkazib berish: BEPUL</small></div><button class="btn primary checkout-btn" id="checkout">Buyurtma berish</button></div>
+<div class="overlay" id="overlay"></div><div id="modal" class="modal"></div><div id="reviewModal" class="modal"></div><div id="checkoutModal" class="modal"></div>
+<button class="mobile-sticky-cart" id="mobileStickyCart">🛒 <span id="mobileCartText">Savat • 0 so‘m</span></button><a class="floating-telegram" id="floatingTelegram" href="https://t.me/imomotabaraka" target="_blank">✈</a>
+<script src="script.js"></script></body></html>

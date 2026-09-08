@@ -1,16 +1,9 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "12.0.0",
+  "version": "13.0.0",
   "private": true,
-  "description": "Imom Ota Baraka / barkamarket.uz v12 with online admin, Excel reports, editable sections and design themes",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2"
-  }
+  "description": "IMOM OTA BARAKA / VELORA.UZ v13 ORIGINAL e-commerce with online admin, Parkent delivery, GPS, tracking, inventory, reports and Telegram sync",
+  "scripts": {"start": "node server.js"},
+  "engines": {"node": ">=18"},
+  "dependencies": {"dotenv": "^16.4.7", "express": "^4.21.2"}
 }

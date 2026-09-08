@@ -1,0 +1,50 @@
+IMOM OTA BARAKA / BARKAMARKET.UZ — v13 ORIGINAL
+
+MIJOZ TOMONI:
+- Original premium dizayn va sferik logo ko‘rinishi
+- UZ / RU / EN
+- Mahsulot qidiruvi, kategoriya filtri, narx bo‘yicha saralash
+- Sevimlilar
+- Mahsulot kartasida − / + miqdor tanlash
+- Savatda bir xil mahsulot bitta qatorga birlashadi
+- Savatda − / +, real vaqt jami va chegirma
+- Ombordagi qoldiqdan ortiq buyurtma berib bo‘lmaydi
+- Promo kod tekshiruvi
+- Parkent tumani hududini majburiy tanlash
+- Yetkazib berish bepul
+- Yetkazib berish vaqt oralig‘ini tanlash
+- GPS lokatsiya yuborish va Google Maps havolasi
+- Buyurtma raqami + telefon orqali buyurtmani kuzatish
+- Mobil sticky savat va Telegram tez aloqa
+- Aksiya narxi / eski narx / badge
+
+ADMIN TOMONI:
+- IMOM OTA BARAKA boshqaruv markazi
+- Dashboard: buyurtmalar, tushum, foyda, o‘rtacha chek, kam qoldiq
+- 7 kunlik tushum diagrammasi, top mahsulot, top hudud
+- Buyurtmalar va Telegram bilan status sinxronlashuvi
+- Mijozlar bazasi
+- Mahsulot / ombor / tannarx / eski narx / badge boshqaruvi
+- Kunlik, oylik, yillik va sana oralig‘i Excel hisobot
+- Hisobotda tushum, tannarx va foyda
+- Promo kodlar
+- Parkent hududlari va yetkazish vaqtlarini boshqarish
+- Bosh sahifa, Biz haqimizda, Aloqa va SEO sozlamalari
+- Original / Modern / Classic dizayn rejimlari
+- Admin / Operator / Omborchi rollari uchun optional loginlar
+- Audit log
+- JSON backup va restore
+
+TELEGRAM:
+- Buyurtma: hudud, manzil, bepul yetkazish, vaqt, GPS Maps link
+- Miqdor × dona va jami
+- Status tugmalari
+- Tanlangan status tugmasida “— HOZIRGI STATUS” yozuvi
+- Admin va Telegram statuslari sinxron
+
+DOMEN:
+Kod velora.uz uchun SEO/canonical ko‘rinishiga tayyor.
+Haqiqiy domen Render Custom Domains va DNS orqali alohida ulanadi.
+
+MUHIM:
+Render Free filesystem doimiy baza sifatida kafolatlanmaydi. Productionda ma’lumot yo‘qolmasligi uchun keyingi bosqichda Persistent Disk yoki tashqi DB (Postgres) tavsiya etiladi.
