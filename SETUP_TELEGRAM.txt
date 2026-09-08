@@ -1,0 +1,26 @@
+IMOM OTA BARAKA — TELEGRAM BOTNI ISHGA TUSHIRISH
+=================================================
+
+Bot: @Parkentzayavka_bot
+CHAT_ID: 1474930325
+
+MUHIM:
+Oldingi Bot Token chat/skrinshotda ko'rinib qolgan. BotFather orqali uni Revoke qiling
+va YANGI token oling. Yangi tokenni hech kimga yubormang.
+
+1) .env faylni Notepad bilan oching.
+2) Quyidagi qatorni toping:
+   TELEGRAM_BOT_TOKEN=YANGI_TOKENNI_SHU_YERGA_QOYING
+3) '=' belgisidan keyin BotFather bergan YANGI tokenni yozing.
+   Misol formati:
+   TELEGRAM_BOT_TOKEN=1234567890:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+4) TELEGRAM_CHAT_ID allaqachon tayyor:
+   TELEGRAM_CHAT_ID=1474930325
+5) Kompyuterda Node.js 18 yoki yangi versiya o'rnatilgan bo'lishi kerak.
+6) START_SERVER.bat faylini ikki marta bosing.
+7) Brauzerda http://localhost:3000 ni oching.
+8) Mahsulotni savatga qo'shing -> Buyurtma berish -> ma'lumotlarni kiriting -> yuboring.
+9) Buyurtma Telegram'dagi @Parkentzayavka_bot bilan shaxsiy chattingizga keladi.
+
+Saytni internetga joylashtirganda .env fayl serverning Environment Variables qismiga
+ko'chiriladi. Bot Token frontend script.js ichiga yozilmaydi.

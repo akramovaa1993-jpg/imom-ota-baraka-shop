@@ -1,0 +1,28 @@
+IMOM OTA BARAKA v10 — ONLINE JOYLASHTIRISH
+
+Tavsiya: Render.com (Node.js web service)
+
+1) Loyiha fayllarini GitHub repository'ga yuklang.
+2) Render.com -> New -> Blueprint yoki Web Service.
+3) GitHub repository'ni tanlang.
+4) Build Command: npm install
+5) Start Command: npm start
+6) Environment Variables:
+   TELEGRAM_BOT_TOKEN = BotFather bergan YANGI maxfiy token
+   TELEGRAM_CHAT_ID = 1474930325
+7) Deploy qiling.
+8) Render bergan https://...onrender.com manzilida test buyurtma yuboring.
+9) Keyin imomotamarket.uz domenini Render Custom Domains bo'limida ulang.
+
+MUHIM XAVFSIZLIK:
+- .env faylini GitHub'ga yuklamang (.gitignore ichida bor).
+- Chatda/skrinshotda ko'ringan bot tokenni online ishlatishdan oldin BotFather orqali Revoke qiling.
+- Faqat yangi tokenni Render Environment Variables ichiga kiriting.
+
+TELEGRAM STATUS TUGMALARI:
+✅ Qabul qilindi
+🚚 Yetkazilmoqda
+📦 Yakunlandi
+❌ Bekor qilindi
+
+Tugma bosilganda shu Telegram xabarining "Holat" qatori yangilanadi.
