@@ -1,4 +1,4 @@
-IMOM OTA BARAKA / BARKAMARKET.UZ — v13 ORIGINAL
+IMOM OTA BARAKA / VELORA.UZ — v13 ORIGINAL
 
 MIJOZ TOMONI:
 - Original premium dizayn va sferik logo ko‘rinishi
@@ -48,3 +48,11 @@ Haqiqiy domen Render Custom Domains va DNS orqali alohida ulanadi.
 
 MUHIM:
 Render Free filesystem doimiy baza sifatida kafolatlanmaydi. Productionda ma’lumot yo‘qolmasligi uchun keyingi bosqichda Persistent Disk yoki tashqi DB (Postgres) tavsiya etiladi.
+
+
+V13 PRODUCT IMAGE UPDATE:
+- Admin panelda mahsulot qo‘shish/tahrirlashda JPG/PNG/WEBP rasm yuklash qo‘shildi.
+- Rasm brauzerda avtomatik siqiladi va 1200px gacha optimallashtiriladi.
+- Mahsulot rasmi preview va olib tashlash tugmasi mavjud.
+
+V13.2 FINAL: bosh sahifadagi katta hero logo bloki olib tashlandi; admin Mahsulotlar/Ombor jadvali saqlandi; mahsulot qo‘shish/tahrirlash alohida modal oynaga o‘tkazildi; mahsulot rasmi yuklash saqlandi.

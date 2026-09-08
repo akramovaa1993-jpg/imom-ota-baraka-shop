@@ -1,9 +1,16 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.0.0",
+  "version": "13.2.0",
   "private": true,
-  "description": "IMOM OTA BARAKA / VELORA.UZ v13 ORIGINAL e-commerce with online admin, Parkent delivery, GPS, tracking, inventory, reports and Telegram sync",
-  "scripts": {"start": "node server.js"},
-  "engines": {"node": ">=18"},
-  "dependencies": {"dotenv": "^16.4.7", "express": "^4.21.2"}
+  "description": "IMOM OTA BARAKA / VELORA.UZ v13 FINAL ORIGINAL e-commerce with product image upload, online admin, Parkent delivery, GPS, tracking, inventory, reports and Telegram sync",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
 }

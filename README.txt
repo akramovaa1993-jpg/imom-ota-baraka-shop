@@ -23,3 +23,5 @@ Health:
   /api/status
 
 See V13_UPDATE.txt for the full feature list.
+
+V13.2 FINAL: bosh sahifadagi katta hero logo bloki olib tashlandi; admin Mahsulotlar/Ombor jadvali saqlandi; mahsulot qo‘shish/tahrirlash alohida modal oynaga o‘tkazildi; mahsulot rasmi yuklash saqlandi.
