@@ -1,16 +1,10 @@
-IMOM OTA BARAKA — VELORA.UZ
-V13 FINAL ORIGINAL 13.1.0
+V13.3 FINAL ORIGINAL — VELORA.UZ
 
-Tuzatildi:
-- Barcha BarkaMarket/barkamarket yozuvlari VELORA.UZ/velora.uz ga almashtirildi.
-- Renderda oldingi shop.json ichida qolgan eski domen avtomatik velora.uz ga migratsiya qilinadi.
-- Hero dagi Sifat / Bepul / 4.9 suzuvchi yozuvlar olib tashlandi.
-- Hero ostidagi Bepul yetkazish / GPS lokatsiya / Telegram status bloklari olib tashlandi.
-- Logo ostidagi domen kartasi va Original premium shopping experience yozuvi olib tashlandi.
-- Biz haqimizda bo‘limi to‘q yashil fondan ochiq premium fonga o‘tkazildi; logo ostidagi badge olib tashlandi.
-- Kategoriya va xizmat kartalaridagi rangli emoji/piktogrammalar olib tashlandi.
-- Mahsulot kartalaridagi sun’iy 4.9 reytingi olib tashlandi.
-- Admin panelda mahsulotga JPG/PNG/WEBP rasm yuklash, preview va o‘chirish ishlaydi.
-- Qolgan v13 funksiyalari saqlandi: savat miqdori, promo, Parkent hududlari, GPS, tracking, Telegram status, admin, hisobot, backup.
-
-V13.2 FINAL: bosh sahifadagi katta hero logo bloki olib tashlandi; admin Mahsulotlar/Ombor jadvali saqlandi; mahsulot qo‘shish/tahrirlash alohida modal oynaga o‘tkazildi; mahsulot rasmi yuklash saqlandi.
+- “Mashhur mahsulotlar” sarlavhasi olib tashlandi.
+- Saralash: Tavsiya etiladi / Narx: arzon / Narx: qimmat / Yangi — bir qator tugmalar.
+- Biz haqimizda bo‘limidagi eski 100% / 0 so‘m / 24/7 blok o‘rniga korxona rekvizitlari joylashtirildi.
+- Korxona: “GANIYEV IMOM” OILAVIY KORXONA
+- MFO: 00482
+- Hisob raqami: 20208000807368873001
+- STIR: 312669814
+- Qolgan V13 funksiyalari saqlandi.

@@ -1,6 +1,6 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.2.0",
+  "version": "13.3.0",
   "private": true,
   "description": "IMOM OTA BARAKA / VELORA.UZ v13 FINAL ORIGINAL e-commerce with product image upload, online admin, Parkent delivery, GPS, tracking, inventory, reports and Telegram sync",
   "scripts": {
