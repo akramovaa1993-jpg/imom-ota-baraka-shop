@@ -73,3 +73,9 @@ V13.6 FULL EDITOR:
 - Tagline, katalog yozuvlari, korxona rekvizitlari, Parkent xaritasi, aloqa, footer va SEO sozlamalari.
 - Mahsulot/Ombor bo'limida yangi kategoriya qo'shish, nomlarini UZ/RU/EN tahrirlash va o'chirish.
 - Admin va sayt logotiplari biroz kattalashtirildi.
+
+V13.7 PRODUCT IMAGE FULL VIEW:
+- Mahsulot rasmi bosilganda lightbox ichida kesilmaydi.
+- Original proporsiya saqlanadi.
+- Rasm max-width/max-height bilan oynaga to'liq sig'adi.
+- Desktop va mobil uchun object-fit: contain majburiy qo'llanadi.

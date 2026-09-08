@@ -94,3 +94,26 @@ body[data-theme="classic"]{--green:#31513e;--green2:#4b7059;--bg:#f7f1e6;--line:
 /* V13.6 full editor */
 .header .sphere-logo{width:var(--brand-logo-size)!important;height:var(--brand-logo-size)!important}.brand{gap:14px}.brand b{font-size:20px}.brand small{font-size:10px}.story .sphere-logo.giant{width:340px!important;height:340px!important}.footer .sphere-logo.small{width:62px!important;height:62px!important}
 @media(max-width:560px){.header .sphere-logo{width:56px!important;height:56px!important}.story .sphere-logo.giant{width:270px!important;height:270px!important}}
+
+/* V13.7 — full product image in zoom modal: never crop */
+.lightbox-image-wrap{
+  height:min(72vh,720px);
+  padding:18px;
+  box-sizing:border-box;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.lightbox-image-wrap img{
+  width:auto !important;
+  height:auto !important;
+  max-width:100% !important;
+  max-height:100% !important;
+  object-fit:contain !important;
+  object-position:center center !important;
+  display:block;
+}
+@media(max-width:640px){
+  .lightbox-image-wrap{height:68vh;padding:10px}
+}
