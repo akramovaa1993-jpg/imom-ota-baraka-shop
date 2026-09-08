@@ -1,0 +1,18 @@
+IMOM OTA BARAKA — BarkaMarket.uz v12
+
+YANGILIKLAR:
+- Admin sarlavhasi: IMOM OTA BARAKA.
+- Kunlik, oylik va yillik Excel hisobot (.xls).
+- Hisobotda buyurtmalar, tushum, statuslar va ombor qoldig‘i.
+- Admin orqali Bosh sahifa UZ/RU/EN matnlarini o‘zgartirish.
+- Mahsulotlar bo‘limi sarlavhasini UZ/RU/EN o‘zgartirish.
+- Biz haqimizda UZ/RU/EN sarlavha va matnlarini o‘zgartirish.
+- Aloqa UZ/RU/EN matnlari, telefon, Telegram, emailni o‘zgartirish.
+- Sayt nomi va domen nomini admin orqali boshqarish.
+- Standart domen nomi: barkamarket.uz.
+- 3 dizayn: Zamonaviy / Classic / Original.
+- Logo admin orqali yuklanadi va saytda sferik/premium ko‘rinishda chiqadi.
+- Telegram buyurtma/status va ombor funksiyalari saqlab qolindi.
+
+DOMEN ESLATMA:
+barkamarket.uz brauzerda haqiqiy ochilishi uchun domen sotib olingan bo‘lishi va Render > Custom Domains orqali DNS ulanishi kerak. Kod canonical/SEO uchun barkamarket.uz ga tayyorlandi.

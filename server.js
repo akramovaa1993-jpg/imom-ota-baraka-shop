@@ -29,6 +29,7 @@ const defaultProducts=[
  {id:4,cat:'home',emoji:'🧺',name:{uz:'Uy uchun to‘plam',ru:'Набор для дома',en:'Home essentials set'},price:99000,stock:10,image:''}
 ];
 const defaultSettings={
+ siteName:'IMOM OTA BARAKA',siteDomain:'barkamarket.uz',theme:'modern',
  hero:{uz:{title:'Baraka bilan tanlang.',text:'Siz uchun saralangan sifatli mahsulotlar. Zamonaviy xarid tajribasi, ishonchli xizmat va tez yetkazib berish.'},ru:{title:'Выбирайте с баракатом.',text:'Качественные товары, отобранные для вас. Современный шопинг, надёжный сервис и быстрая доставка.'},en:{title:'Choose with baraka.',text:'Quality products selected for you. A modern shopping experience, reliable service and fast delivery.'}},
  catalog:{uz:'Mashhur mahsulotlar',ru:'Популярные товары',en:'Popular products'},
  about:{uz:{title:'Baraka — sifat va ishonchdan boshlanadi.',text:'Imom Ota Baraka brendi mijozga sifatli mahsulot, shaffof xizmat va yoqimli xarid tajribasini taqdim etishga intiladi.'},ru:{title:'Баракат начинается с качества и доверия.',text:'Imom Ota Baraka стремится дать клиентам качественные товары, прозрачный сервис и приятный опыт покупок.'},en:{title:'Baraka starts with quality and trust.',text:'Imom Ota Baraka aims to provide quality products, transparent service and a pleasant shopping experience.'}},
@@ -47,7 +48,7 @@ const money=n=>new Intl.NumberFormat('ru-RU').format(Number(n)||0)+' so‘m';
 function statusLabel(code){return {new:'🕓 Yangi',accepted:'✅ Qabul qilindi',delivery:'🚚 Yetkazilmoqda',done:'📦 Yakunlandi',cancelled:'❌ Bekor qilindi'}[code]||'🕓 Yangi'}
 function statusKeyboard(orderId,current='new'){
  const rows=[[{text:'✅ Qabul qilindi',callback_data:`st|accepted|${orderId}`},{text:'🚚 Yetkazilmoqda',callback_data:`st|delivery|${orderId}`}],[{text:'📦 Yakunlandi',callback_data:`st|done|${orderId}`},{text:'❌ Bekor qilindi',callback_data:`st|cancelled|${orderId}`}]];
- return {inline_keyboard:rows.map(row=>row.map(b=>({...b,text:(b.callback_data.includes(`|${current}|`)?'• ':'')+b.text})))};
+ return {inline_keyboard:rows.map(row=>row.map(b=>{const active=b.callback_data.includes(`|${current}|`);return {...b,text:active?`${b.text.toUpperCase()} — HOZIRGI STATUS`:b.text}}))};
 }
 async function tgCall(method,payload){const r=await fetch(`${TG}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({ok:false,description:'Invalid Telegram response'}));if(!r.ok||!data.ok)throw new Error(data.description||`Telegram ${method} failed`);return data.result}
 
@@ -57,7 +58,7 @@ function verifySession(token){try{const [user,exp,sig]=Buffer.from(token,'base64
 function requireAdmin(req,res,next){const user=verifySession(parseCookies(req).iob_admin||'');if(!user)return res.status(401).json({error:'Unauthorized'});req.adminUser=user;next();}
 
 app.get('/health',(req,res)=>res.status(200).send('OK'));
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'11.0.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'12.0.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,dataFile:DB_FILE}));
 app.get('/api/catalog',(req,res)=>{const db=readDb();res.json({products:db.products||[],categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||''});});
 
 app.post('/api/admin/login',(req,res)=>{const u=clean(req.body?.username,80),p=String(req.body?.password||'');if(u!==ADMIN_USER||p!==ADMIN_PASSWORD)return res.status(401).json({error:'Login yoki parol noto‘g‘ri'});const exp=Date.now()+12*60*60*1000;const token=signSession(u,exp);res.setHeader('Set-Cookie',`iob_admin=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200${process.env.NODE_ENV==='production'?'; Secure':''}`);res.json({ok:true,user:u});});
@@ -66,6 +67,22 @@ app.get('/api/admin/me',requireAdmin,(req,res)=>res.json({ok:true,user:req.admin
 
 app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{const db=readDb(),orders=db.orders||[];const today=new Date().toISOString().slice(0,10);const month=today.slice(0,7);const done=orders.filter(o=>o.status==='done');res.json({stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,revenue:done.reduce((s,o)=>s+Number(o.total||0),0),pending:orders.filter(o=>['new','accepted','delivery'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:(db.products||[]).filter(p=>Number(p.stock||0)<=5).length},orders:orders.slice().reverse().slice(0,200),products:db.products||[],categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||''});});
 app.put('/api/admin/catalog',requireAdmin,(req,res)=>{const db=readDb();const b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,500).map(p=>({id:Number(p.id)||Date.now(),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120),en:clean(p.name?.en,120)},price:Math.max(0,Number(p.price)||0),stock:Math.max(0,Math.floor(Number(p.stock)||0)),image:String(p.image||'').slice(0,6_000_000)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100);if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);writeDb(db);res.json({ok:true});});
+app.get('/api/admin/reports.xls',requireAdmin,(req,res)=>{
+ const db=readDb(), orders=db.orders||[];
+ const period=String(req.query.period||'daily'), value=String(req.query.value||'');
+ const match=o=>{const d=String(o.createdAt||'').slice(0,10);if(period==='daily')return d===value;if(period==='monthly')return d.slice(0,7)===value;if(period==='yearly')return d.slice(0,4)===value;return true};
+ const filtered=orders.filter(match), completed=filtered.filter(o=>o.status==='done');
+ const escHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const revenue=completed.reduce((a,o)=>a+Number(o.total||0),0);
+ const rows=filtered.map(o=>`<tr><td>${escHtml(o.orderId)}</td><td>${escHtml(new Date(o.createdAt).toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'}))}</td><td>${escHtml(o.customer?.name||'')}</td><td>${escHtml(o.customer?.phone||'')}</td><td>${escHtml(o.customer?.address||'')}</td><td>${escHtml(o.customer?.payment||'')}</td><td>${escHtml((o.items||[]).map(x=>`${x.name} × ${x.qty||1}`).join('; '))}</td><td>${Number(o.total||0)}</td><td>${escHtml(statusLabel(o.status))}</td></tr>`).join('')||'<tr><td colspan="9">Bu davrda buyurtma yo‘q</td></tr>';
+ const stock=(db.products||[]).map(p=>`<tr><td>${escHtml(p.name?.uz||'')}</td><td>${escHtml(p.cat||'')}</td><td>${Number(p.price||0)}</td><td>${Number(p.stock||0)}</td></tr>`).join('');
+ const html=`<!doctype html><html><head><meta charset="UTF-8"><style>table{border-collapse:collapse;font-family:Arial}th,td{border:1px solid #999;padding:6px}th{background:#e9f3ed}h1,h2{font-family:Arial}</style></head><body><h1>IMOM OTA BARAKA — BarkaMarket.uz</h1><h2>Hisobot: ${escHtml(period)} / ${escHtml(value)}</h2><table><tr><th>Ko‘rsatkich</th><th>Qiymat</th></tr><tr><td>Jami buyurtmalar</td><td>${filtered.length}</td></tr><tr><td>Yakunlangan</td><td>${completed.length}</td></tr><tr><td>Jarayonda</td><td>${filtered.filter(o=>['new','accepted','delivery'].includes(o.status)).length}</td></tr><tr><td>Bekor qilingan</td><td>${filtered.filter(o=>o.status==='cancelled').length}</td></tr><tr><td>Yakunlangan tushum</td><td>${revenue}</td></tr></table><br><h2>Buyurtmalar</h2><table><tr><th>Buyurtma</th><th>Sana</th><th>Mijoz</th><th>Telefon</th><th>Manzil</th><th>To‘lov</th><th>Mahsulotlar</th><th>Jami</th><th>Status</th></tr>${rows}</table><br><h2>Ombor qoldig‘i</h2><table><tr><th>Mahsulot</th><th>Kategoriya</th><th>Narx</th><th>Qoldiq</th></tr>${stock}</table></body></html>`;
+ const safe=value.replace(/[^0-9-]/g,'_')||'all';
+ res.setHeader('Content-Type','application/vnd.ms-excel; charset=utf-8');
+ res.setHeader('Content-Disposition',`attachment; filename="BarkaMarket_${period}_${safe}.xls"`);
+ res.send('\ufeff'+html);
+});
+
 app.patch('/api/admin/orders/:id/status',requireAdmin,async(req,res)=>{const status=clean(req.body?.status,30);if(!['new','accepted','delivery','done','cancelled'].includes(status))return res.status(400).json({error:'Invalid status'});const db=readDb(),o=(db.orders||[]).find(x=>x.orderId===req.params.id);if(!o)return res.status(404).json({error:'Order not found'});o.status=status;o.updatedAt=new Date().toISOString();writeDb(db);try{await syncTelegramOrder(o);}catch(e){console.error('Admin Telegram sync:',e.message||e)}res.json({ok:true,order:o});});
 
 function orderTelegramText(o){const lines=(o.items||[]).map((x,i)=>`${i+1}. ${x.name}${x.qty>1?` × ${x.qty}`:''} — ${money(Number(x.price)*Number(x.qty||1))}`);return [`🛒 YANGI BUYURTMA #${o.orderId}`,'',`👤 Mijoz: ${o.customer.name}`,`📞 Telefon: ${o.customer.phone}`,`📍 Manzil: ${o.customer.address}`,`💳 To‘lov: ${o.customer.payment||'—'}`,o.customer.comment?`💬 Izoh: ${o.customer.comment}`:'','',...lines,'',`💰 JAMI: ${money(o.total)}`,`🕐 ${new Date(o.createdAt).toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'})}`,`📌 Holat: ${statusLabel(o.status)}`].filter(Boolean).join('\n');}
@@ -79,4 +96,4 @@ async function handleCallback(q){try{if(!q?.id||!q?.data||!q?.message)return;con
 async function pollTelegram(){if(polling||!BOT_TOKEN)return;polling=true;console.log('Telegram order-status buttons: polling started');try{await tgCall('deleteWebhook',{drop_pending_updates:false})}catch(e){console.error('Telegram deleteWebhook:',e.message||e)}while(true){try{const updates=await tgCall('getUpdates',{timeout:25,offset:updateOffset,allowed_updates:['callback_query']});if(Array.isArray(updates))for(const u of updates){updateOffset=Math.max(updateOffset,Number(u.update_id)+1);if(u.callback_query)await handleCallback(u.callback_query)}}catch(e){console.error('Telegram polling error:',e.message||e);await new Promise(r=>setTimeout(r,3000))}}}
 
 ensureDb();
-app.listen(PORT,()=>{console.log(`Imom Ota Baraka v11: http://localhost:${PORT}`);console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);console.log(`Online admin: /admin.html | DATA_DIR=${DATA_DIR}`);if(BOT_TOKEN&&CHAT_ID)pollTelegram();});
+app.listen(PORT,()=>{console.log(`IMOM OTA BARAKA v12 / barkamarket.uz: http://localhost:${PORT}`);console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);console.log(`Online admin: /admin.html | DATA_DIR=${DATA_DIR}`);if(BOT_TOKEN&&CHAT_ID)pollTelegram();});

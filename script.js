@@ -19,6 +19,7 @@ function renderCategoryFilters(){
 }
 
 const defaultSettings={
+  siteName:"IMOM OTA BARAKA",siteDomain:"barkamarket.uz",theme:"modern",
   hero:{uz:{title:"Baraka bilan tanlang.",text:"Siz uchun saralangan sifatli mahsulotlar. Zamonaviy xarid tajribasi, ishonchli xizmat va tez yetkazib berish."},ru:{title:"Выбирайте с баракатом.",text:"Качественные товары, отобранные для вас. Современный шопинг, надёжный сервис и быстрая доставка."},en:{title:"Choose with baraka.",text:"Quality products selected for you. A modern shopping experience, reliable service and fast delivery."}},
   catalog:{uz:"Mashhur mahsulotlar",ru:"Популярные товары",en:"Popular products"},
   about:{uz:{title:"Baraka — sifat va ishonchdan boshlanadi.",text:"Imom Ota Baraka brendi mijozga sifatli mahsulot, shaffof xizmat va yoqimli xarid tajribasini taqdim etishga intiladi."},ru:{title:"Баракат начинается с качества и доверия.",text:"Imom Ota Baraka стремится дать клиентам качественные товары, прозрачный сервис и приятный опыт покупок."},en:{title:"Baraka starts with quality and trust.",text:"Imom Ota Baraka aims to provide quality products, transparent service and a pleasant shopping experience."}},
@@ -27,7 +28,19 @@ const defaultSettings={
 };
 let settings=JSON.parse(localStorage.getItem("iob_settings")||"null")||defaultSettings;
 function getText(path, fallback){const parts=path.split('.');let o=settings;for(const p of parts)o=o?.[p];return o ?? fallback;}
+function applySiteIdentity(){
+  const name=(settings.siteName||'IMOM OTA BARAKA').trim();
+  const domain=(settings.siteDomain||'barkamarket.uz').trim();
+  document.body.dataset.theme=['modern','classic','original'].includes(settings.theme)?settings.theme:'modern';
+  document.title=`${name} — ${domain}`;
+  const pretty=name.toUpperCase().replace(/\s+/g,' ');
+  const brand=document.getElementById('brandName'); if(brand) brand.innerHTML=pretty.replace(/ BARAKA$/,'<br><b>BARAKA</b>');
+  const hero=document.getElementById('heroBrandName'); if(hero) hero.textContent=pretty;
+  const footer=document.getElementById('footerBrandName'); if(footer) footer.innerHTML=pretty.replace(/ BARAKA$/,'<br><b>BARAKA</b>');
+  const d=document.getElementById('heroDomain'); if(d) d.textContent=domain;
+}
 function refreshSettings(){
+  applySiteIdentity();
   const heroTitle=document.querySelector('[data-i18n="heroTitle"]'); if(heroTitle) heroTitle.textContent=getText('hero.'+lang+'.title',defaultSettings.hero[lang].title);
   const heroText=document.querySelector('[data-i18n="heroText"]'); if(heroText) heroText.textContent=getText('hero.'+lang+'.text',defaultSettings.hero[lang].text);
   const catalogTitle=document.querySelector('[data-i18n="catalogTitle"]'); if(catalogTitle) catalogTitle.textContent=getText('catalog.'+lang,defaultSettings.catalog[lang]);

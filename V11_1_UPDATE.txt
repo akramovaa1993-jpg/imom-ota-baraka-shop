@@ -1,0 +1,7 @@
+IMOM OTA BARAKA v11.1
+
+Yangiliklar:
+- Admin login maydonlari va Kirish tugmasi kattalashtirildi.
+- Mobil ko‘rinish yaxshilandi.
+- Telegram status tugmasidagi kichik oq nuqta olib tashlandi.
+- Joriy status tugmasi: "— HOZIRGI STATUS" yozuvi bilan aniq ko‘rsatiladi.
