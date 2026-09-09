@@ -13,10 +13,10 @@ function cartQty(id){return Number(cart.find(x=>Number(x.id)===Number(id))?.qty|
 function subtotal(){return cart.reduce((s,x)=>{const p=products.find(p=>Number(p.id)===Number(x.id));return s+(p?Number(p.price||0)*Number(x.qty||0):0)},0)}
 function total(){return Math.max(0,subtotal()-Number(promo.discount||0))}
 
-async function loadCatalog(){try{const r=await fetch('/api/catalog',{cache:'no-store'});const d=await r.json();products=d.products||[];categories=d.categories||[];settings=d.settings||{};logo=d.logo||'';applySite();renderAll();}catch(e){console.error(e)}}
+async function loadCatalog(){try{const r=await fetch('/api/catalog',{cache:'no-store'});const d=await r.json();products=d.products||[];categories=d.categories||[];settings=d.settings||{};logo=d.logo||'';applySite();renderAll();initParkentBoundaryMap();}catch(e){console.error(e)}}
 function applySite(){document.body.dataset.theme=settings.theme||'original';const L=x=>x?.[lang]||x?.uz||x||'';$('#language').value=lang;$$('[data-i18n]').forEach(el=>{const k=el.dataset.i18n;if(T[lang]?.[k])el.textContent=T[lang][k]});$('#topDomain').textContent=settings.siteDomain||'zarbuloq.uz';$('#brandDomain').textContent=(settings.siteDomain||'zarbuloq.uz').toUpperCase();$('#heroDomain')&&($('#heroDomain').textContent=settings.siteDomain||'zarbuloq.uz');$('#footerDomain').textContent=settings.siteDomain||'zarbuloq.uz';$('#brandName').textContent=settings.siteName||'IMOM OTA BARAKA';$('#footerName').textContent=settings.siteName||'IMOM OTA BARAKA';$('#tagline').textContent=L(settings.tagline)||'Sifat, ishonch, baraka!';$('#footerTagline').textContent=L(settings.tagline)||'';$('#heroEyebrow')&&($('#heroEyebrow').textContent=L(settings.hero)?.eyebrow||settings.hero?.[lang]?.eyebrow||settings.hero?.uz?.eyebrow||'');$('#heroTitle')&&($('#heroTitle').textContent=settings.hero?.[lang]?.title||settings.hero?.uz?.title||'');$('#heroText')&&($('#heroText').textContent=settings.hero?.[lang]?.text||settings.hero?.uz?.text||'');$('#aboutTitle').textContent=settings.about?.[lang]?.title||settings.about?.uz?.title||'';$('#aboutText').textContent=settings.about?.[lang]?.text||settings.about?.uz?.text||'';$('#contactTitle').textContent=settings.contact?.[lang]?.title||settings.contact?.uz?.title||'';$('#contactText').textContent=settings.contact?.[lang]?.text||settings.contact?.uz?.text||'';const phone=settings.phone||'+998901361211',tg=settings.telegram||'https://t.me/imomotabaraka',email=settings.email||'info@imomotamarket.uz';['#topPhone','#contactPhone','#contactPhoneBtn'].forEach(s=>{$(s).href='tel:'+phone;});$('#topPhone').textContent=formatPhone(phone);$('#contactPhone').textContent=formatPhone(phone);['#topTelegram','#contactTelegram','#contactTelegramBtn','#floatingTelegram'].forEach(s=>{$(s).href=tg});$('#contactEmail').href='mailto:'+email;$('#contactEmail').textContent=email;
  const co=settings.company||{}; $('#companyName')&&($('#companyName').textContent=co.name||''); $('#companyTaxId')&&($('#companyTaxId').textContent=co.taxId||''); $('#companyMfo')&&($('#companyMfo').textContent=co.mfo||''); $('#companyAccount')&&($('#companyAccount').textContent=co.account||'');
- const mp=settings.map||{}; $('#mapEyebrow')&&($('#mapEyebrow').textContent=mp.eyebrow||''); $('#mapTitle')&&($('#mapTitle').textContent=mp.title||''); $('#mapText')&&($('#mapText').textContent=mp.text||''); if($('#parkentMapFrame')&&mp.embedUrl)$('#parkentMapFrame').src=mp.embedUrl; if($('#parkentMapLink')&&mp.openUrl)$('#parkentMapLink').href=mp.openUrl;
+ const mp=settings.map||{}; $('#mapEyebrow')&&($('#mapEyebrow').textContent=mp.eyebrow||''); $('#mapTitle')&&($('#mapTitle').textContent=mp.title||''); $('#mapText')&&($('#mapText').textContent=mp.text||''); if($('#parkentMapLink'))$('#parkentMapLink').href='https://www.openstreetmap.org/relation/5745823';
  const ft=settings.footer||{}; $('#footerService1')&&($('#footerService1').textContent=ft.service1||''); $('#footerService2')&&($('#footerService2').textContent=ft.service2||''); $('#copyrightText')&&($('#copyrightText').textContent=ft.copyright||'');
  const cat=settings.catalogUi||{}; $('#catalogEyebrow')&&($('#catalogEyebrow').textContent=cat.eyebrow||'SARALANGAN KATALOG'); $('#sortFeatured')&&($('#sortFeatured').textContent=cat.featured||'Tavsiya etiladi'); $('#sortPriceAsc')&&($('#sortPriceAsc').textContent=cat.priceAsc||'Narx: arzon'); $('#sortPriceDesc')&&($('#sortPriceDesc').textContent=cat.priceDesc||'Narx: qimmat'); $('#sortNew')&&($('#sortNew').textContent=cat.newLabel||'Yangi');
  const logoSize=Math.max(48,Math.min(100,Number(settings.ui?.logoSize||68))); document.documentElement.style.setProperty('--brand-logo-size',logoSize+'px');
@@ -28,6 +28,26 @@ function renderHeroSlider(){const box=$('#homeSlider'),track=$('#homeSliderTrack
 function goHeroSlide(i){const slides=activeHeroSlides();if(!slides.length)return;heroSlideIndex=(Number(i)+slides.length)%slides.length;$$('.home-slide').forEach((el,n)=>el.classList.toggle('active',n===heroSlideIndex));$$('.home-slider-dot').forEach((el,n)=>el.classList.toggle('active',n===heroSlideIndex));startHeroAutoplay()}
 function shiftHeroSlide(d){goHeroSlide(heroSlideIndex+Number(d||0))}
 function startHeroAutoplay(){if(heroSlideTimer)clearInterval(heroSlideTimer);const slides=activeHeroSlides();if(slides.length>1)heroSlideTimer=setInterval(()=>goHeroSlide(heroSlideIndex+1),5000)}
+
+
+let parkentLeafletMap=null;
+const PARKENT_RELATION_ID='5745823';
+const PARKENT_FALLBACK=[
+ [41.447,69.620],[41.455,69.661],[41.446,69.688],[41.461,69.721],[41.471,69.764],[41.457,69.817],[41.421,69.819],[41.395,69.806],[41.365,69.801],[41.342,69.820],[41.309,69.806],[41.287,69.788],[41.255,69.773],[41.225,69.746],[41.197,69.708],[41.176,69.673],[41.194,69.642],[41.224,69.627],[41.249,69.602],[41.279,69.590],[41.300,69.568],[41.331,69.570],[41.358,69.556],[41.386,69.568],[41.411,69.584],[41.429,69.604]
+];
+function initParkentBoundaryMap(){
+ const el=$('#parkentBoundaryMap'); if(!el||parkentLeafletMap||typeof window.L==='undefined')return;
+ parkentLeafletMap=L.map(el,{scrollWheelZoom:false,zoomControl:true,attributionControl:true});
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap contributors'}).addTo(parkentLeafletMap);
+ const style={color:'#ef2d2d',weight:4,opacity:1,dashArray:'6 6',fillColor:'#46cf63',fillOpacity:.26};
+ const label=L.divIcon({className:'parkent-map-label',html:'<b>Parkent tumani</b><span>BEPUL YETKAZIB BERISH</span>',iconSize:[180,56],iconAnchor:[90,28]});
+ const useFallback=()=>{const layer=L.polygon(PARKENT_FALLBACK,style).addTo(parkentLeafletMap);parkentLeafletMap.fitBounds(layer.getBounds(),{padding:[22,22]});L.marker([41.30,69.68],{icon:label,interactive:false}).addTo(parkentLeafletMap);};
+ fetch('https://nominatim.openstreetmap.org/lookup?osm_ids=R'+PARKENT_RELATION_ID+'&format=geojson&polygon_geojson=1',{headers:{'Accept':'application/geo+json,application/json'}})
+  .then(r=>{if(!r.ok)throw new Error('boundary');return r.json()})
+  .then(g=>{const features=g?.features||[];if(!features.length)throw new Error('empty');const layer=L.geoJSON(g,{style}).addTo(parkentLeafletMap);const bounds=layer.getBounds();if(!bounds.isValid())throw new Error('bounds');parkentLeafletMap.fitBounds(bounds,{padding:[22,22]});L.marker(bounds.getCenter(),{icon:label,interactive:false}).addTo(parkentLeafletMap)})
+  .catch(useFallback);
+ setTimeout(()=>parkentLeafletMap.invalidateSize(),200);
+}
 
 function formatPhone(p){const d=String(p).replace(/\D/g,'');if(d.length===12)return `+${d.slice(0,3)} ${d.slice(3,5)} ${d.slice(5,8)} ${d.slice(8,10)} ${d.slice(10)}`;return p}
 function renderAll(){renderHeroSlider();renderCategories();renderProducts();renderCart();renderFavCount();}

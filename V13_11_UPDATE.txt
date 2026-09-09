@@ -1,0 +1,9 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ V13.11
+
+- Parkent xaritasi qayta ishlangan.
+- Parkent tumani OSM relation 5745823 bo‘yicha aniq ma’muriy chegara olinadi.
+- Bepul yetkazib berish hududi yashil fon + qizil punktir chegara bilan ko‘rsatiladi.
+- Xarita sarlavhasi: “Yetkazib berish bepul hududlar”.
+- Xarita legendasi qo‘shildi: Parkent tumani = bepul yetkazib berish.
+- OSM/Nominatim vaqtincha ishlamasa fallback chegara ko‘rsatiladi.
+- V13.10 slider/admin va V13.9 mahsulot so‘rovlari saqlangan.

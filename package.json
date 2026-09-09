@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.10.0",
+  "version": "13.11.0",
   "private": true,
-  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.10 — Parkent nature slider (up to 5 images), admin slider management, product requests, Telegram, full store",
+  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.11 — Parkent district free-delivery boundary map, hero slider, admin management, product requests, Telegram, full store",
   "scripts": {
     "start": "node server.js"
   },
