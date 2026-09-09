@@ -1,0 +1,15 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ V13.13
+
+YANGI: DOIMIY MA'LUMOTLAR BAZASI
+- PostgreSQL orqali mahsulotlar, buyurtmalar, mahsulot so'rovlari, promo kodlar, admin sozlamalari va audit doimiy saqlanadi.
+- DATABASE_URL mavjud bo'lsa PostgreSQL ishlaydi.
+- DATABASE_URL yo'q bo'lsa eski local shop.json fallback ishlaydi.
+- Birinchi ishga tushishda shop_state jadvali avtomatik yaratiladi.
+- /api/status orqali storage va persistent holatini tekshirish mumkin.
+
+RENDER ENV:
+DATABASE_URL=<PostgreSQL connection string>
+DATABASE_SSL=true
+
+MUHIM:
+Birinchi database deploydan oldin Admin -> Audit/Backup orqali backup JSON yuklab oling. Deploydan keyin kerak bo'lsa Restore bilan tiklang.
