@@ -38,6 +38,102 @@ const USERS = [
 ];
 
 app.use(express.json({limit:'12mb'}));
+
+// V13.16 PRODUCT SEO — har bir mahsulot uchun Google indekslaydigan alohida sahifa.
+function seoSlug(value=''){
+  return String(value||'')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[ʻʼ‘’`´']/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')
+    .slice(0,90) || 'mahsulot';
+}
+function productSlug(p){return `${seoSlug(p?.name?.uz || p?.name?.ru || p?.name?.en || 'mahsulot')}-${Number(p?.id)||0}`;}
+function htmlEsc(v=''){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function xmlEsc(v=''){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
+function productBySlug(db,slug){
+  const idMatch=String(slug||'').match(/-(\d+)$/);
+  if(idMatch){
+    const p=(db.products||[]).find(x=>Number(x.id)===Number(idMatch[1]));
+    if(p)return p;
+  }
+  return (db.products||[]).find(p=>productSlug(p)===String(slug||''));
+}
+function productCategory(db,p){return (db.categories||[]).find(c=>String(c.id)===String(p?.cat)) || {name:{uz:'Mahsulot'}};}
+function productDescription(db,p){
+  const cat=productCategory(db,p)?.name?.uz || 'mahsulot';
+  const name=p?.name?.uz || 'Mahsulot';
+  const stock=Number(p?.stock||0)>0?'sotuvda mavjud':'hozircha omborda yo‘q';
+  return `${name} — ${cat}. Narxi ${Number(p?.price||0).toLocaleString('ru-RU')} so‘m. ${stock}. Parkent tumani bo‘ylab bepul yetkazib berish. ZARBULOQ.UZ internet do‘koni.`;
+}
+function productImageUrl(p){
+  const img=String(p?.image||'');
+  if(!img)return 'https://zarbuloq.uz/logo.png';
+  if(/^data:image\//i.test(img))return `https://zarbuloq.uz/mahsulot-rasm/${Number(p.id)}`;
+  if(/^https?:\/\//i.test(img))return img;
+  return `https://zarbuloq.uz/${img.replace(/^\/+/, '')}`;
+}
+
+app.get('/sitemap.xml',(req,res)=>{
+  const db=readDb();
+  const urls=[
+    `<url><loc>https://zarbuloq.uz/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+    ...(db.products||[]).map(p=>`<url><loc>${xmlEsc(`https://zarbuloq.uz/mahsulot/${productSlug(p)}`)}</loc><changefreq>daily</changefreq><priority>0.9</priority></url>`)
+  ];
+  res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`);
+});
+
+app.get('/mahsulot-rasm/:id',(req,res)=>{
+  const db=readDb();
+  const p=(db.products||[]).find(x=>Number(x.id)===Number(req.params.id));
+  if(!p)return res.status(404).end();
+  const img=String(p.image||'');
+  const m=img.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,(.+)$/i);
+  if(!m)return res.redirect(302,'/logo.png');
+  try{
+    const mime=m[1].toLowerCase()==='image/jpg'?'image/jpeg':m[1].toLowerCase();
+    const buf=Buffer.from(m[2],'base64');
+    res.setHeader('Content-Type',mime);
+    res.setHeader('Cache-Control','public, max-age=86400');
+    res.send(buf);
+  }catch{return res.status(404).end();}
+});
+
+app.get('/mahsulot/:slug',(req,res)=>{
+  const db=readDb();
+  const p=productBySlug(db,req.params.slug);
+  if(!p)return res.status(404).send('<!doctype html><meta charset="utf-8"><title>Mahsulot topilmadi</title><h1>Mahsulot topilmadi</h1><p><a href="/">ZARBULOQ.UZ bosh sahifaga qaytish</a></p>');
+  const canonicalSlug=productSlug(p);
+  if(req.params.slug!==canonicalSlug)return res.redirect(301,`/mahsulot/${canonicalSlug}`);
+  const name=p.name?.uz || p.name?.ru || p.name?.en || 'Mahsulot';
+  const cat=productCategory(db,p)?.name?.uz || 'Mahsulot';
+  const desc=productDescription(db,p);
+  const img=productImageUrl(p);
+  const price=Math.max(0,Number(p.price)||0);
+  const stock=Math.max(0,Number(p.stock)||0);
+  const availability=stock>0?'https://schema.org/InStock':'https://schema.org/OutOfStock';
+  const url=`https://zarbuloq.uz/mahsulot/${canonicalSlug}`;
+  const schema={
+    '@context':'https://schema.org','@type':'Product',name,description:desc,image:[img],sku:String(p.id),category:cat,
+    brand:{'@type':'Brand',name:'IMOM OTA BARAKA'},
+    offers:{'@type':'Offer',url,priceCurrency:'UZS',price:String(price),availability,itemCondition:'https://schema.org/NewCondition',seller:{'@type':'Organization',name:'IMOM OTA BARAKA'}}
+  };
+  const oldPrice=Number(p.oldPrice||0)>price?`<span class="old">${Number(p.oldPrice).toLocaleString('ru-RU')} so‘m</span>`:'';
+  const stockText=stock>0?`Omborda: ${stock}`:'Hozircha omborda yo‘q';
+  res.type('html').send(`<!doctype html>
+<html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${htmlEsc(name)} narxi | ZARBULOQ.UZ</title>
+<meta name="description" content="${htmlEsc(desc)}"><meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="${htmlEsc(url)}"><meta property="og:type" content="product"><meta property="og:title" content="${htmlEsc(name)} — ZARBULOQ.UZ"><meta property="og:description" content="${htmlEsc(desc)}"><meta property="og:url" content="${htmlEsc(url)}"><meta property="og:image" content="${htmlEsc(img)}">
+<script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script>
+<style>body{margin:0;font-family:Arial,sans-serif;background:#f5faf5;color:#17351f}.wrap{max-width:1100px;margin:auto;padding:22px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.top img{width:58px;height:58px;object-fit:contain}.top a{text-decoration:none;color:#17351f}.card{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1fr);gap:34px;background:#fff;border-radius:24px;padding:28px;box-shadow:0 12px 40px #17351f12}.media{min-height:420px;display:flex;align-items:center;justify-content:center;background:#f3f7f3;border-radius:18px;overflow:hidden}.media img{max-width:100%;max-height:480px;object-fit:contain}.cat{color:#2a7b3f;font-weight:700}.price{font-size:32px;font-weight:800;margin:16px 0}.old{text-decoration:line-through;color:#888;font-size:16px;margin-right:10px}.stock{display:inline-block;padding:8px 12px;border-radius:999px;background:#eaf6ec}.desc{line-height:1.65;color:#48604e}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:12px;padding:14px 20px;font-weight:700;cursor:pointer;text-decoration:none}.primary{background:#1f6b35;color:white}.secondary{background:#edf5ee;color:#17351f}@media(max-width:760px){.card{grid-template-columns:1fr;padding:18px}.media{min-height:300px}.price{font-size:27px}}</style></head>
+<body><main class="wrap"><header class="top"><a href="/"><img src="/logo.png" alt="IMOM OTA BARAKA"></a><div><a href="/"><b>ZARBULOQ.UZ</b></a><div>IMOM OTA BARAKA internet do‘koni</div></div></header>
+<section class="card"><div class="media"><img src="${htmlEsc(img)}" alt="${htmlEsc(name)}" loading="eager"></div><div><div class="cat">${htmlEsc(cat)}</div><h1>${htmlEsc(name)}</h1><p class="desc">${htmlEsc(desc)}</p><div class="price">${oldPrice}${price.toLocaleString('ru-RU')} so‘m</div><div class="stock">${htmlEsc(stockText)}</div><div class="actions">${stock>0?`<button class="btn primary" onclick="addToCartAndOpen()">Savatga qo‘shish</button>`:''}<a class="btn secondary" href="/#products">Barcha mahsulotlar</a></div></div></section></main>
+<script>function addToCartAndOpen(){try{const id=${JSON.stringify(Number(p.id))},stock=${JSON.stringify(stock)};let cart=JSON.parse(localStorage.getItem('iob_cart_v13')||'[]');let x=cart.find(a=>Number(a.id)===id);if(x){if(Number(x.qty)>=stock){alert('Ombordagi maksimal miqdor savatda.');return}x.qty=Number(x.qty||0)+1}else cart.push({id:id,qty:1});localStorage.setItem('iob_cart_v13',JSON.stringify(cart));window.location.href='/#products'}catch(e){window.location.href='/#products'}}</script></body></html>`);
+});
+
 app.use(express.static(__dirname));
 
 const defaultCategories=[
@@ -62,6 +158,7 @@ const defaultSettings={
  map:{eyebrow:'BEPUL YETKAZIB BERISH HUDUDI',title:'Yetkazib berish bepul hududlar',text:'Xaritada yashil rang va qizil chegara bilan ko‘rsatilgan Parkent tumani hududlarida yetkazib berish bepul. Buyurtma vaqtida manzilingizni tanlang yoki aniq GPS lokatsiyangizni yuboring.',embedUrl:'',openUrl:'https://www.openstreetmap.org/relation/5745823'},
  footer:{service1:'Parkent tumani — bepul',service2:'Naqd / karta / o‘tkazma',copyright:'© 2026 IMOM OTA BARAKA • ZARBULOQ.UZ'},
  ui:{logoSize:68},
+ testMode:{active:true,text:'Saytimiz hozirda test rejimida ishlamoqda'},
  heroSlides:[{id:'slide-1',image:'parkent-slide-1.webp',active:true}],
  phone:'+998901361211',telegram:'https://t.me/imomotabaraka',email:'info@imomotamarket.uz',
  delivery:{free:true,district:'Parkent tumani',areas:['Parkent shahri','Chinor','Zarkent','So‘qoq','Kumushkon','Nevich','Boshqizilsoy','Changi','Qoraqalpoq','Nomdanak'],slots:['09:00–12:00','12:00–15:00','15:00–18:00','18:00–21:00']},
@@ -69,9 +166,9 @@ const defaultSettings={
 };
 const defaultPromos=[{code:'BARAKA5',type:'percent',value:5,minTotal:150000,active:true,usageLimit:100,used:0,expires:''}];
 
-function initialDb(){return {products:defaultProducts,categories:defaultCategories,settings:defaultSettings,logo:'',orders:[],productRequests:[],promos:defaultPromos,audit:[]};}
+function initialDb(){return {products:defaultProducts,categories:defaultCategories,settings:defaultSettings,logo:'',orders:[],productRequests:[],chats:[],promos:defaultPromos,audit:[]};}
 function normalizeDb(db){
- const merged={...initialDb(),...(db||{}),settings:{...defaultSettings,...(db?.settings||{}),delivery:{...defaultSettings.delivery,...(db?.settings?.delivery||{})},seo:{...defaultSettings.seo,...(db?.settings?.seo||{})},company:{...defaultSettings.company,...(db?.settings?.company||{})},map:{...defaultSettings.map,...(db?.settings?.map||{})},footer:{...defaultSettings.footer,...(db?.settings?.footer||{})},ui:{...defaultSettings.ui,...(db?.settings?.ui||{})}},promos:Array.isArray(db?.promos)?db.promos:defaultPromos,audit:Array.isArray(db?.audit)?db.audit:[]};
+ const merged={...initialDb(),...(db||{}),settings:{...defaultSettings,...(db?.settings||{}),delivery:{...defaultSettings.delivery,...(db?.settings?.delivery||{})},seo:{...defaultSettings.seo,...(db?.settings?.seo||{})},company:{...defaultSettings.company,...(db?.settings?.company||{})},map:{...defaultSettings.map,...(db?.settings?.map||{})},footer:{...defaultSettings.footer,...(db?.settings?.footer||{})},ui:{...defaultSettings.ui,...(db?.settings?.ui||{})},testMode:{...defaultSettings.testMode,...(db?.settings?.testMode||{})}},chats:Array.isArray(db?.chats)?db.chats:[],promos:Array.isArray(db?.promos)?db.promos:defaultPromos,audit:Array.isArray(db?.audit)?db.audit:[]};
  const dom=String(merged.settings.siteDomain||'').toLowerCase();
  if(['velora.uz','barkamarket.uz','barakamarket.uz','imomotamarket.uz'].includes(dom))merged.settings.siteDomain='zarbuloq.uz';
  if(merged.settings.map?.title==='Parkent tumani xaritasi')merged.settings.map.title='Yetkazib berish bepul hududlar';
@@ -137,7 +234,7 @@ function validatePromo(db,code,subtotal){const c=String(code||'').trim().toUpper
 function getCustomers(orders){const m=new Map();for(const o of orders){const phone=String(o.customer?.phone||'').replace(/\D/g,'');if(!phone)continue;const c=m.get(phone)||{name:o.customer?.name||'',phone:o.customer?.phone||'',orders:0,total:0,lastOrder:'',areas:{}};c.orders++;if(o.status==='done')c.total+=Number(o.total||0);if(!c.lastOrder||String(o.createdAt)>c.lastOrder)c.lastOrder=o.createdAt;c.areas[o.customer?.area||'Noma’lum']=(c.areas[o.customer?.area||'Noma’lum']||0)+1;m.set(phone,c);}return [...m.values()].sort((a,b)=>b.total-a.total);}
 
 app.get('/health',(req,res)=>res.status(200).send('OK'));
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.15.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.17.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -168,6 +265,14 @@ app.post('/api/product-requests',async(req,res)=>{
  }catch(e){console.error(e);res.status(500).json({error:'So‘rovni yuborib bo‘lmadi'})}
 });
 
+// V13.17 — sayt ichidagi mijoz ↔ admin LIVE chat
+function chatId(v=''){return clean(v,90).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,90)}
+function publicChatView(c){return {sessionId:c.sessionId,name:c.name||'',phone:c.phone||'',updatedAt:c.updatedAt||c.createdAt,messages:(c.messages||[]).slice(-200).map(m=>({id:m.id,from:m.from,text:m.text,createdAt:m.createdAt}))}}
+app.get('/api/chat/:sessionId',(req,res)=>{const id=chatId(req.params.sessionId);if(!id)return res.status(400).json({error:'Chat ID noto‘g‘ri'});const db=readDb(),c=(db.chats||[]).find(x=>x.sessionId===id);res.json(c?publicChatView(c):{sessionId:id,messages:[]})});
+app.post('/api/chat/send',async(req,res)=>{const id=chatId(req.body?.sessionId),text=clean(req.body?.message,1200),name=clean(req.body?.name,80),phone=clean(req.body?.phone,30);if(!id||!text)return res.status(400).json({error:'Xabar yozing'});const db=readDb();db.chats=db.chats||[];let c=db.chats.find(x=>x.sessionId===id);if(!c){c={sessionId:id,name,phone,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),unreadAdmin:0,messages:[]};db.chats.unshift(c)}if(name)c.name=name;if(phone)c.phone=phone;c.updatedAt=new Date().toISOString();c.unreadAdmin=Number(c.unreadAdmin||0)+1;c.messages=c.messages||[];c.messages.push({id:'m-'+Date.now()+'-'+crypto.randomInt(100,999),from:'customer',text,createdAt:new Date().toISOString()});c.messages=c.messages.slice(-300);db.chats=db.chats.slice(0,500);audit(db,'customer','Chat xabari',id);await writeDb(db);res.json({ok:true,chat:publicChatView(c)})});
+app.post('/api/admin/chats/:sessionId/send',requireAdmin,async(req,res)=>{const id=chatId(req.params.sessionId),text=clean(req.body?.message,1200);if(!id||!text)return res.status(400).json({error:'Xabar yozing'});const db=readDb(),c=(db.chats||[]).find(x=>x.sessionId===id);if(!c)return res.status(404).json({error:'Chat topilmadi'});c.messages=c.messages||[];c.messages.push({id:'m-'+Date.now()+'-'+crypto.randomInt(100,999),from:'admin',text,createdAt:new Date().toISOString(),actor:req.adminUser});c.messages=c.messages.slice(-300);c.updatedAt=new Date().toISOString();c.unreadAdmin=0;audit(db,req.adminUser,'Chat javobi',id);await writeDb(db);res.json({ok:true})});
+app.patch('/api/admin/chats/:sessionId/read',requireAdmin,async(req,res)=>{const id=chatId(req.params.sessionId),db=readDb(),c=(db.chats||[]).find(x=>x.sessionId===id);if(c){c.unreadAdmin=0;await writeDb(db)}res.json({ok:true})});
+
 app.post('/api/admin/login',(req,res)=>{const u=clean(req.body?.username,80),p=String(req.body?.password||'');const found=USERS.find(x=>x.username===u&&x.password===p);if(!found)return res.status(401).json({error:'Login yoki parol noto‘g‘ri'});const exp=Date.now()+12*60*60*1000;res.setHeader('Set-Cookie',`iob_admin=${signSession(found.username,found.role,exp)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200${process.env.NODE_ENV==='production'?'; Secure':''}`);res.json({ok:true,user:found.username,role:found.role});});
 app.post('/api/admin/logout',(req,res)=>{res.setHeader('Set-Cookie','iob_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');res.json({ok:true});});
 app.get('/api/admin/me',requireAdmin,(req,res)=>res.json({ok:true,user:req.adminUser,role:req.adminRole}));
@@ -179,7 +284,7 @@ app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
  const topMap={};for(const o of done)for(const i of o.items||[]){topMap[i.name]=(topMap[i.name]||0)+Number(i.qty||1)}
  const areaMap={};for(const o of orders){const a=o.customer?.area||'Noma’lum';areaMap[a]=(areaMap[a]||0)+1}
  const last7=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=d.toISOString().slice(0,10);last7.push({date:key,revenue:done.filter(o=>String(o.createdAt).slice(0,10)===key).reduce((s,o)=>s+Number(o.total||0),0),orders:orders.filter(o=>String(o.createdAt).slice(0,10)===key).length});}
- res.json({role:req.adminRole,productRequests:(db.productRequests||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','delivery'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],audit:(db.audit||[]).slice(0,500),charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
+ res.json({role:req.adminRole,productRequests:(db.productRequests||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','delivery'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],audit:(db.audit||[]).slice(0,500),charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
 });
 app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120),en:clean(p.name?.en,120)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Math.floor(Number(p.stock)||0)),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100);if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
 app.patch('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),r=(db.productRequests||[]).find(x=>x.requestId===req.params.id);if(!r)return res.status(404).json({error:'So‘rov topilmadi'});const st=clean(req.body?.status,30);if(!['new','working','found','closed'].includes(st))return res.status(400).json({error:'Status noto‘g‘ri'});r.status=st;r.updatedAt=new Date().toISOString();audit(db,req.adminUser,'Mahsulot so‘rovi statusi',`${r.requestId}: ${st}`);await writeDb(db);res.json({ok:true});});
@@ -196,10 +301,15 @@ app.get('/api/admin/reports.xls',requireAdmin,(req,res)=>{
  res.setHeader('Content-Type','application/vnd.ms-excel; charset=utf-8');res.setHeader('Content-Disposition',`attachment; filename="zarbuloq-report-${Date.now()}.xls"`);res.send('\ufeff'+html);
 });
 
+function pointInParkentFallback(lat,lng){
+ const poly=[[41.447,69.620],[41.455,69.661],[41.446,69.688],[41.461,69.721],[41.471,69.764],[41.457,69.817],[41.421,69.819],[41.395,69.806],[41.365,69.801],[41.342,69.820],[41.309,69.806],[41.287,69.788],[41.255,69.773],[41.225,69.746],[41.197,69.708],[41.176,69.673],[41.194,69.642],[41.224,69.627],[41.249,69.602],[41.279,69.590],[41.300,69.568],[41.331,69.570],[41.358,69.556],[41.386,69.568],[41.411,69.584],[41.429,69.604]];
+ let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const yi=poly[i][0],xi=poly[i][1],yj=poly[j][0],xj=poly[j][1];if(((yi>lat)!=(yj>lat))&&(lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi))inside=!inside}return inside;
+}
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
  if(!(db.settings?.delivery?.areas||[]).includes(customer.area))return res.status(400).json({error:'Yetkazib berish hududini tanlang'});
+ const lat=Number(customer.lat),lng=Number(customer.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return res.status(400).json({error:'Buyurtma uchun GPS lokatsiya majburiy'});if(!pointInParkentFallback(lat,lng))return res.status(400).json({error:'Buyurtma faqat Parkent tumani hududida qabul qilinadi'});
  const finalItems=[];let subtotal=0;
  for(const i of items){const p=(db.products||[]).find(x=>Number(x.id)===Number(i.id));if(!p)continue;const qty=Math.max(1,Math.floor(Number(i.qty)||1));if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:Number(p.price||0),qty});subtotal+=Number(p.price||0)*qty;}
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});
@@ -226,7 +336,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.15 SEO REALTIME ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.17 PRODUCT SEO + TEST MODE + LIVE CHAT ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

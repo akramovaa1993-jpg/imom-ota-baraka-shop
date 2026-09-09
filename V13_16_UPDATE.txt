@@ -1,0 +1,12 @@
+V13.16 PRODUCT SEO — ZARBULOQ.UZ
+
+- Admin panelda yaratilgan HAR QANDAY mahsulot uchun avtomatik SEO sahifa:
+  /mahsulot/mahsulot-nomi-ID
+- Mahsulot nomi o‘zgarsa eski URL yangi canonical URLga 301 yo‘naltiriladi.
+- Dynamic sitemap.xml: bosh sahifa + barcha joriy mahsulotlar avtomatik.
+- Schema.org Product + Offer structured data.
+- Google uchun narx, mavjudlik, kategoriya, rasm, canonical va Open Graph.
+- Admin yuklagan base64 mahsulot rasmlari Google ko‘ra oladigan /mahsulot-rasm/ID endpoint orqali beriladi.
+- Katalogdagi mahsulot nomlari alohida SEO sahifaga ichki link bo‘ladi.
+- Mahsulot o‘chirilsa sitemapdan avtomatik yo‘qoladi.
+- REALTIME, PostgreSQL va Telegram funksiyalari saqlanadi.

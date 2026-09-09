@@ -1,0 +1,13 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ
+V13.17 PRODUCT SEO + TEST MODE + LIVE CHAT
+
+YANGILIKLAR:
+1. Saytning eng yuqori qismida “Saytimiz hozirda test rejimida ishlamoqda” banneri.
+2. Admin panel → Sahifalar / SEO orqali test bannerini yoqish/o‘chirish va matnini o‘zgartirish mumkin.
+3. Aloqa bo‘limiga sayt ichidagi LIVE chat qo‘shildi.
+4. Mijoz ism/telefon (ixtiyoriy) va xabar yuborishi mumkin.
+5. Admin panelda yangi “LIVE chat” bo‘limi mavjud; admin mijozga shu yerdan javob beradi.
+6. Chat xabarlari SSE orqali avtomatik yangilanadi.
+7. Chatlar PostgreSQL bazada saqlanadi (DATABASE_URL mavjud bo‘lsa).
+8. V13.16 dagi avtomatik Product SEO va dynamic sitemap saqlangan.
+9. Telegram, buyurtmalar, slayder, mahsulot so‘rovlari, admin panel, PostgreSQL va REALTIME funksiyalar saqlangan.
