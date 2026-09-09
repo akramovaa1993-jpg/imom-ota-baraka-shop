@@ -1,0 +1,7 @@
+V13.17 GPS MAP FIX
+
+- Lokatsiya tugmasi bosilganda aniqlangan joy Google Maps xaritasida marker bilan ko‘rinadi.
+- GPS aniqligi metrda ko‘rsatiladi.
+- Parkent tumani tekshiruvi OSM relation 5745823 real ma’muriy chegarasi orqali serverda bajariladi.
+- Buyurtma server tomonda ham Parkent hududiga qat’iy tekshiriladi.
+- Parkent tashqarisida buyurtma tugmasi bloklanadi.

@@ -1,0 +1,6 @@
+IMOM OTA BARAKA V13.17 — KATALOG YANGILANISHI
+
+- “Tavsiya etiladi / Narx: arzon / Narx: qimmat / Yangi” saralash tugmalari olib tashlandi.
+- Ularning o‘rnida dinamik kategoriya tugmalari ko‘rsatiladi: Barchasi va Admin paneldagi kategoriyalar.
+- Kategoriya tugmalarida emoji ishlatilmaydi.
+- Mahsulotlar, GPS Parkent tekshiruvi, realtime chat, PostgreSQL va Product SEO saqlanib qoldi.

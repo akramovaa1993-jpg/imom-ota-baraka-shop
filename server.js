@@ -305,11 +305,42 @@ function pointInParkentFallback(lat,lng){
  const poly=[[41.447,69.620],[41.455,69.661],[41.446,69.688],[41.461,69.721],[41.471,69.764],[41.457,69.817],[41.421,69.819],[41.395,69.806],[41.365,69.801],[41.342,69.820],[41.309,69.806],[41.287,69.788],[41.255,69.773],[41.225,69.746],[41.197,69.708],[41.176,69.673],[41.194,69.642],[41.224,69.627],[41.249,69.602],[41.279,69.590],[41.300,69.568],[41.331,69.570],[41.358,69.556],[41.386,69.568],[41.411,69.584],[41.429,69.604]];
  let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const yi=poly[i][0],xi=poly[i][1],yj=poly[j][0],xj=poly[j][1];if(((yi>lat)!=(yj>lat))&&(lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi))inside=!inside}return inside;
 }
+
+function pointInRingGeo(lat,lng,ring){
+ let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+  const xi=Number(ring[i][0]),yi=Number(ring[i][1]),xj=Number(ring[j][0]),yj=Number(ring[j][1]);
+  const hit=((yi>lat)!=(yj>lat))&&(lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi);if(hit)inside=!inside;
+ }return inside;
+}
+function pointInGeoJSON(lat,lng,geom){
+ if(!geom)return false;
+ const poly=c=>Array.isArray(c)&&c.length&&pointInRingGeo(lat,lng,c[0])&&!c.slice(1).some(h=>pointInRingGeo(lat,lng,h));
+ if(geom.type==='Polygon')return poly(geom.coordinates);
+ if(geom.type==='MultiPolygon')return (geom.coordinates||[]).some(poly);
+ return false;
+}
+let parkentGeometryCache={geometry:null,expires:0};
+async function fetchParkentGeometry(){
+ if(parkentGeometryCache.geometry&&Date.now()<parkentGeometryCache.expires)return parkentGeometryCache.geometry;
+ const u='https://nominatim.openstreetmap.org/lookup?osm_ids=R5745823&format=geojson&polygon_geojson=1';
+ const r=await fetch(u,{headers:{'User-Agent':'Zarbuloq/13.17 (info@imomotamarket.uz)','Accept':'application/geo+json,application/json','Accept-Language':'uz,en;q=0.8'}});
+ if(!r.ok)throw new Error('Parkent boundary lookup failed');
+ const g=await r.json(),geom=g?.features?.[0]?.geometry;if(!geom)throw new Error('Parkent boundary missing');
+ parkentGeometryCache={geometry:geom,expires:Date.now()+6*60*60*1000};return geom;
+}
+async function checkParkentLocation(lat,lng){
+ try{const geom=await fetchParkentGeometry();return pointInGeoJSON(lat,lng,geom)}catch(e){console.error('Parkent geometry check:',e.message||e);return pointInParkentFallback(lat,lng)}
+}
+app.get('/api/geo/parkent-check',async(req,res)=>{
+ const lat=Number(req.query.lat),lng=Number(req.query.lng);
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat<-90||lat>90||lng<-180||lng>180)return res.status(400).json({error:'Noto‘g‘ri koordinata'});
+ try{const inside=await checkParkentLocation(lat,lng);res.json({ok:true,inside,lat,lng})}catch(e){res.status(503).json({error:'Hududni tekshirib bo‘lmadi'})}
+});
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
  if(!(db.settings?.delivery?.areas||[]).includes(customer.area))return res.status(400).json({error:'Yetkazib berish hududini tanlang'});
- const lat=Number(customer.lat),lng=Number(customer.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return res.status(400).json({error:'Buyurtma uchun GPS lokatsiya majburiy'});if(!pointInParkentFallback(lat,lng))return res.status(400).json({error:'Buyurtma faqat Parkent tumani hududida qabul qilinadi'});
+ const lat=Number(customer.lat),lng=Number(customer.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return res.status(400).json({error:'Buyurtma uchun GPS lokatsiya majburiy'});if(!(await checkParkentLocation(lat,lng)))return res.status(400).json({error:'Buyurtma faqat Parkent tumani hududida qabul qilinadi'});
  const finalItems=[];let subtotal=0;
  for(const i of items){const p=(db.products||[]).find(x=>Number(x.id)===Number(i.id));if(!p)continue;const qty=Math.max(1,Math.floor(Number(i.qty)||1));if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:Number(p.price||0),qty});subtotal+=Number(p.price||0)*qty;}
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});

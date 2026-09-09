@@ -158,3 +158,15 @@ body[data-theme="classic"]{--green:#31513e;--green2:#4b7059;--bg:#f7f1e6;--line:
 
 /* V13.17 — compact realtime Chat launcher */
 .contact-chat-layout{grid-template-columns:1fr!important}.contact-chat-cta{margin-top:16px}.chat-launcher{position:fixed;right:22px;bottom:22px;z-index:1600;border:0;border-radius:999px;background:#07584c;color:#fff;font-weight:900;font-size:16px;padding:14px 22px;box-shadow:0 14px 34px rgba(7,88,76,.28);cursor:pointer}.site-chat-popup{display:none;position:fixed;right:22px;bottom:82px;width:min(390px,calc(100vw - 28px));z-index:1599}.site-chat-popup.open{display:block}.site-chat-popup .site-chat-card{box-shadow:0 22px 60px rgba(0,0,0,.20)}.chat-head-actions{display:flex;align-items:center;gap:8px}.chat-close{width:32px;height:32px;border:0;border-radius:50%;background:#eef5f2;color:#173f32;font-size:23px;line-height:1;cursor:pointer}@media(max-width:560px){.chat-launcher{right:14px;bottom:14px}.site-chat-popup{right:14px;bottom:70px;width:calc(100vw - 28px)}.site-chat-popup .site-chat-messages{height:42vh}}
+
+.checkout-location-map{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(7,88,76,.08)}.checkout-location-map[hidden]{display:none}.checkout-location-map iframe{display:block;width:100%;height:260px;border:0}.checkout-location-meta{display:grid;gap:4px;padding:10px 12px;font-size:12px}.checkout-location-meta b{color:var(--green)}.checkout-location-meta span{color:var(--muted)}.checkout-location-meta a{color:var(--green2);font-weight:900}
+
+/* V13.17 catalog category layout — approved */
+.product-first .catalog-head{display:block;margin-bottom:24px}
+.product-first .catalog-title-wrap{display:grid;gap:16px}
+.product-first #catalogEyebrow{font-size:14px;letter-spacing:2.6px;color:var(--green);font-weight:900}
+.product-first .catalog-category-filters{justify-content:flex-start;gap:12px;margin-top:0;max-width:none}
+.product-first .catalog-category-filters .filter{padding:12px 22px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:900;transition:.2s}
+.product-first .catalog-category-filters .filter:hover{border-color:#a9d9ca;transform:translateY(-1px)}
+.product-first .catalog-category-filters .filter.active{background:linear-gradient(135deg,var(--green2),var(--green));color:#fff;border-color:transparent;box-shadow:0 10px 24px rgba(7,88,76,.16)}
+@media(max-width:560px){.product-first .catalog-category-filters{gap:8px}.product-first .catalog-category-filters .filter{padding:10px 14px;font-size:12px}}
