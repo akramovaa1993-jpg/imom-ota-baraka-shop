@@ -1,0 +1,15 @@
+V13.15 SEO — ZARBULOQ.UZ
+
+Qo‘shildi:
+- sitemap.xml — Google Search Console uchun
+- robots.txt — Googlebot uchun crawl qoidalari va sitemap manzili
+- OnlineStore JSON-LD structured data
+- Open Graph logo absolute URL
+- V13.14 REALTIME va PostgreSQL funksiyalari saqlab qolindi
+
+Deploydan keyin tekshiring:
+https://zarbuloq.uz/sitemap.xml
+https://zarbuloq.uz/robots.txt
+
+Search Console > Fayllar Sitemap:
+https://zarbuloq.uz/sitemap.xml
