@@ -19,6 +19,18 @@ const pool = DATABASE_URL ? new Pool({connectionString:DATABASE_URL,ssl:DATABASE
 let dbCache = null;
 let persistChain = Promise.resolve();
 
+// V13.14 REALTIME — Server-Sent Events (SSE)
+// Only a tiny change signal is broadcast. Clients fetch fresh data through normal APIs.
+const realtimeClients = new Set();
+let realtimeRevision = 0;
+function broadcastRealtime(reason='data'){
+  realtimeRevision += 1;
+  const payload = `event: update\ndata: ${JSON.stringify({reason,revision:realtimeRevision,at:new Date().toISOString()})}\n\n`;
+  for(const res of [...realtimeClients]){
+    try{res.write(payload)}catch{realtimeClients.delete(res)}
+  }
+}
+
 const USERS = [
   {username:process.env.ADMIN_USERNAME || 'admin', password:process.env.ADMIN_PASSWORD || 'change-me', role:'admin'},
   ...(process.env.OPERATOR_USERNAME && process.env.OPERATOR_PASSWORD ? [{username:process.env.OPERATOR_USERNAME,password:process.env.OPERATOR_PASSWORD,role:'operator'}] : []),
@@ -91,6 +103,7 @@ async function writeDb(db){
   persistChain=persistChain.catch(()=>{}).then(()=>persistRemote(snapshot));
   await persistChain;
  }
+ broadcastRealtime('data-changed');
 }
 async function initStorage(){
  fs.mkdirSync(DATA_DIR,{recursive:true});
@@ -124,7 +137,18 @@ function validatePromo(db,code,subtotal){const c=String(code||'').trim().toUpper
 function getCustomers(orders){const m=new Map();for(const o of orders){const phone=String(o.customer?.phone||'').replace(/\D/g,'');if(!phone)continue;const c=m.get(phone)||{name:o.customer?.name||'',phone:o.customer?.phone||'',orders:0,total:0,lastOrder:'',areas:{}};c.orders++;if(o.status==='done')c.total+=Number(o.total||0);if(!c.lastOrder||String(o.createdAt)>c.lastOrder)c.lastOrder=o.createdAt;c.areas[o.customer?.area||'Noma’lum']=(c.areas[o.customer?.area||'Noma’lum']||0)+1;m.set(phone,c);}return [...m.values()].sort((a,b)=>b.total-a.total);}
 
 app.get('/health',(req,res)=>res.status(200).send('OK'));
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.13.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.14.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/events',(req,res)=>{
+ res.setHeader('Content-Type','text/event-stream; charset=utf-8');
+ res.setHeader('Cache-Control','no-cache, no-transform');
+ res.setHeader('Connection','keep-alive');
+ res.setHeader('X-Accel-Buffering','no');
+ res.flushHeaders?.();
+ realtimeClients.add(res);
+ res.write(`event: ready\ndata: ${JSON.stringify({revision:realtimeRevision,at:new Date().toISOString()})}\n\n`);
+ const ping=setInterval(()=>{try{res.write(`: ping ${Date.now()}\n\n`)}catch{}},25000);
+ req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
+});
 app.get('/api/catalog',(req,res)=>{const db=readDb();res.json({products:db.products||[],categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
 app.post('/api/promo/validate',(req,res)=>{const db=readDb();const result=validatePromo(db,req.body?.code,Number(req.body?.subtotal||0));if(!result.ok)return res.status(400).json(result);res.json({ok:true,discount:result.discount,code:result.promo?.code||''});});
 app.get('/api/track/:orderId',(req,res)=>{const db=readDb();const order=(db.orders||[]).find(o=>o.orderId===req.params.orderId);if(!order)return res.status(404).json({error:'Buyurtma topilmadi'});const phone=String(req.query.phone||'').replace(/\D/g,'');const stored=String(order.customer?.phone||'').replace(/\D/g,'');if(!phone||phone.slice(-9)!==stored.slice(-9))return res.status(403).json({error:'Telefon raqami mos kelmadi'});res.json({orderId:order.orderId,status:order.status,statusLabel:statusLabel(order.status),createdAt:order.createdAt,total:order.total,area:order.customer?.area||'',deliverySlot:order.customer?.deliverySlot||'',items:(order.items||[]).map(x=>({name:x.name,qty:x.qty}))});});
@@ -202,7 +226,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.13 ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.14 REALTIME ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

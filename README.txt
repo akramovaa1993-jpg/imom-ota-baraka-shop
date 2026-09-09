@@ -1,3 +1,5 @@
+V13.14 REALTIME — PostgreSQL + live synchronization
+
 IMOM OTA BARAKA — ZARBULOQ.UZ V13.8 ZARBULOQ FINAL
 
 Boshlash:

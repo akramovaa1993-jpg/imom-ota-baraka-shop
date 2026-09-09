@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.13.0",
+  "version": "13.14.0",
   "private": true,
-  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.13 — persistent PostgreSQL storage, delivery design, hero slider, product requests, Telegram, full store",
+  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.14 — real-time SSE sync, persistent PostgreSQL, delivery, hero slider, product requests, Telegram, full store",
   "scripts": {
     "start": "node server.js"
   },

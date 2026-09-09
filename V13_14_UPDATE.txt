@@ -1,0 +1,14 @@
+IMOM OTA BARAKA / ZARBULOQ.UZ — V13.14 REALTIME
+
+YANGILIKLAR:
+- Admin panel va do'kon sahifasi real-time sinxron ishlaydi.
+- Yangi buyurtma berilganda admin panel F5siz avtomatik yangilanadi.
+- Mahsulot so'rovi ham admin panelga darhol tushadi.
+- Admin mahsulot/narx/zaxira/slayder/sozlamani saqlasa, ochiq do'kon sahifalari avtomatik yangilanadi.
+- Buyurtma statusi Admin yoki Telegramdan o'zgarsa, tracking oynasi ochiq bo'lsa avtomatik yangilanadi.
+- Server-Sent Events (SSE) ishlatiladi; qo'shimcha tashqi servis yoki WebSocket paket kerak emas.
+- PostgreSQL persistent storage saqlanadi.
+- Realtime ulanish uzilsa brauzer avtomatik qayta ulanadi.
+
+RENDER:
+DATABASE_URL avvalgidek saqlanadi. Yangi env variable kerak emas.
