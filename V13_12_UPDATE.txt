@@ -1,0 +1,8 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ v13.12
+
+- Parkent bepul yetkazib berish bo‘limi foydalanuvchi tasdiqlagan dizayn bilan almashtirildi.
+- Xarita tashqi Leaflet yuklanishiga bog‘liq emas: doimo bir xil va to‘liq ko‘rinadi.
+- Parkent tumani bepul hududi yashil fon va qizil punktir chegara bilan aniq ko‘rsatiladi.
+- Buyurtmani kuzatish tugmasi ishlaydi.
+- Xarita qismi bosilganda OpenStreetMap Parkent tumani sahifasi ochiladi.
+- V13.10 slayder va admin boshqaruvi, V13.9 mahsulot so‘rovlari saqlangan.
