@@ -1,0 +1,11 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ v13.10
+
+YANGILIKLAR:
+- Bosh sahifaning yuqori qismiga Parkent tabiat rasmlari uchun slayder qo‘shildi.
+- Katalog slayder ostiga tushirildi.
+- Slayderda matnli overlay yo‘q: faqat rasm, chap/o‘ng tugmalar va nuqtalar.
+- Maksimum 5 ta rasm. Har 5 soniyada avtomatik almashadi.
+- Admin panelda “Bosh sahifa slayderi” bo‘limi qo‘shildi.
+- Admin rasm qo‘shishi, almashtirishi, tartibini o‘zgartirishi, vaqtincha o‘chirishi va olib tashlashi mumkin.
+- Rasmlar brauzerda optimallashtirilib saqlanadi.
+- V13.9 mahsulot so‘rovlari funksiyasi saqlangan.

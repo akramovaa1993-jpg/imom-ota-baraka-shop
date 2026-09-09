@@ -1,0 +1,11 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ v13.9
+
+YANGI: Mahsulot topilmasa mijoz maxsus so‘rov qoldiradi.
+- Qidiruv natijasi bo‘lmasa “Mahsulotga so‘rov qoldirish” tugmasi
+- Mahsulot nomi, miqdor, ism, telefon, izoh va ixtiyoriy rasm
+- So‘rov Telegram botga yuboriladi
+- Admin panel: “Mahsulot so‘rovlari” bo‘limi
+- Statuslar: Yangi / Ko‘rib chiqilmoqda / Topildi / Yopildi
+- So‘rovlar backup ichida saqlanadi
+
+Render environment variables o‘zgarmaydi.

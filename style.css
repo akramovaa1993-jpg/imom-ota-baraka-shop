@@ -117,3 +117,23 @@ body[data-theme="classic"]{--green:#31513e;--green2:#4b7059;--bg:#f7f1e6;--line:
 @media(max-width:640px){
   .lightbox-image-wrap{height:68vh;padding:10px}
 }
+
+/* v13.9 product request */
+.request-empty .btn{margin-top:12px}.request-card{max-width:620px}.request-card form{display:grid;gap:12px;margin-top:18px}.request-card input,.request-card textarea{width:100%;box-sizing:border-box;padding:13px 14px;border:1px solid #d9ddd9;border-radius:12px;font:inherit}.request-card textarea{min-height:100px;resize:vertical}.request-two{display:grid;grid-template-columns:1fr 2fr;gap:10px}.request-upload{display:block;padding:13px;border:1px dashed #9aa89d;border-radius:12px;cursor:pointer}.request-upload input{margin-top:8px;padding:0;border:0}.request-card .success-box{margin-top:10px}@media(max-width:600px){.request-two{grid-template-columns:1fr}}
+
+
+/* V13.10 — Parkent nature hero slider */
+.home-slider-section{padding:22px 0 18px;background:linear-gradient(180deg,#f5fbf8 0%,#f3faf7 100%)}
+.home-slider{position:relative;border-radius:28px;overflow:hidden;background:#dfeee7;min-height:360px;box-shadow:0 18px 48px rgba(7,88,76,.11);border:1px solid rgba(7,88,76,.08)}
+.home-slider-track{position:relative;width:100%;height:100%;min-height:360px}
+.home-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .65s ease,visibility .65s ease;background:#dfeee7}
+.home-slide.active{opacity:1;visibility:visible}
+.home-slide img{width:100%;height:100%;min-height:360px;display:block;object-fit:cover;object-position:center}
+.home-slider-arrow{position:absolute;z-index:4;top:50%;transform:translateY(-50%);width:48px;height:48px;border:1px solid rgba(7,88,76,.14);border-radius:50%;background:rgba(255,255,255,.92);color:#173a31;font-size:36px;line-height:1;display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:.2s}
+.home-slider-arrow:hover{transform:translateY(-50%) scale(1.04);background:#fff}.home-slider-arrow.prev{left:18px}.home-slider-arrow.next{right:18px}
+.home-slider-dots{position:absolute;z-index:5;left:50%;bottom:15px;transform:translateX(-50%);display:flex;gap:9px;padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(4px)}
+.home-slider-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;background:transparent;padding:0;cursor:pointer}.home-slider-dot.active{background:#fff}
+.home-slider.empty{display:none}
+.product-first{padding-top:30px}
+@media(max-width:900px){.home-slider,.home-slider-track,.home-slide img{min-height:300px}.home-slider-section{padding-top:14px}.home-slider-arrow{width:42px;height:42px;font-size:31px}}
+@media(max-width:560px){.home-slider{border-radius:20px}.home-slider,.home-slider-track,.home-slide img{min-height:220px}.home-slider-arrow{width:38px;height:38px;font-size:28px}.home-slider-arrow.prev{left:10px}.home-slider-arrow.next{right:10px}.home-slider-dots{bottom:10px}.product-first{padding-top:22px}}
