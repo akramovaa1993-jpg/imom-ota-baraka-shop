@@ -12,7 +12,7 @@ Tavsiya: Render.com (Node.js web service)
    TELEGRAM_CHAT_ID = 1474930325
 7) Deploy qiling.
 8) Render bergan https://...onrender.com manzilida test buyurtma yuboring.
-9) Keyin imomotamarket.uz domenini Render Custom Domains bo'limida ulang.
+9) Keyin zarbuloq.uz domenini Render Custom Domains bo'limida ulang.
 
 MUHIM XAVFSIZLIK:
 - .env faylini GitHub'ga yuklamang (.gitignore ichida bor).

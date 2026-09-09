@@ -1,4 +1,4 @@
-IMOM OTA BARAKA / VELORA.UZ — v13 ORIGINAL
+IMOM OTA BARAKA / ZARBULOQ.UZ — v13 ORIGINAL
 
 MIJOZ TOMONI:
 - Original premium dizayn va sferik logo ko‘rinishi
@@ -43,7 +43,7 @@ TELEGRAM:
 - Admin va Telegram statuslari sinxron
 
 DOMEN:
-Kod velora.uz uchun SEO/canonical ko‘rinishiga tayyor.
+Kod zarbuloq.uz uchun SEO/canonical ko‘rinishiga tayyor.
 Haqiqiy domen Render Custom Domains va DNS orqali alohida ulanadi.
 
 MUHIM:

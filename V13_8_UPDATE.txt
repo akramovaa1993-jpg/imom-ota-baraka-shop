@@ -1,0 +1,12 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ v13.8
+
+- Asosiy domen: https://zarbuloq.uz/
+- www.zarbuloq.uz asosiy domenga yo‘naltiriladi.
+- Canonical, Open Graph, SEO title/description/keywords ZARBULOQ.UZ ga moslashtirildi.
+- Admin paneldagi domen yozuvlari ZARBULOQ.UZ ga o‘zgartirildi.
+- Server eski velora.uz / barkamarket.uz / imomotamarket.uz sozlamalarini zarbuloq.uz ga avtomatik migratsiya qiladi.
+- V13.7 dagi mahsulot rasmi lightbox, admin full editor, Telegram sync, buyurtma kuzatuvi va Parkent yetkazib berish funksiyalari saqlandi.
+- Render uchun mavjud render.yaml va start konfiguratsiyasi saqlandi.
+
+ESLATMA:
+Domen Eskiz/UZINFOCOM tomonidan faollashgach Render > Settings > Custom Domains ichida zarbuloq.uz qo‘shiladi va Eskiz DNS bo‘limida Render ko‘rsatgan DNS yozuvlari kiritiladi.
