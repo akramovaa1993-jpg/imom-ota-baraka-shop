@@ -1,0 +1,8 @@
+V13.26.4
+- Admin panel reference rasmdagi compact/full-width layoutga yaqinlashtirildi.
+- Mahsulot o‘chirish endi alohida DELETE API orqali ishlaydi; butun katalogni qayta yubormaydi.
+- O‘chirishda confirm yo‘q, muvaffaqiyatli natija toast bilan ko‘rsatiladi.
+- Mahsulotlar Amallar: tahrirlash, ko‘rish, nusxa, o‘chirish ikonkalari.
+- Mahsulotlar pastida: so‘rovlar, kontakt, FINANS balans, PRO preview quick-cardlar.
+- Tepada telefon va Telegram ko‘rinadi va Sozlamalarga tez o‘tish bor.
+- Oldingi V13.26.3 funksiyalari saqlandi.

@@ -1,0 +1,9 @@
+V13.26.5 PRODUCT REQUEST FIX
+
+- requestImage is not defined xatosi tuzatildi.
+- Maxsus so'rov oynasi premium ko'rinishga o'tkazildi.
+- Mahsulot nomi, miqdor, o'lcham/hajm, ism, telefon, izoh va rasm yuboriladi.
+- Rasm JPG/PNG/WEBP, 5 MB gacha.
+- So'rov PostgreSQL bazaga yoziladi va admin panelga realtime tushadi.
+- Admin Mahsulot so'rovlari bo'limida o'lcham/hajm ham ko'rinadi.
+- Telegram xabarida o'lcham/hajm ham ko'rsatiladi.
