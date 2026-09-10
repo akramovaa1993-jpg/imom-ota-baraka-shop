@@ -1,0 +1,12 @@
+IMOM OTA BARAKA — V13.17 RU + OMBOR UPDATE
+
+- Saytdan EN til tanlovi olib tashlandi: UZ / RU qoldi.
+- Mahsulot kartochkasiga UZ va RU nom/tavsif maydonlari qo‘shildi.
+- Mahsulot birligi UZ/RU: dona/шт, kg/кг, gram/г, metr/м, litr/л, ml/мл va boshqalar.
+- Ruscha mahsulotlar uchun alohida Google SEO sahifasi va sitemap URL qo‘shildi.
+- Admin panelda Ombor alohida bo‘lim qilindi.
+- Oylik ombor Excel hisoboti: nomi, tannarx, sotuv narxi, oy boshiga ostatka, qabul, sotilgan, zayavka, joriy qoldiq, qabul sanasi.
+- Sotilgan: Yetkazilmoqda + Yakunlandi. Yangi: Zayavka. Bekor qilindi hisobga olinmaydi.
+- Yangi buyurtma zaxiradan ayrilmaydi; Yetkazilmoqda/Yakunlandi bosqichida ayriladi.
+- Mahsulot kartochkasi to‘ldirish paytida o‘z-o‘zidan yopilib ketishi bloklandi.
+- Boshqa mavjud funksiyalar saqlandi.
