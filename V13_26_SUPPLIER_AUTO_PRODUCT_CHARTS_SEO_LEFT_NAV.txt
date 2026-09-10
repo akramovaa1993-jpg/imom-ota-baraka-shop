@@ -1,0 +1,13 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ V13.26
+
+YANGILIKLAR:
+1. Admin panel asosiy bo‘limlari chap vertikal menyuga ko‘chirildi.
+2. Ombor jadvalida mahsulotning oxirgi yetkazib beruvchi firmasi va hujjat raqami ko‘rinadi.
+3. Ombor Excel hisobotiga Firma/INN, nakladnoy va oy bo‘yicha prixod tafsilotlari qo‘shildi.
+4. FINANS > Xaridlar / Prixod ichida “YANGI MAHSULOT” tanlansa mahsulot kartasi avtomatik yaratiladi va omborga tushadi.
+5. Mavjud mahsulot prixodida qoldiq, o‘rtacha tannarx va sotuv narxi avtomatik yangilanadi.
+6. Dashboardga oylar bo‘yicha savdo gistogrammasi, buyurtma holatlari doira diagrammasi va TOP mahsulotlar grafigi qo‘shildi.
+7. Har bir mahsulot uchun UZ/RU SEO title, description va keywords maydonlari qo‘shildi.
+8. Yangi va mavjud mahsulotlar dinamik sitemap.xml ga avtomatik kiradi.
+9. Product SEO sahifalariga canonical, hreflang, robots, OpenGraph, Twitter Card va Product JSON-LD kuchaytirildi.
+10. Versiya: 13.26.0
