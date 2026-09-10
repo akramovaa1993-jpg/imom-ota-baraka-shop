@@ -284,25 +284,22 @@ function financeSummary(db,opts={}){
 }
 function financeCurrentBalance(db){
  const fsx=db.financeSettings||{}, products=db.products||[];
- const all={period:'custom'};const s=financeSummary(db,all);
- const purchases=(db.financePurchases||[]).reduce((a,x)=>a+finNum(x.total),0),supplierPaid=(db.financeCompanyPayments||[]).reduce((a,x)=>a+finNum(x.amount),0);
- const supplierDebt=Math.max(0,purchases-supplierPaid);
+ const purchases=db.financePurchases||[], companyPayments=db.financeCompanyPayments||[], payroll=db.financePayroll||[], taxPayments=db.financeTaxPayments||[];
+ const companyIds=new Set([...(db.financeCompanies||[]).map(x=>String(x.id)),...purchases.map(x=>String(x.companyId||'')),...companyPayments.map(x=>String(x.companyId||''))]);
+ let supplierDebt=0,supplierAdvances=0;
+ for(const id of companyIds){if(!id)continue;const bought=purchases.filter(x=>String(x.companyId||'')===id).reduce((a,x)=>a+finNum(x.total),0),paid=companyPayments.filter(x=>String(x.companyId||'')===id).reduce((a,x)=>a+finNum(x.amount),0),net=bought-paid;if(net>=0)supplierDebt+=net;else supplierAdvances+=-net;}
  const inventoryValue=products.reduce((a,p)=>a+finNum(p.stock)*finNum(p.cost),0);
- const payrollDebt=(db.financePayroll||[]).reduce((a,x)=>a+Math.max(0,finNum(x.payable)-finNum(x.paid)),0);
- const taxPaid=(db.financeTaxPayments||[]).reduce((a,x)=>a+finNum(x.amount),0);
- // Current-year accrued taxes are more meaningful than charging fixed taxes since project inception.
- const year=String(new Date().getFullYear());const y=financeSummary(db,{period:'yearly',value:year});const taxDebt=Math.max(0,y.taxAccrued-(db.financeTaxPayments||[]).filter(x=>finDate(x.date||x.createdAt).slice(0,4)===year).reduce((a,x)=>a+finNum(x.amount),0));
+ let payrollDebt=0,payrollAdvances=0;for(const x of payroll){const net=finNum(x.payable)-finNum(x.paid);if(net>=0)payrollDebt+=net;else payrollAdvances+=-net;}
+ const year=String(new Date().getFullYear()),y=financeSummary(db,{period:'yearly',value:year}),taxPaidYear=taxPayments.filter(x=>finDate(x.date||x.createdAt).slice(0,4)===year).reduce((a,x)=>a+finNum(x.amount),0),taxNet=y.taxAccrued-taxPaidYear,taxDebt=Math.max(0,taxNet),taxAdvances=Math.max(0,-taxNet);
  const revenueAll=(db.orders||[]).filter(o=>o.status==='done').reduce((a,o)=>a+finNum(o.total),0);
  let cash=finNum(fsx.cashOpening),bank=finNum(fsx.bankOpening);if(fsx.defaultSalesAccount==='cash')cash+=revenueAll;else bank+=revenueAll;
  const subtract=(rows)=>{for(const r of rows){const amt=finNum(r.amount??r.paid),acc=r.account==='cash'?'cash':'bank';if(acc==='cash')cash-=amt;else bank-=amt;}};
- subtract(db.financeCompanyPayments||[]);subtract(db.financeExpenses||[]);subtract(db.financeTaxPayments||[]);subtract((db.financePayroll||[]).map(x=>({amount:x.paid,account:x.account})));
- const receivables=0,supplierAdvances=0,otherCurrentAssets=0,otherLiabilities=0;
- const assets=cash+bank+inventoryValue+receivables+supplierAdvances+otherCurrentAssets;
+ subtract(companyPayments);subtract(db.financeExpenses||[]);subtract(taxPayments);subtract(payroll.map(x=>({amount:x.paid,account:x.account})));
+ const receivables=0,otherCurrentAssets=0,otherLiabilities=0;
+ const assets=cash+bank+inventoryValue+receivables+supplierAdvances+payrollAdvances+taxAdvances+otherCurrentAssets;
  const liabilities=supplierDebt+payrollDebt+taxDebt+otherLiabilities;
- // Kapital/Netto qoldiq usulida hisoblanadi, shuning uchun Aktiv = Majburiyat + Kapital har doim tekshiriladi.
- const equity=assets-liabilities;
- const passiveTotal=liabilities+equity,balanceDifference=assets-passiveTotal;
- return {inventoryValue,supplierDebt,payrollDebt,taxDebt,cash,bank,liquid:cash+bank,receivables,supplierAdvances,otherCurrentAssets,otherLiabilities,assets,liabilities,equity,passiveTotal,balanceDifference,balanced:Math.abs(balanceDifference)<0.01};
+ const equity=assets-liabilities,passiveTotal=liabilities+equity,balanceDifference=assets-passiveTotal;
+ return {inventoryValue,supplierDebt,payrollDebt,taxDebt,cash,bank,liquid:cash+bank,receivables,supplierAdvances,payrollAdvances,taxAdvances,otherCurrentAssets,otherLiabilities,assets,liabilities,equity,passiveTotal,balanceDifference,balanced:Math.abs(balanceDifference)<0.01};
 }
 function financeSeries(db,year){
  const y=String(year||new Date().getFullYear());return Array.from({length:12},(_,i)=>{const month=`${y}-${String(i+1).padStart(2,'0')}`;return {month,...financeSummary(db,{period:'monthly',value:month})}});
@@ -312,7 +309,7 @@ function financeCompanyBalances(db){
 }
 
 app.get('/health',(req,res)=>res.status(200).send('OK'));
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.0',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.3',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -510,6 +507,8 @@ async function updateOrderStatus(orderId,status,actor='admin'){
  if(BOT_TOKEN&&o.telegram?.chatId&&o.telegram?.messageId){try{await tgCall('editMessageText',{chat_id:o.telegram.chatId,message_id:o.telegram.messageId,text:orderText(o),reply_markup:['done','cancelled'].includes(status)?{inline_keyboard:[]}:statusKeyboard(o.orderId,status)});}catch(e){console.error('Telegram edit error:',e.message)}}return o;
 }
 app.patch('/api/admin/orders/:id/status',requireAdmin,requireRole('operator'),async(req,res)=>{try{const o=await updateOrderStatus(req.params.id,String(req.body?.status||''),req.adminUser);res.json({ok:true,order:o});}catch(e){res.status(400).json({error:e.message})}});
+app.delete('/api/admin/orders/:id',requireAdmin,requireRole('operator'),async(req,res)=>{try{const db=readDb(),idx=(db.orders||[]).findIndex(x=>String(x.orderId)===String(req.params.id));if(idx<0)return res.status(404).json({error:'Buyurtma topilmadi'});const o=db.orders[idx];if(o.stockAdjusted===true&&['delivery','done'].includes(o.status)){for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0);}}db.orders.splice(idx,1);audit(db,req.adminUser,'Buyurtma o‘chirildi',String(o.orderId));await writeDb(db);res.json({ok:true,deleted:o.orderId})}catch(e){res.status(400).json({error:e.message})}});
+
 
 let polling=false,offset=0;
 async function pollTelegram(){if(!BOT_TOKEN||polling)return;polling=true;try{try{await tgCall('deleteWebhook',{drop_pending_updates:false});}catch{}console.log('Telegram order-status buttons: polling started');while(true){try{const updates=await tgCall('getUpdates',{offset,timeout:25,allowed_updates:['callback_query']});for(const u of updates){offset=Math.max(offset,u.update_id+1);const q=u.callback_query;if(!q)continue;const [kind,status,orderId]=String(q.data||'').split('|');if(kind!=='st')continue;try{await updateOrderStatus(orderId,status,'telegram');await tgCall('answerCallbackQuery',{callback_query_id:q.id,text:statusLabel(status)});}catch(e){await tgCall('answerCallbackQuery',{callback_query_id:q.id,text:'Xatolik'}).catch(()=>{});console.error('Callback error:',e.message)}}}catch(e){console.error('Telegram polling error:',e.message);await new Promise(r=>setTimeout(r,4000));}}}finally{polling=false}}
@@ -518,7 +517,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26 ERP PRO + SUPPLIER OMBOR + AUTO PRODUCT PRIXOD + CHARTS + SEO + LEFT ADMIN NAV ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.3 REALTIME ACTIONS + PRODUCT REQUEST + CONTACT SETTINGS + FINANCE BALANCE ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

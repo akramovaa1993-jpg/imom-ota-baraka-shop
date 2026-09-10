@@ -1,0 +1,8 @@
+IMOM OTA BARAKA / ZARBULOQ.UZ — V13.26.3
+
+- Buyurtmalar jadvaliga 🗑️: tasdiqlashsiz darhol o‘chirish.
+- Sotilgan buyurtma o‘chirilsa ombor qoldig‘i avtomatik qaytariladi.
+- Saytda doimiy Mahsulot so‘rovi bo‘limi va UZ/RU menyu.
+- Telefon/Telegram/Email admin Sahifalar/SEO dan boshqariladi va saytning tepasi/Aloqa/footerga qo‘llanadi.
+- FINANS Aktiv/Passiv: supplier overpayment = avans aktiv; soliq va ish haqi overpayment = avans aktiv; qarzlar firma bo‘yicha alohida hisoblanadi.
+- V13.26.2 realtime/no-confirm/PRO preview va barcha oldingi funksiyalar saqlandi.
