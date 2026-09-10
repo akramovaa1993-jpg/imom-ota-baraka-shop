@@ -220,3 +220,6 @@ body[data-theme="classic"]{--green:#31513e;--green2:#4b7059;--bg:#f7f1e6;--line:
 
 /* V13.26.12: duplicate brand visuals removed; keep only header brand */
 .story-grid{grid-template-columns:1fr!important;max-width:980px;margin:auto}.story-copy{width:100%}.footer-grid{grid-template-columns:repeat(3,1fr)!important}.footer-brand{display:none!important}@media(max-width:820px){.footer-grid{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:560px){.footer-grid{grid-template-columns:1fr!important}}
+
+/* V13.26.13 — katalog darhol yuklanishi */
+.catalog-loading{grid-column:1/-1;min-height:180px;display:grid;place-items:center;align-content:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:18px;color:var(--green)}.catalog-loading span{color:var(--muted);font-size:13px}

@@ -1,0 +1,6 @@
+V13.26.12
+- Saytdagi takroriy katta Biz haqimizda logosi olib tashlandi.
+- Footer ichidagi takroriy IMOM OTA BARAKA brend bloki olib tashlandi.
+- Asosiy headerdagi ZARBULOQ.UZ / IMOM OTA BARAKA brendi saqlandi.
+- Biz haqimizda matni va firma rekvizitlari saqlandi.
+- Footer tezkor havolalar, aloqa va xizmat bloklari saqlandi.

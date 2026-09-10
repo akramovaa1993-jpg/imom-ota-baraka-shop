@@ -1,6 +1,6 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.12",
+  "version": "13.26.13",
   "private": true,
   "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.26 — firma bo‘yicha ombor, prixoddan avtomatik mahsulot kartasi, dashboard grafiklar, product SEO va chap admin menyu",
   "scripts": {

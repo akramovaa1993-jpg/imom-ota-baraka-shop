@@ -1,0 +1,5 @@
+V13.26.13
+- Brand cleanupdan keyin footer elementlari olib tashlangani sabab applySite() to'xtab qolayotgan xato tuzatildi.
+- Mahsulotlar katalogi sahifa ochilishi bilan avtomatik render bo'ladi.
+- /api/catalog cache-bypass va 4 martagacha avtomatik retry qo'shildi.
+- Yuklanish holati ko'rsatiladi.
