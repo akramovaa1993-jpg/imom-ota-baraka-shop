@@ -20,7 +20,14 @@ function applySite(){document.body.dataset.theme=settings.theme||'original';cons
  const co=settings.company||{}; $('#companyName')&&($('#companyName').textContent=co.name||''); $('#companyTaxId')&&($('#companyTaxId').textContent=co.taxId||''); $('#companyMfo')&&($('#companyMfo').textContent=co.mfo||''); $('#companyAccount')&&($('#companyAccount').textContent=co.account||'');
  const mp=settings.map||{}; $('#mapEyebrow')&&($('#mapEyebrow').textContent=mp.eyebrow||''); $('#mapTitle')&&($('#mapTitle').textContent=mp.title||''); $('#mapText')&&($('#mapText').textContent=mp.text||''); if($('#parkentMapLink'))$('#parkentMapLink').href='https://www.openstreetmap.org/relation/5745823';
  const ft=settings.footer||{}; $('#footerService1')&&($('#footerService1').textContent=ft.service1||''); $('#footerService2')&&($('#footerService2').textContent=ft.service2||''); $('#copyrightText')&&($('#copyrightText').textContent=ft.copyright||'');
- const cat=settings.catalogUi||{}; $('#catalogEyebrow')&&($('#catalogEyebrow').textContent='MAHSULOTLAR KATALOGI');
+ const cat=settings.catalogUi||{}; const catEye=cat.eyebrow; $('#catalogEyebrow')&&($('#catalogEyebrow').textContent=(typeof catEye==='object'?(catEye[lang]||catEye.uz):(catEye||'MAHSULOTLAR KATALOGI')));
+ const pm=settings.homePromos||{}, left=pm.left||{}, right=pm.right||{}, center=pm.center||{};
+ const loc=x=>x?.[lang]||x?.uz||'';
+ $('#promoLeftTitle')&&($('#promoLeftTitle').textContent=loc(left.title)||'Tabiiy tozalik — har kuni siz bilan!'); $('#promoLeftText')&&($('#promoLeftText').textContent=loc(left.text)||''); $('#promoLeftBtn')&&($('#promoLeftBtn').textContent=(loc(left.button)||'Mahsulotlarni ko‘rish')+' →');
+ $('#promoRightTitle')&&($('#promoRightTitle').textContent=loc(right.title)||'Sifat. Ishonch. Baraka!'); $('#promoRightText')&&($('#promoRightText').textContent=loc(right.text)||''); $('#promoRightBtn')&&($('#promoRightBtn').textContent=(loc(right.button)||'Batafsil')+' →');
+ $('#heroMainTitle')&&($('#heroMainTitle').textContent=loc(center.title)||'Parkent tabiati — toza hayot manbai!'); $('#heroMainText')&&($('#heroMainText').textContent=loc(center.text)||'');
+ for(const [el,obj] of [['#promoLeft',left],['#promoRight',right]]){const n=$(el);if(n){if(obj.image){n.style.backgroundImage=`url(${obj.image})`;n.classList.add('has-image')}else{n.style.backgroundImage='';n.classList.remove('has-image')}}}
+ const bens=Array.isArray(settings.benefits)?settings.benefits:[]; for(let i=0;i<4;i++){const b=bens[i]||{}; const ti=$('#benefit'+(i+1)+'Title'),tx=$('#benefit'+(i+1)+'Text'); if(ti&&b.title)ti.textContent=loc(b.title); if(tx&&b.text)tx.textContent=loc(b.text)}
  const logoSize=Math.max(48,Math.min(100,Number(settings.ui?.logoSize||68))); document.documentElement.style.setProperty('--brand-logo-size',logoSize+'px');
  if(logo){$$('.sphere-logo img').forEach(i=>i.src=logo)}
  const tb=$('#testModeBanner');if(tb){const tm=settings.testMode||{};tb.textContent=tm.text||'Saytimiz hozirda test rejimida ishlamoqda';tb.hidden=tm.active===false}

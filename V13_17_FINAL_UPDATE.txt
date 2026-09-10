@@ -1,0 +1,15 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ V13.17 FINAL
+
+FINAL o'zgarishlar:
+- Ingliz tili olib tashlangan, sayt UZ/RU ishlaydi.
+- Ruscha mahsulot nomi/tavsifi/birligi va ruscha Google Product SEO sahifalari saqlangan.
+- Har bir mahsulot uchun UZ va RU alohida SEO URL sitemap.xml ga avtomatik tushadi.
+- Ombor alohida bo'lim va oylik ombor hisoboti saqlangan.
+- Admin panel full-width ko'rinishda.
+- Mahsulot amallari icon tugmalar bilan.
+- Public bosh sahifa full-width: chap promo + markaziy slayder + o'ng promo.
+- Wide ekranda 6 tagacha mahsulot kartasi bir qatorda.
+- Bosh sahifadagi promo matnlar UZ/RU, promo rasmlar, markaziy slayder yozuvi, xizmat afzalliklari admin paneldan boshqariladi.
+- Biz haqimizda va Aloqa matnlari UZ/RU admin paneldan o'zgartiriladi.
+- Logotip, kontaktlar, rekvizitlar, SEO, test banneri va slayder boshqaruvi saqlangan.
+- Realtime chat, PostgreSQL, Telegram, GPS Parkent tekshiruvi va Product SEO funksiyalariga tegilmagan.
