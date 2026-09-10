@@ -1,0 +1,6 @@
+V13.26.11
+- Dashboard maketga yanada yaqinlashtirildi: global qidiruv, xabarlar badge, admin profil, ikonali KPI kartalar.
+- Highlight qilingan quick actions va recent tabs saqlandi/kuchaytirildi.
+- O‘ngdagi elektron chek paneliga Galereyaga saqlash (PNG), PDF/chop etish qo‘shildi.
+- Mijozga buyurtmadan keyin ochiladigan chekda Galereyaga saqlash (PNG) tugmasi qo‘shildi.
+- FINANS > Chek markazi va Excel istoriyasi V13.26.10 dan saqlandi.
