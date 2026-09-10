@@ -1,0 +1,19 @@
+IMOM OTA BARAKA — ZARBULOQ.UZ V13.26.1 FINAL MERGED
+
+Baza: V13.26 SUPPLIER AUTO PRODUCT CHARTS SEO LEFT NAV.
+Hech bir V13.18–V13.26 funksiyasi olib tashlanmadi.
+
+Yakuniy birlashtirilgan o‘zgarishlar:
+- Sayt faqat UZ/RU ko‘rinishida ishlaydi; inglizcha tanlov yo‘q.
+- Mahsulot kartochkasida UZ/RU nom, tavsif, birlik va UZ/RU SEO maydonlari saqlangan.
+- UZ/RU Product SEO, canonical/hreflang, Product JSON-LD va dinamik sitemap saqlangan.
+- Ombor, kirim, firma/nakladnoy, oylik hisobot va FINANS/ERP funksiyalari saqlangan.
+- Dashboard diagrammalari va TOP mahsulotlar saqlangan.
+- V13.26 chap admin menyusi saqlangan, admin ekran kengligiga to‘liq moslashtirilgan.
+- Mahsulot amallari ixcham icon tugmalarga o‘tkazilgan.
+- Public bosh sahifa approved full-width: chap promo + markaziy slayder + o‘ng promo.
+- Wide ekranda mahsulot kartalari 6 tagacha bir qatorga chiqadi.
+- Promo matn/rasmlar, markaziy sarlavha, xizmat afzalliklari, Biz haqimizda va Aloqa UZ/RU admin paneldan boshqariladi.
+- Realtime chat, Telegram, PostgreSQL, Parkent GPS, buyurtmalar va barcha V13.26 funksiyalari saqlangan.
+
+Versiya: 13.26.1
