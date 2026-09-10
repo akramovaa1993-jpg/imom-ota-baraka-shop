@@ -1,0 +1,11 @@
+V13.26.8
+- Admin Dashboard premium layout redesigned to match approved mockup.
+- Dark green sidebar + compact top bar + KPI cards.
+- Parkent branded hero banner.
+- Quick action buttons.
+- 7-day sales chart and order status donut.
+- Recent orders table with receipt action.
+- Right-side electronic receipt preview based on real latest order.
+- Receipt status follows order status automatically.
+- Receipt print/PDF-ready preview.
+- Existing FINANS, chat delete, product request, product delete and realtime functions retained.
