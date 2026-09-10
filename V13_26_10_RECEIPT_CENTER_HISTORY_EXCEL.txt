@@ -1,0 +1,11 @@
+IMOM OTA BARAKA / ZARBULOQ.UZ — V13.26.10
+
+YANGILIKLAR:
+- FINANS chap submenu ichiga “Chek markazi” qo‘shildi.
+- Har bir yangi buyurtma uchun chek snapshot tarixi receiptHistory ga saqlanadi.
+- Eski buyurtmalar ham Chek markazida avtomatik ko‘rinadi.
+- Buyurtma keyin o‘chirilsa ham ilgari saqlangan chek tarixi saqlanib qoladi.
+- Dashboarddagi So‘nggi buyurtmalar tab qatoriga “Cheklar tarixi” tezkor tugmasi qo‘shildi.
+- Chek markazida qidiruv, sana oralig‘i va status filtrlar bor.
+- Cheklar tarixini Excel (.xls) ko‘rinishida yuklab olish qo‘shildi.
+- Excel: chek №, sana/vaqt, mijoz, telefon, hudud, mahsulotlar, oraliq summa, chegirma, yetkazish, jami, to‘lov, status.
