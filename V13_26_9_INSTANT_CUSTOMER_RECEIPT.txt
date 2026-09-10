@@ -1,0 +1,7 @@
+IMOM OTA BARAKA / ZARBULOQ.UZ V13.26.9
+
+- Buyurtma muvaffaqiyatli yaratilgach mijozga ELEKTRON CHEK darhol ochiladi.
+- Chekda buyurtma ID, sana-vaqt, mijoz, telefon, hudud/manzil, mahsulotlar, miqdor, narx, chegirma, jami va to\'lov turi chiqadi.
+- Chekni Print/PDF qilish mumkin.
+- Telegram vaqtincha ishlamasa ham, baza buyurtmani saqlagan bo\'lsa mijoz chekni oladi.
+- Oldingi V13.26.8 funksiyalari saqlandi.

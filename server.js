@@ -502,8 +502,8 @@ app.post('/api/orders',async(req,res)=>{
  const order={orderId,createdAt,status:'new',customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:clean(customer.deliverySlot,50),payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat)||null,lng:Number(customer.lng)||null},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
- if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.status(502).json({error:'Buyurtma saqlandi, lekin Telegramga yuborilmadi',orderId,saved:true});}}
- res.json({ok:true,orderId,total,discount});
+ if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order,warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}
+ res.json({ok:true,orderId,total,discount,order});
 });
 
 async function updateOrderStatus(orderId,status,actor='admin'){
@@ -521,7 +521,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.3 REALTIME ACTIONS + PRODUCT REQUEST + CONTACT SETTINGS + FINANCE BALANCE ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.9 INSTANT CUSTOMER RECEIPT + REALTIME ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
