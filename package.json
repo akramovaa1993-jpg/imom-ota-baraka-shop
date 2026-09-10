@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.22.0",
+  "version": "13.23.0",
   "private": true,
-  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.22 — PRO prays cleanup va kengaytirilgan Dashboard analytics",
+  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.23 — PRO FINANS, avtomatik balans, soliqlar, firmalar, xaridlar, oylik va yagona Excel hisobot",
   "scripts": {
     "start": "node server.js"
   },

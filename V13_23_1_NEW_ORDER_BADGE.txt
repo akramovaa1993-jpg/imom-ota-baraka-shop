@@ -1,0 +1,6 @@
+IMOM OTA BARAKA — V13.23.1 NEW ORDER BADGE
+
+Qo‘shildi:
+- Admin paneldagi “Buyurtmalar” tugmasida Yangi statusidagi buyurtmalar soni qizil badge ko‘rinishida chiqadi.
+- Yangi buyurtma real-time kelganda admin SSE yangilanishi orqali badge ham avtomatik yangilanadi.
+- Buyurtma statusi Yangi holatidan o‘zgartirilganda badge soni avtomatik kamayadi.

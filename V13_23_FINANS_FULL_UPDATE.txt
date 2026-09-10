@@ -1,0 +1,42 @@
+IMOM OTA BARAKA / ZARBULOQ.UZ — V13.23 PRO FINANS
+
+YANGI FINANS MODULI:
+- Admin menyusida alohida FINANS bo‘limi.
+- Kunlik / oylik / yillik filtr va 12 oylik PRO diagramma.
+- Sotuv aylanmasi, yalpi foyda, sof natija, xaridlar, oyliklar, soliqlar va qarzdorlik KPI.
+- Avtomatik balans: Kassa + Bank + Ombor qiymati - majburiyatlar.
+
+FIRMALAR VA XARIDLAR:
+- Yetkazib beruvchi firma qo‘shish: nomi, STIR/INN, telefon, izoh.
+- Firmadan mahsulot xaridi: mahsulot, miqdor, birlik xarid narxi, transport, boshqa xarajat, to‘langan summa, nakladnoy raqami.
+- Xarid saqlanganda ombor qoldig‘i avtomatik oshadi.
+- O‘rtacha tannarx avtomatik qayta hisoblanadi.
+- Ustama foizi bo‘yicha tavsiya sotuv narxi avtomatik hisoblanadi.
+- Xohlansa sotuv narxini tavsiya narxiga avtomatik yangilash mumkin.
+- Firmaga qilingan to‘lovlar kiritiladi va kreditor qarzdorlik avtomatik kamayadi.
+
+ISHCHILAR VA OYLIK:
+- Ishchilar ro‘yxati: F.I.Sh., lavozim, oylik, telefon, ishga kirgan sana.
+- Har oy oylikni avtomatik shakllantirish.
+- Bonus, avans, ushlanma, to‘langan summa va qolgan oylik qarzi.
+
+SOLIQLAR:
+- Savdo aylanmasi solig‘i % (standart 4%).
+- Oylik fondi solig‘i %.
+- Yer solig‘i oylik aniq summa.
+- Mol-mulk solig‘i bazasi va yillik foizi.
+- Boshqa soliq: sotuv / oylik fondi / aniq oylik summa bazasi.
+- Admin stavkalarni o‘zgartirsa avtomatik hisob darhol yangi stavkada ishlaydi.
+- Soliq to‘lovlari kiritiladi, to‘langan va qarzdorlik ko‘rinadi.
+
+XARAJATLAR:
+- Yo‘l kira / transport, ijara, kommunal, reklama, bank xarajati, ta’mirlash va boshqa xarajatlar.
+- Kassa yoki bank hisobidan chiqim sifatida balansga avtomatik tushadi.
+
+YAGONA EXCEL HISOBOT:
+- Oylik moliyaviy hisobot Excel.
+- Yillik / Годовой hisobot Excel — 12 oy jamlanadi.
+- Hisobotda: aylanma, tannarx, yalpi foyda, oylik, xarajat, soliqlar, sof natija, firmalar qarzi va balans.
+
+ESLATMA:
+Moliyaviy modul boshqaruv va ichki hisob uchun yaratilgan. Rasmiy soliq/buxgalteriya topshirig‘i oldidan amaldagi qonunchilik va buxgalter bilan tekshirish tavsiya etiladi.
