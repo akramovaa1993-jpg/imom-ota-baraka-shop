@@ -1,0 +1,14 @@
+IMOM OTA BARAKA — V13.25 ERP PRO BALANS + ISHCHI RESET
+
+Qo‘shildi:
+1) FINANS Dashboard va Balans/Hisobot bo‘limida ERP PRO balans.
+2) Aktivlar va Passivlar alohida professional bloklarda.
+3) Jami Aktiv, Jami Majburiyat, Kapital/Netto, Jami Passiv KPI kartalari.
+4) Avtomatik tekshiruv: Aktiv = Majburiyat + Kapital.
+5) Balans holati: TENG / FARQ BOR va farq summasi.
+6) Excel moliyaviy hisobotdagi balans ham AKTIV/PASSIV ko‘rinishiga o‘tkazildi.
+7) Ishchi bo‘limiga “0 qilish” tugmasi qo‘shildi — ishchi oyligi va uning payroll qiymatlarini 0 qiladi.
+8) “Tarixi bilan tozalash” tugmasi qo‘shildi — test ishchini oylik tarixi bilan butunlay o‘chiradi.
+9) Oddiy “O‘chirish” tarix mavjud bo‘lsa himoyalangan holda qoladi.
+
+V13.25.0
