@@ -1,0 +1,40 @@
+IMOM OTA BARAKA / ZARBULOQ.UZ — V13.24 ERP FINANS
+
+YANGILIKLAR:
+1. FINANS ichida ERP uslubidagi alohida bo‘limlar:
+   - Dashboard
+   - Xaridlar / Prixod
+   - Sotuv / Rashod
+   - Firmalar / Akt sverka
+   - Ish haqi
+   - Soliq majburiyatlari
+   - Boshqa xarajatlar
+   - Balans / Hisobot
+2. Tashkilotlardan mahsulot prixod qilish:
+   - firma, mahsulot, miqdor, xarid narxi, transport, qo‘shimcha xarajat, ustama va sotuv narxi.
+   - prixod saqlanganda ombor qoldig‘i oshadi.
+   - o‘rtacha tannarx qayta hisoblanadi.
+   - firma qarzdorligi avtomatik shakllanadi.
+   - kiritilgan sotuv narxi mahsulot kartasiga avtomatik o‘rnatiladi.
+3. Sotuv / Rashod:
+   - buyurtmalardan avtomatik shakllanadi.
+   - Yetkazilmoqda/Yakunlandi statusida ombordan rashod bo‘ladi.
+   - Yakunlandi statusida moliyaviy tushum hisoblanadi.
+4. Ishchilar:
+   - qo‘shish, tahrirlash, faolsizlantirish/Ishdan bo‘shatish, qayta faollashtirish.
+   - tarixiy oyligi bo‘lmagan ishchini butunlay o‘chirish mumkin.
+   - oylik tarixi bor ishchi o‘chirilmaydi, faolsizlantiriladi.
+5. Soliq majburiyatlari:
+   - sotuv aylanmasi solig‘i default 4%.
+   - oylik JShDS default 12%.
+   - 0.1% INPS va 11.9% byudjet ulushi 12%ning ichki taqsimoti sifatida ko‘rsatiladi va takroran qo‘shilmaydi.
+   - ijtimoiy soliq uchun alohida o‘zgartiriladigan yacheka.
+   - yer, mol-mulk va boshqa soliqlar uchun admin sozlamalari.
+   - barcha stavkalar admin tomonidan qo‘lda o‘zgartiriladi.
+6. Akt sverka:
+   - firma bo‘yicha prixod va to‘lovlar.
+   - davr boshiga qoldiq, debet, kredit, davr oxiriga qarzdorlik.
+   - Excel yuklash.
+7. Balans va Excel:
+   - oylik yakuniy moliyaviy hisobot.
+   - yillik / Godovoy hisobot.
