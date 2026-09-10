@@ -1,0 +1,13 @@
+IMOM OTA BARAKA — V13.19 PRAYS PDF
+
+Qo‘shildi:
+1) Ombor bo‘limiga “Prays PDF (albom)” tugmasi.
+2) Har bir sahifaga 2, 3 yoki 4 ta mahsulot joylash tartibi.
+3) Prays PDF ichida mahsulot rasmi, nomi, sotuv narxi va ombordagi qoldiq ko‘rinadi.
+4) Dizayn A4 landscape (albom) ko‘rinishida, professional kartochka uslubida tayyorlanadi.
+5) Yangi kiritilgan mahsulotlar praysga avtomatik qo‘shiladi.
+6) Hisobotlar bo‘limiga ham alohida “Prays PDF” kartasi qo‘shildi.
+
+Eslatma:
+- “Prays PDF” tugmasi bosilganda print oynasi ochiladi.
+- Brauzerda “Save as PDF” tanlansa tayyor PDF saqlanadi.

@@ -1,0 +1,9 @@
+IMOM OTA BARAKA — V13.18 OMBOR KIRIM
+
+1. Ombor jadvaliga “Kirim miqdori” yacheykasi va “+ Qabul qilish” tugmasi qo‘shildi.
+2. Miqdor qabul qilinganda joriy qoldiq avtomatik oshadi.
+3. Har bir qo‘shimcha kirim sana va miqdori bilan alohida tarixda saqlanadi.
+4. Oylik ombor Excel hisobotida “Qabul qilingan” barcha shu oydagi kirimlarni yig‘adi.
+5. “Oy oxiriga qoldiq” ustuni qo‘shildi va avtomatik hisoblanadi:
+   Oy boshiga qoldiq + Qabul qilingan - Sotilgan.
+6. Mavjud mahsulotning joriy zaxirasi mahsulot tahriridan qo‘lda o‘zgartirilmaydi; kirim Ombor bo‘limidan qilinadi.

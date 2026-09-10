@@ -1,0 +1,16 @@
+IMOM OTA BARAKA — V13.20 PRO PRAYS DIRECT PDF
+
+Qo‘shildi:
+1) Premium darajadagi kategoriya bo‘yicha bitta umumiy prays.
+2) Ombor bo‘limida va Hisobotlar bo‘limida “PRO prays preview” tugmasi.
+3) “PRO PDF yuklab olish” tugmasi orqali to‘g‘ridan-to‘g‘ri PDF saqlash.
+4) PDF A4 landscape (albom) formatida.
+5) 1 sahifaga 2 ta, 3 ta yoki 4 ta mahsulot joylash varianti.
+6) Har bir kategoriya alohida premium blok/sahifa ko‘rinishida chiqadi.
+7) Mahsulot rasmi, nomi, narxi va ombordagi mavjud qoldiq avtomatik ko‘rinadi.
+8) Omborda mavjud mahsulotlar praysga avtomatik qo‘shiladi.
+9) Yangi qo‘shilgan mahsulotlar keyingi generatsiyada avtomatik kiradi.
+
+Texnik izoh:
+- To‘g‘ridan-to‘g‘ri PDF yuklash uchun brauzer jsPDF va html2canvas kutubxonalarini CDN orqali yuklaydi.
+- Agar brauzer tarmoq yoki script loading sababli PDFni bevosita saqlay olmasa, preview oynasidan Save as PDF ishlaydi.
