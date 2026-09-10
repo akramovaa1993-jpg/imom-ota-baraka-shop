@@ -1,0 +1,23 @@
+IMOM OTA BARAKA — V13.22 DASHBOARD ANALYTICS + PRAYS CLEANUP
+
+PRAYS PDF:
+- Foydalanuvchi belgilagan ortiqcha bloklar olib tashlandi.
+- Katta subtitle olib tashlandi.
+- “Bir prays ichida barcha kategoriyalar...” qatori olib tashlandi.
+- Kategoriya yashil banneridagi nom va xizmat chip bloklari olib tashlandi.
+- Birinchi sahifada faqat logo, IMOM OTA BARAKA, Premium Price List va yangilangan sana qoladi.
+- Keyingi sahifalarda bosh banner takrorlanmaydi.
+
+DASHBOARD:
+- Mahsulot filtri: “Barchasi” + har bir mahsulot.
+- Yil filtri: “Barchasi” + mavjud yillar.
+- Oy filtri: “Barchasi” + 12 oy.
+- Ombordagi joriy qoldiq.
+- Ombor tannarx summasi.
+- Sotilgan mahsulot miqdori va sotuv summasi.
+- Zayavka miqdori va zayavka summasi.
+- Yetkazilmoqda / Yakunlandi / Qabul qilindi / Bekor qilindi holatlari.
+- Ombor qoldig‘i o‘lchov birligi bo‘yicha alohida ko‘rsatiladi.
+- Oylar bo‘yicha savdo jadvali.
+- Keyingi oy uchun taxminiy savdo prognozi (oxirgi 3 oy o‘rtachasi va trend asosida).
+- Har bir mahsulot tanlanganda shu mahsulotning barcha ko‘rsatkichlari alohida chiqadi.

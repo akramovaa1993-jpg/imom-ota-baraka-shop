@@ -1,0 +1,7 @@
+IMOM OTA BARAKA — V13.21 PRAYS HEADER FIX
+
+Tuzatildi:
+- PRO praysdagi katta bosh qism (brand block / premium price list sarlavhasi) endi har sahifada takrorlanmaydi.
+- U faqat birinchi sahifada 1 marta chiqadi.
+- Keyingi sahifalarda mahsulotlar va kategoriya bo‘limlari to‘g‘ridan-to‘g‘ri davom etadi.
+- Natijada prays yanada ixcham va professional ko‘rinishga ega bo‘ldi.

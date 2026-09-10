@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.18.0",
+  "version": "13.22.0",
   "private": true,
-  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.18 — Ombor kirimi, avtomatik qoldiq va oylik ombor hisoboti",
+  "description": "IMOM OTA BARAKA / ZARBULOQ.UZ v13.22 — PRO prays cleanup va kengaytirilgan Dashboard analytics",
   "scripts": {
     "start": "node server.js"
   },
