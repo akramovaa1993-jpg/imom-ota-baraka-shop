@@ -1,0 +1,9 @@
+V13.26.18 — 8 PRODUCTS PER ROW
+
+- Desktop keng ekranlarda har bir qatorda 8 ta mahsulot.
+- 1250–1449px: 7 ta.
+- 1101–1249px: 6 ta.
+- 801–1100px: 4 ta.
+- 800px va kichik: 2 ta.
+- 8 ustunli ko‘rinishda kartalar, rasm, narx va savat tugmasi ixchamlashtirildi.
+- Oldingi barcha funksiyalar saqlandi.

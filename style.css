@@ -312,3 +312,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .story .about-contact-card{padding:22px}
   .story .about-contact-card h2{font-size:30px}
 }
+
+
+/* V13.26.18 — 8 PRODUCTS PER ROW ON DESKTOP */
+@media (min-width: 1450px){
+  .product-first .products{grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:10px!important}
+  .product-first .product-card{border-radius:15px!important}
+  .product-first .product-media{height:175px!important}
+  .product-first .product-body{padding:10px!important}
+  .product-first .product-body h3{font-size:13px!important;line-height:1.22!important;min-height:32px!important;margin:5px 0 4px!important}
+  .product-first .product-body small{font-size:10px!important}
+  .product-first .price-row{gap:6px!important;margin:7px 0 8px!important}
+  .product-first .price-row b{font-size:15px!important}
+  .product-first .price-row del,.product-first .price-row>span{font-size:9px!important}
+  .product-first .qty-add{grid-template-columns:62px minmax(0,1fr)!important;gap:6px!important}
+  .product-first .stepper button{width:22px!important;height:34px!important;font-size:16px!important}
+  .product-first .stepper b{font-size:12px!important}
+  .product-first .add-btn{min-height:34px!important;font-size:12px!important;padding:0 7px!important}
+  .product-first .fav-btn{width:31px!important;height:31px!important;right:8px!important;top:8px!important;font-size:16px!important}
+  .product-first .badge{left:8px!important;top:8px!important;padding:5px 7px!important;font-size:8px!important}
+}
+@media (min-width: 1250px) and (max-width: 1449px){.product-first .products{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:11px!important}.product-first .product-media{height:180px!important}}
+@media (min-width: 1101px) and (max-width: 1249px){.product-first .products{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
+@media (min-width: 801px) and (max-width: 1100px){.product-first .products{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media (max-width: 800px){.product-first .products{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
