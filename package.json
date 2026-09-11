@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.26",
+  "version": "13.26.27",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.26 — mandatory automatic GPS (±20 m), Parkent validation, dynamic receipt payment text",
+  "description": "ZARBULOQ.UZ v13.26.27 — Telegram webhook conflict fix; realtime/GPS/payment features preserved",
   "scripts": {
     "start": "node server.js"
   },

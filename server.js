@@ -11,6 +11,8 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '');
 const TG = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : '';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-session-secret';
+const TELEGRAM_WEBHOOK_URL = String(process.env.TELEGRAM_WEBHOOK_URL || 'https://zarbuloq.uz/api/telegram/webhook').trim();
+const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || crypto.createHash('sha256').update(SESSION_SECRET).digest('hex').slice(0,48));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname,'data');
 const DB_FILE = path.join(DATA_DIR,'shop.json');
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
@@ -415,7 +417,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.24',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.27',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -637,19 +639,75 @@ app.patch('/api/admin/orders/:id/status',requireAdmin,requireRole('operator'),as
 app.delete('/api/admin/orders/:id',requireAdmin,requireRole('operator'),async(req,res)=>{try{const db=readDb(),idx=(db.orders||[]).findIndex(x=>String(x.orderId)===String(req.params.id));if(idx<0)return res.status(404).json({error:'Buyurtma topilmadi'});const o=db.orders[idx];if(o.stockAdjusted===true&&['delivery','done'].includes(o.status)){for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0);}}db.orders.splice(idx,1);audit(db,req.adminUser,'Buyurtma o‘chirildi',String(o.orderId));await writeDb(db);res.json({ok:true,deleted:o.orderId})}catch(e){res.status(400).json({error:e.message})}});
 
 
-let polling=false,offset=0;
-async function pollTelegram(){if(!BOT_TOKEN||polling)return;polling=true;try{try{await tgCall('deleteWebhook',{drop_pending_updates:false});}catch{}console.log('Telegram order-status buttons: polling started');while(true){try{const updates=await tgCall('getUpdates',{offset,timeout:25,allowed_updates:['callback_query']});for(const u of updates){offset=Math.max(offset,u.update_id+1);const q=u.callback_query;if(!q)continue;const [kind,status,orderId]=String(q.data||'').split('|');if(kind!=='st')continue;try{await updateOrderStatus(orderId,status,'telegram');await tgCall('answerCallbackQuery',{callback_query_id:q.id,text:statusLabel(status)});}catch(e){await tgCall('answerCallbackQuery',{callback_query_id:q.id,text:'Xatolik'}).catch(()=>{});console.error('Callback error:',e.message)}}}catch(e){console.error('Telegram polling error:',e.message);await new Promise(r=>setTimeout(r,4000));}}}finally{polling=false}}
+
+// V13.26.27 — Telegram webhook mode.
+// Polling (getUpdates) caused 409 Conflict during Render rolling deploys / duplicate bot instances.
+// A webhook gives Telegram one canonical HTTPS endpoint and removes long-polling conflicts.
+async function handleTelegramCallback(q){
+ if(!q)return;
+ const [kind,status,orderId]=String(q.data||'').split('|');
+ if(kind!=='st')return;
+ try{
+  await updateOrderStatus(orderId,status,'telegram');
+  await tgCall('answerCallbackQuery',{callback_query_id:q.id,text:statusLabel(status)});
+ }catch(e){
+  await tgCall('answerCallbackQuery',{callback_query_id:q.id,text:'Xatolik'}).catch(()=>{});
+  console.error('Telegram callback error:',e.message);
+ }
+}
+
+app.post('/api/telegram/webhook',async(req,res)=>{
+ try{
+  if(!BOT_TOKEN)return res.sendStatus(404);
+  const supplied=String(req.get('X-Telegram-Bot-Api-Secret-Token')||'');
+  if(!supplied || supplied!==TELEGRAM_WEBHOOK_SECRET)return res.sendStatus(403);
+  // Telegram expects a fast 2xx response. Process the callback asynchronously after acknowledging it.
+  res.sendStatus(200);
+  const update=req.body||{};
+  if(update.callback_query)handleTelegramCallback(update.callback_query).catch(e=>console.error('Telegram webhook handler:',e.message));
+ }catch(e){
+  console.error('Telegram webhook error:',e.message);
+  if(!res.headersSent)res.sendStatus(200);
+ }
+});
+
+app.get('/api/telegram/webhook-status',requireAdmin,async(req,res)=>{
+ if(!BOT_TOKEN)return res.status(503).json({ok:false,error:'Telegram bot token configured emas'});
+ try{
+  const info=await tgCall('getWebhookInfo',{});
+  res.json({ok:true,url:info.url||'',pending_update_count:Number(info.pending_update_count||0),last_error_message:info.last_error_message||'',mode:'webhook'});
+ }catch(e){res.status(502).json({ok:false,error:e.message})}
+});
+
+async function configureTelegramWebhook(){
+ if(!BOT_TOKEN){console.log('Telegram webhook: BOT_TOKEN missing');return;}
+ try{
+  const result=await tgCall('setWebhook',{
+   url:TELEGRAM_WEBHOOK_URL,
+   secret_token:TELEGRAM_WEBHOOK_SECRET,
+   allowed_updates:['callback_query'],
+   drop_pending_updates:false,
+   max_connections:20
+  });
+  console.log(`Telegram order-status buttons: webhook active -> ${TELEGRAM_WEBHOOK_URL}`);
+  return result;
+ }catch(e){
+  console.error('Telegram webhook setup error:',e.message);
+  // Retry later without crashing the shop. Orders still remain stored in PostgreSQL.
+  setTimeout(()=>configureTelegramWebhook().catch(()=>{}),15000).unref?.();
+ }
+}
 
 async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.24 REALTIME + GPS + CHAT HARDENING / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.27 TELEGRAM WEBHOOK + REALTIME / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
    console.log(`Online admin: /admin.html | DATA_DIR=${DATA_DIR}`);
-   pollTelegram();
+   configureTelegramWebhook();
   });
  }catch(e){
   console.error('Startup/storage error:',e);

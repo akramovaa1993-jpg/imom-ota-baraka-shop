@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.27 — TELEGRAM WEBHOOK FIX
+
+- Telegram getUpdates polling olib tashlandi.
+- Render rolling deploy paytidagi 409 Conflict xatosi webhook orqali bartaraf etildi.
+- Telegram inline status tugmalari endi https://zarbuloq.uz/api/telegram/webhook orqali ishlaydi.
+- Webhook secret token bilan himoyalangan.
+- /api/telegram/webhook-status admin tekshiruvi qo‘shildi.
+- Buyurtma, GPS ±20m, Parkent nazorati, real-time chat, PostgreSQL, SEO va payment fix o‘zgarmadi.
