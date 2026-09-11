@@ -61,10 +61,13 @@ app.use(express.json({limit:'12mb'}));
 
 // V13.16 PRODUCT SEO — har bir mahsulot uchun Google indekslaydigan alohida sahifa.
 function seoSlug(value=''){
-  return String(value||'')
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g,'')
+  // Latin + Russian/Cyrillic names are converted to stable ASCII slugs for Google-friendly URLs.
+  const translitMap={
+    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'
+  };
+  const raw=String(value||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+  const latin=[...raw].map(ch=>translitMap[ch]??ch).join('');
+  return latin
     .replace(/[ʻʼ‘’`´']/g,'')
     .replace(/[^a-z0-9]+/g,'-')
     .replace(/^-+|-+$/g,'')
@@ -97,10 +100,61 @@ function productImageUrl(p){
 }
 
 app.get('/sitemap.xml',(req,res)=>{
-  const db=readDb(),today=new Date().toISOString().slice(0,10);
-  const productUrls=(db.products||[]).flatMap(p=>{const last=String(p.updatedAt||p.lastReceivedAt||p.createdAt||today).slice(0,10)||today,uz=`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`,ru=`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`;return [`<url><loc>${xmlEsc(uz)}</loc><lastmod>${xmlEsc(last)}</lastmod><changefreq>daily</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="uz" href="${xmlEsc(uz)}"/><xhtml:link rel="alternate" hreflang="ru" href="${xmlEsc(ru)}"/></url>`,`<url><loc>${xmlEsc(ru)}</loc><lastmod>${xmlEsc(last)}</lastmod><changefreq>daily</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="ru" href="${xmlEsc(ru)}"/><xhtml:link rel="alternate" hreflang="uz" href="${xmlEsc(uz)}"/></url>`]});
-  const urls=[`<url><loc>https://zarbuloq.uz/</loc><lastmod>${today}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>`,...productUrls];
-  res.setHeader('Cache-Control','public, max-age=900');res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>`);
+  const db=readDb();
+  const today=new Date().toISOString().slice(0,10);
+  const validDate=(value)=>{
+    const raw=String(value||'').trim();
+    if(/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0,10);
+    const d=new Date(value);
+    return Number.isNaN(d.getTime()) ? today : d.toISOString().slice(0,10);
+  };
+  const productUrls=(db.products||[]).flatMap(p=>{
+    const last=validDate(p.updatedAt||p.lastReceivedAt||p.createdAt||today);
+    const uz=`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`;
+    const ru=`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`;
+    const uzEntry=[
+      '  <url>',
+      `    <loc>${xmlEsc(uz)}</loc>`,
+      `    <lastmod>${xmlEsc(last)}</lastmod>`,
+      '    <changefreq>daily</changefreq>',
+      '    <priority>0.9</priority>',
+      `    <xhtml:link rel="alternate" hreflang="uz" href="${xmlEsc(uz)}"/>`,
+      `    <xhtml:link rel="alternate" hreflang="ru" href="${xmlEsc(ru)}"/>`,
+      '  </url>'
+    ].join('\n');
+    const ruEntry=[
+      '  <url>',
+      `    <loc>${xmlEsc(ru)}</loc>`,
+      `    <lastmod>${xmlEsc(last)}</lastmod>`,
+      '    <changefreq>daily</changefreq>',
+      '    <priority>0.9</priority>',
+      `    <xhtml:link rel="alternate" hreflang="ru" href="${xmlEsc(ru)}"/>`,
+      `    <xhtml:link rel="alternate" hreflang="uz" href="${xmlEsc(uz)}"/>`,
+      '  </url>'
+    ].join('\n');
+    return [uzEntry,ruEntry];
+  });
+  const home=[
+    '  <url>',
+    '    <loc>https://zarbuloq.uz/</loc>',
+    `    <lastmod>${today}</lastmod>`,
+    '    <changefreq>daily</changefreq>',
+    '    <priority>1.0</priority>',
+    '  </url>'
+  ].join('\n');
+  const xml=[
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    home,
+    ...productUrls,
+    '</urlset>',
+    ''
+  ].join('\n');
+  res.status(200);
+  res.setHeader('Content-Type','application/xml; charset=utf-8');
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('Cache-Control','public, max-age=300');
+  res.send(xml);
 });
 
 app.get('/mahsulot-rasm/:id',(req,res)=>{

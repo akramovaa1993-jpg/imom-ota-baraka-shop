@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.23 — SITEMAP SEO FIX
+
+- /sitemap.xml explicit application/xml; charset=utf-8
+- X-Content-Type-Options: nosniff
+- Readable/valid XML formatting
+- lastmod date validation
+- Russian/Cyrillic product names transliterated into SEO-friendly slugs
+- Dynamic products remain automatic from PostgreSQL
