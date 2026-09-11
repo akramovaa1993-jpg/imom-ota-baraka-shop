@@ -1,0 +1,11 @@
+ZARBULOQ.UZ v13.26.22 — PRODUCTION / SEO / DATABASE HARDENING
+
+- Render productionda PostgreSQL majburiy: REQUIRE_DATABASE=true.
+- DATABASE_URL bo‘lmasa server local JSON bilan tasodifan ishga tushmaydi.
+- /health PostgreSQLga SELECT 1 yuborib real baza holatini tekshiradi.
+- PostgreSQL pool keepAlive va error logging kuchaytirildi.
+- render.yaml: DATABASE_URL, DATABASE_SSL, ADMIN_USERNAME, ADMIN_PASSWORD, SESSION_SECRET, Telegram env sozlamalari.
+- Product SEO saqlandi: dinamik /sitemap.xml, /mahsulot/:slug, /ru/mahsulot/:slug, Product JSON-LD, canonical, hreflang, robots.
+- Admin ↔ sayt real-time SSE va PostgreSQL persistent storage saqlandi.
+
+DEPLOYDAN OLDIN RENDER ENVIRONMENTDA DATABASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID qiymatlari mavjudligini tekshiring.

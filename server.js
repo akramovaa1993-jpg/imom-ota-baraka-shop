@@ -15,7 +15,9 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname,'data');
 const DB_FILE = path.join(DATA_DIR,'shop.json');
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const DATABASE_SSL = String(process.env.DATABASE_SSL || 'true').toLowerCase() !== 'false';
-const pool = DATABASE_URL ? new Pool({connectionString:DATABASE_URL,ssl:DATABASE_SSL?{rejectUnauthorized:false}:false,max:3,idleTimeoutMillis:30000,connectionTimeoutMillis:10000}) : null;
+const REQUIRE_DATABASE = String(process.env.REQUIRE_DATABASE || 'false').toLowerCase() === 'true';
+const pool = DATABASE_URL ? new Pool({connectionString:DATABASE_URL,ssl:DATABASE_SSL?{rejectUnauthorized:false}:false,max:5,idleTimeoutMillis:30000,connectionTimeoutMillis:10000,keepAlive:true}) : null;
+if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.message));
 let dbCache = null;
 let persistChain = Promise.resolve();
 
@@ -224,6 +226,7 @@ async function writeDb(db){
 }
 async function initStorage(){
  fs.mkdirSync(DATA_DIR,{recursive:true});
+ if(REQUIRE_DATABASE && !DATABASE_URL) throw new Error('DATABASE_URL is required in production (REQUIRE_DATABASE=true)');
  const local=readLocal();
  if(!pool){dbCache=local;writeLocal(dbCache);console.log('Storage: local JSON fallback');return;}
  await pool.query('CREATE TABLE IF NOT EXISTS shop_state (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
@@ -337,7 +340,13 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/health',(req,res)=>res.status(200).send('OK'));
+app.get('/health',async(req,res)=>{
+ try{
+  if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
+  if(pool) await pool.query('SELECT 1');
+  res.status(200).json({ok:true,storage:pool?'postgresql':'local'});
+ }catch(e){res.status(503).json({ok:false,storage:'postgresql',error:'database_unavailable'});}
+});
 // V13.26.20 — public tashrif hisoblagichi (PII/IP saqlanmaydi)
 app.post('/api/visit',async(req,res)=>{
   try{
@@ -576,7 +585,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.9 INSTANT CUSTOMER RECEIPT + REALTIME ZARBULOQ / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.22 PRODUCTION + SEO + DATABASE HARDENING / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
