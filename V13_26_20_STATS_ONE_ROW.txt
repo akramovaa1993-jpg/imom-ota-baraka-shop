@@ -1,0 +1,12 @@
+V13.26.20 — DASHBOARD KPI BIR QATORDA
+
+Desktop admin Dashboardda 7 ta asosiy KPI kartasi bitta qatorda joylashadi:
+1. Barcha buyurtma
+2. Bugun buyurtma
+3. Oy
+4. Jami daromad
+5. Bugun tashrif
+6. Hozir online
+7. Noyob tashrif
+
+Mobil va planshetda kartalar responsiv tarzda 2 ustunga tushadi.

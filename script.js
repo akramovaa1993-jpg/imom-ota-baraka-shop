@@ -209,7 +209,7 @@ initRealtime();
 loadCatalog();
 loadSiteChat();
 
-// V13.26.19 — anonim tashriflar statistikasi
+// V13.26.20 — anonim tashriflar statistikasi
 (function initVisitorTracking(){
   try{
     const makeId=(prefix)=>prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);

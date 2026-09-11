@@ -19,7 +19,7 @@ const pool = DATABASE_URL ? new Pool({connectionString:DATABASE_URL,ssl:DATABASE
 let dbCache = null;
 let persistChain = Promise.resolve();
 
-// V13.26.19 — tashriflar statistikasi
+// V13.26.20 — tashriflar statistikasi
 const onlineVisitors = new Map();
 const VISITOR_ONLINE_MS = 2 * 60 * 1000;
 function uzDayKey(value=new Date()){
@@ -338,7 +338,7 @@ function financeCompanyBalances(db){
 }
 
 app.get('/health',(req,res)=>res.status(200).send('OK'));
-// V13.26.19 — public tashrif hisoblagichi (PII/IP saqlanmaydi)
+// V13.26.20 — public tashrif hisoblagichi (PII/IP saqlanmaydi)
 app.post('/api/visit',async(req,res)=>{
   try{
     const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/',referrer=clean(req.body?.referrer,300),lang=clean(req.body?.lang,12),ua=clean(req.headers['user-agent']||'',500);
@@ -352,7 +352,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.19',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.20',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
