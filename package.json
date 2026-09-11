@@ -1,6 +1,6 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.23",
+  "version": "13.26.25",
   "private": true,
   "description": "ZARBULOQ.UZ v13.26.23 — sitemap XML header/format fix, valid lastmod and RU slug transliteration",
   "scripts": {

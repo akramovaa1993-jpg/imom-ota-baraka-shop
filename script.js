@@ -111,7 +111,7 @@ function closeModal(){$('#modal').classList.remove('show')}
 let lastTrackQuery=null;
 async function fetchTrackedOrder(id,phone,{silent=false}={}){const box=$('#trackResult');if(!box)return;if(!silent)box.innerHTML='<p>Tekshirilmoqda...</p>';try{const r=await fetch(`/api/track/${encodeURIComponent(id)}?phone=${encodeURIComponent(phone)}`,{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error);box.innerHTML=`<div class="track-result"><h3>${esc(d.statusLabel)}</h3><p><b>${esc(d.orderId)}</b></p><p>Hudud: ${esc(d.area)} • ${esc(d.deliverySlot)}</p><p>${d.items.map(x=>`${esc(x.name)} × ${x.qty}`).join('<br>')}</p><strong>${money(d.total)}</strong><small style="display:block;margin-top:8px;opacity:.65">LIVE • avtomatik yangilanadi</small></div>`}catch(err){if(!silent)box.innerHTML=`<p class="error-text">${esc(err.message)}</p>`}}
 async function trackOrder(e){e.preventDefault();const fd=new FormData(e.currentTarget),id=fd.get('id').trim(),phone=fd.get('phone').trim();lastTrackQuery={id,phone};await fetchTrackedOrder(id,phone)}
-function openCheckout(){if(!cart.length){alert('Savat bo‘sh.');return}closeCart();const areas=settings.delivery?.areas||[],slots=settings.delivery?.slots||[];$('#checkoutModal').innerHTML=`<div class="checkout-card"><button class="x" onclick="closeCheckout()">×</button><div class="checkout-head"><span class="eyebrow">BEPUL YETKAZIB BERISH</span><h2>Buyurtmani rasmiylashtirish</h2><p>Parkent tumani hududini tanlang. GPS lokatsiya majburiy. Buyurtma faqat Parkent tumani hududida qabul qilinadi.</p></div><div class="checkout-grid"><form id="checkoutForm"><input name="name" placeholder="Ismingiz" required><input name="phone" type="tel" placeholder="+998 90 123 45 67" required><select name="area" required><option value="">Hududni tanlang *</option>${areas.map(a=>`<option>${esc(a)}</option>`).join('')}</select><textarea name="address" placeholder="Ko‘cha, uy va mo‘ljal *" required></textarea><select name="deliverySlot" required><option value="">Yetkazish vaqtini tanlang *</option>${slots.map(a=>`<option>${esc(a)}</option>`).join('')}</select><select name="payment" required><option value="">To‘lov turi *</option><option>Naqd</option><option>Karta / terminal</option><option>O‘tkazma</option></select><textarea name="comment" placeholder="Izoh (ixtiyoriy)"></textarea><input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy"><button class="location-btn" type="button" onclick="getLocation()">📍 Lokatsiyamni aniqlash</button><div id="locationStatus" class="location-status">Lokatsiya hali olinmagan</div><div id="locationMapBox" class="checkout-location-map" hidden></div></form><aside><h3>Buyurtma</h3>${cart.map(x=>{const p=products.find(p=>Number(p.id)===Number(x.id));return `<div class="summary-line"><span>${esc(nameOf(p))} × ${x.qty}</span><b>${money(p.price*x.qty)}</b></div>`}).join('')}<div class="summary-line"><span>Chegirma</span><b>− ${money(promo.discount)}</b></div><div class="summary-line"><span>Yetkazish</span><b class="free">BEPUL</b></div><div class="summary-line grand"><span>Jami</span><b>${money(total())}</b></div><button class="btn primary" id="orderSubmit" onclick="submitOrder(event)" disabled title="Avval Parkent hududidagi lokatsiyangizni tasdiqlang">Buyurtmani tasdiqlash</button><div id="checkoutStatus"></div></aside></div></div>`;$('#checkoutModal').classList.add('show')}
+function openCheckout(){if(!cart.length){alert('Savat bo‘sh.');return}closeCart();const areas=settings.delivery?.areas||[],slots=settings.delivery?.slots||[];$('#checkoutModal').innerHTML=`<div class="checkout-card"><button class="x" onclick="closeCheckout()">×</button><div class="checkout-head"><span class="eyebrow">BEPUL YETKAZIB BERISH</span><h2>Buyurtmani rasmiylashtirish</h2><p>Parkent tumani hududini tanlang. GPS lokatsiya ixtiyoriy. Aniq joylashuvingizni yubormoqchi bo‘lsangiz lokatsiyadan foydalaning; aks holda yozgan manzilingiz bo‘yicha ishlaymiz.</p></div><div class="checkout-grid"><form id="checkoutForm"><input name="name" placeholder="Ismingiz" required><input name="phone" type="tel" placeholder="+998 90 123 45 67" required><select name="area" required><option value="">Hududni tanlang *</option>${areas.map(a=>`<option>${esc(a)}</option>`).join('')}</select><textarea name="address" placeholder="Ko‘cha, uy va mo‘ljal *" required></textarea><select name="deliverySlot" required><option value="">Yetkazish vaqtini tanlang *</option>${slots.map(a=>`<option>${esc(a)}</option>`).join('')}</select><select name="payment" required><option value="">To‘lov turi *</option><option>Naqd</option><option>Karta / terminal</option><option>O‘tkazma</option></select><textarea name="comment" placeholder="Izoh (ixtiyoriy)"></textarea><input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy"><button class="location-btn" type="button" onclick="getLocation()">📍 Lokatsiyamni aniqlash (ixtiyoriy)</button><div id="locationStatus" class="location-status">Lokatsiya ixtiyoriy — aniq manzil yubormoqchi bo‘lsangiz foydalaning.</div><div id="locationMapBox" class="checkout-location-map" hidden></div></form><aside><h3>Buyurtma</h3>${cart.map(x=>{const p=products.find(p=>Number(p.id)===Number(x.id));return `<div class="summary-line"><span>${esc(nameOf(p))} × ${x.qty}</span><b>${money(p.price*x.qty)}</b></div>`}).join('')}<div class="summary-line"><span>Chegirma</span><b>− ${money(promo.discount)}</b></div><div class="summary-line"><span>Yetkazish</span><b class="free">BEPUL</b></div><div class="summary-line grand"><span>Jami</span><b>${money(total())}</b></div><button class="btn primary" id="orderSubmit" onclick="submitOrder(event)">Buyurtmani tasdiqlash</button><div id="checkoutStatus"></div></aside></div></div>`;$('#checkoutModal').classList.add('show')}
 function closeCheckout(){$('#checkoutModal').classList.remove('show')}
 function pointInRing(lat,lng,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=Number(ring[i][0]),yi=Number(ring[i][1]),xj=Number(ring[j][0]),yj=Number(ring[j][1]);if(((yi>lat)!=(yj>lat))&&(lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi))inside=!inside}return inside}
 function pointInGeometry(lat,lng,g){if(!g)return false;if(g.type==='Polygon')return pointInRing(lat,lng,g.coordinates[0])&&!g.coordinates.slice(1).some(r=>pointInRing(lat,lng,r));if(g.type==='MultiPolygon')return g.coordinates.some(poly=>pointInRing(lat,lng,poly[0])&&!poly.slice(1).some(r=>pointInRing(lat,lng,r)));return false}
@@ -124,7 +124,7 @@ async function isInsideParkent(lat,lng){
   return Boolean(d.inside);
  }catch(e){console.error('Parkent check:',e);return false}
 }
-function setOrderButtonAllowed(ok){const b=$('#orderSubmit');if(b){b.disabled=!ok;b.title=ok?'':'Buyurtma faqat Parkent tumani hududida qabul qilinadi'}}
+function setOrderButtonAllowed(ok){const b=$('#orderSubmit');if(b){b.disabled=false;b.title=''}}
 function showCheckoutLocationMap(lat,lng,accuracy){
  const box=$('#locationMapBox');if(!box)return;box.hidden=false;
  const q=`${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}`;
@@ -132,39 +132,31 @@ function showCheckoutLocationMap(lat,lng,accuracy){
 }
 function clearCheckoutLocationMap(){const box=$('#locationMapBox');if(box){box.hidden=true;box.innerHTML=''}}
 function getLocation(){
- const st=$('#locationStatus');
- if(!navigator.geolocation){st.textContent='Buyurtma uchun GPS lokatsiya kerak. Brauzer geolokatsiyani qo‘llamaydi.';setOrderButtonAllowed(false);clearCheckoutLocationMap();return}
- const f=$('#checkoutForm');
- st.innerHTML='<b>📡 Lokatsiya aniq olinmoqda...</b><br>Telefonni bir necha soniya qimirlatmay turing.';
+ const st=$('#locationStatus'),f=$('#checkoutForm');
+ const fail=(title,detail='')=>{st.innerHTML=`<b>❌ ${title}</b>${detail?`<br>${detail}`:''}<br><button type="button" class="btn ghost" style="margin-top:8px" onclick="getLocation()">↻ Qayta urinish</button>`;setOrderButtonAllowed(false);clearCheckoutLocationMap()};
+ if(!window.isSecureContext){fail('Lokatsiya uchun HTTPS kerak.','Saytni https://zarbuloq.uz orqali oching.');return}
+ if(!navigator.geolocation){fail('Bu brauzer GPS lokatsiyani bermayapti.','Telegram ichki brauzerida bo‘lsangiz, menyudan Chrome/Safari’da ochib qayta urinib ko‘ring.');return}
+ st.innerHTML='<b>📡 Lokatsiya aniqlanmoqda...</b><br>GPS yoqilgan bo‘lsin. 15 soniyagacha kuting.';
  setOrderButtonAllowed(false);clearCheckoutLocationMap();
  if(f){f.elements.lat.value='';f.elements.lng.value='';if(f.elements.accuracy)f.elements.accuracy.value=''}
- let best=null,count=0,finished=false,watchId=null;
- const stop=async(force=false)=>{
-  if(finished)return;finished=true;
-  if(watchId!==null)navigator.geolocation.clearWatch(watchId);
-  if(!best){st.innerHTML='<b>❌ GPS lokatsiya olinmadi.</b><br>Telefon GPS’ini yoqing va qayta urinib ko‘ring.';setOrderButtonAllowed(false);clearCheckoutLocationMap();return}
-  const {lat,lng,accuracy}=best;
-  if(accuracy>120&&!force){st.innerHTML=`<b>⚠️ Lokatsiya aniqligi yetarli emas: ±${Math.round(accuracy)} m.</b><br>Ochiqroq joyga chiqing yoki GPS’ni yoqib qayta urinib ko‘ring.`;setOrderButtonAllowed(false);showCheckoutLocationMap(lat,lng,accuracy);return}
+ let best=null,count=0,finished=false,watchId=null,timer=null;
+ const finish=async()=>{
+  if(finished)return;finished=true;if(timer)clearTimeout(timer);if(watchId!==null)navigator.geolocation.clearWatch(watchId);
+  if(!best){fail('Lokatsiya olinmadi.','Telefon sozlamalarida Location/GPS va brauzer uchun lokatsiya ruxsatini yoqing. Telegram ichida ochilgan bo‘lsa Chrome/Safari’da oching.');return}
+  const {lat,lng,accuracy}=best;showCheckoutLocationMap(lat,lng,accuracy);
+  if(Number(accuracy)>180){fail(`GPS aniqligi past: ±${Math.round(accuracy)} m.`,'Ochiqroq joyda qayta urinib ko‘ring.');return}
   f.elements.lat.value=lat;f.elements.lng.value=lng;if(f.elements.accuracy)f.elements.accuracy.value=accuracy;
-  showCheckoutLocationMap(lat,lng,accuracy);
-  st.textContent='Parkent tumani chegarasi tekshirilmoqda...';
-  const inside=await isInsideParkent(lat,lng);
-  if(!inside){f.elements.lat.value='';f.elements.lng.value='';if(f.elements.accuracy)f.elements.accuracy.value='';st.innerHTML='<b>❌ Aniqlangan lokatsiya Parkent tumani hududidan tashqarida.</b><br>Xaritadagi joy noto‘g‘ri bo‘lsa, GPS’ni yoqing va qayta aniqlang.';setOrderButtonAllowed(false);return}
-  const quality=accuracy<=25?'Juda aniq':accuracy<=50?'Aniq':accuracy<=80?'Yaxshi':'Qoniqarli';
-  st.innerHTML=`<b>✅ Parkent tumani hududi tasdiqlandi.</b><br>GPS aniqligi: <b>±${Math.round(accuracy)} m</b> — ${quality}. Buyurtma berishingiz mumkin.`;setOrderButtonAllowed(true)
+  st.innerHTML='<b>📍 Lokatsiya olindi.</b><br>Parkent tumani chegarasi tekshirilmoqda...';
+  try{
+   const inside=await isInsideParkent(lat,lng);
+   if(!inside){f.elements.lat.value='';f.elements.lng.value='';if(f.elements.accuracy)f.elements.accuracy.value='';fail('Lokatsiya Parkent tumani hududidan tashqarida.','Xaritadagi nuqta noto‘g‘ri bo‘lsa GPS’ni qayta aniqlang.');showCheckoutLocationMap(lat,lng,accuracy);return}
+   const quality=accuracy<=25?'Juda aniq':accuracy<=50?'Aniq':accuracy<=100?'Yaxshi':'Qoniqarli';
+   st.innerHTML=`<b>✅ Parkent tumani tasdiqlandi.</b><br>GPS aniqligi: <b>±${Math.round(accuracy)} m</b> — ${quality}. Buyurtma berishingiz mumkin.`;setOrderButtonAllowed(true)
+  }catch(e){fail('Hududni tekshirishda internet xatosi.','Qayta urinib ko‘ring.');}
  };
- const timeout=setTimeout(()=>stop(false),14000);
- watchId=navigator.geolocation.watchPosition(pos=>{
-  count++;
-  const c=pos.coords,accuracy=Number(c.accuracy||9999);
-  if(!best||accuracy<best.accuracy){best={lat:c.latitude,lng:c.longitude,accuracy};showCheckoutLocationMap(best.lat,best.lng,best.accuracy);st.innerHTML=`<b>📍 GPS aniqlashtirilmoqda...</b><br>Hozirgi eng yaxshi aniqlik: ±${Math.round(best.accuracy)} m`}
-  if(accuracy<=25||count>=7){clearTimeout(timeout);stop(false)}
- },err=>{
-  clearTimeout(timeout);
-  if(best){stop(false);return}
-  const msg=err?.code===1?'Lokatsiyaga ruxsat berilmadi.':err?.code===2?'GPS lokatsiyani aniqlab bo‘lmadi.':'Lokatsiya aniqlash vaqti tugadi.';
-  finished=true;if(watchId!==null)navigator.geolocation.clearWatch(watchId);st.textContent=msg+' Telefon GPS’ini yoqing va qayta urinib ko‘ring.';setOrderButtonAllowed(false);clearCheckoutLocationMap()
- },{enableHighAccuracy:true,timeout:12000,maximumAge:0})
+ const accept=pos=>{const c=pos?.coords;if(!c)return;const accuracy=Number(c.accuracy||9999);if(!best||accuracy<best.accuracy){best={lat:Number(c.latitude),lng:Number(c.longitude),accuracy};showCheckoutLocationMap(best.lat,best.lng,best.accuracy);st.innerHTML=`<b>📍 GPS aniqlashtirilmoqda...</b><br>Hozirgi aniqlik: ±${Math.round(best.accuracy)} m`};count++;if(accuracy<=35||count>=5)finish()};
+ const onerr=err=>{if(best){finish();return}const msg=err?.code===1?'Lokatsiyaga ruxsat berilmagan.':err?.code===2?'GPS signal topilmadi.':'Lokatsiya olish vaqti tugadi.';fail(msg,'Telefon Location/GPS ruxsatini tekshiring. Telegram ichida bo‘lsa Chrome/Safari’da ochib ko‘ring.')};
+ try{watchId=navigator.geolocation.watchPosition(accept,onerr,{enableHighAccuracy:true,timeout:10000,maximumAge:0});timer=setTimeout(()=>{if(best)finish();else navigator.geolocation.getCurrentPosition(p=>{accept(p);finish()},onerr,{enableHighAccuracy:false,timeout:6000,maximumAge:30000})},12000)}catch(e){fail('GPS ishga tushmadi.','Brauzer lokatsiya ruxsatini tekshiring.')}
 }
 function receiptStatusLabel(status){return ({new:'BUYURTMA QABUL QILINADI',accepted:'BUYURTMA QABUL QILINADI',delivery:'YETKAZILMOQDA',done:'YAKUNLANDI',cancelled:'BEKOR QILINDI'})[status]||'BUYURTMA QABUL QILINADI'}
 function closeReceipt(){const m=$('#receiptModal');if(m)m.classList.remove('show')}
@@ -172,7 +164,7 @@ async function ensureReceiptCanvas(){if(window.html2canvas)return;await new Prom
 async function saveReceiptImage(){const card=document.querySelector('#receiptModal .receipt-card');if(!card)return;try{await ensureReceiptCanvas();const canvas=await html2canvas(card,{scale:2,useCORS:true,backgroundColor:'#ffffff',ignoreElements:el=>el.classList&&el.classList.contains('receipt-x')});canvas.toBlob(blob=>{if(!blob)return;const a=document.createElement('a');a.href=URL.createObjectURL(blob);const id=(card.querySelector('.receipt-title small')?.textContent||'CHEK').replace(/[^a-zA-Z0-9_-]/g,'_');a.download=`ZARBULOQ_${id}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);const old=document.querySelector('.receipt-saved-toast');if(old)old.remove();const t=document.createElement('div');t.className='receipt-saved-toast';t.textContent='✓ Chek rasm sifatida saqlandi';document.body.appendChild(t);setTimeout(()=>t.remove(),2500)},'image/png')}catch(e){alert('Chekni rasm sifatida saqlashda xatolik: '+e.message)}}
 function printReceipt(){const card=document.querySelector('#receiptModal .receipt-card');if(!card)return;const w=window.open('','_blank','width=620,height=900');if(!w)return;w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Elektron chek</title><link rel="stylesheet" href="/style.css"></head><body style="background:#fff;padding:20px">${card.outerHTML}<script>setTimeout(()=>window.print(),400)<\/script></body></html>`);w.document.close()}
 function showReceipt(order){const m=$('#receiptModal');if(!m||!order)return;const items=Array.isArray(order.items)?order.items:[];const created=new Date(order.createdAt||Date.now());const date=created.toLocaleDateString('uz-UZ');const time=created.toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'});const verifyUrl=`${location.origin}/#track`;const qr=`https://quickchart.io/qr?size=150&text=${encodeURIComponent(verifyUrl+'?order='+order.orderId)}`;m.innerHTML=`<div class="receipt-shell"><div class="receipt-card"><button class="receipt-x" onclick="closeReceipt()">×</button><div class="receipt-hero"><img src="/logo.png" alt="ZARBULOQ.UZ"><div><b>ZARBULOQ.UZ</b><span>IMOM OTA BARAKA</span><small>Tabiatdan sizning uyingizgacha</small></div></div><div class="receipt-title">ELEKTRON CHEK<small>№ ${esc(order.orderId)}</small></div><div class="receipt-meta"><span>📅 ${esc(date)} &nbsp; ${esc(time)}</span><span>👤 ${esc(order.customer?.name||'')}</span><span>☎ ${esc(order.customer?.phone||'')}</span><span>📍 ${esc(order.customer?.area||'')}${order.customer?.address?' • '+esc(order.customer.address):''}</span></div><div class="receipt-items">${items.map(it=>`<div class="receipt-item"><div><b>${esc(it.name||'Mahsulot')}</b><small>${Number(it.qty||0)} × ${money(Number(it.price||0))}</small></div><strong>${money(Number(it.price||0)*Number(it.qty||0))}</strong></div>`).join('')}</div><div class="receipt-totals"><div><span>Oraliq summa</span><b>${money(order.subtotal||order.total||0)}</b></div><div><span>Yetkazib berish</span><b>0 so‘m</b></div><div><span>Chegirma</span><b>${money(order.discount||0)}</b></div><div class="grand"><span>JAMI</span><b>${money(order.total||0)}</b></div></div><div class="receipt-payment receipt-payment-v14"><span class="receipt-pay-note"><i>💵</i><span>Mahsulot yetkazilganidan keyin<br><b>Naqd to‘lanadi</b></span></span><span class="receipt-order-state"><i>📋</i><span>Holat: <b class="receipt-status">◷ ${receiptStatusLabel(order.status)}</b></span></span></div><em>“Soflik va baraka har doim siz bilan!”</em><div class="receipt-qr"><img src="${qr}" alt="QR"><div><b>Chekni tekshirish</b><small>zarbuloq.uz</small></div></div><div class="receipt-actions"><button class="btn primary" onclick="saveReceiptImage()">📥 Galereyaga saqlash</button><button class="btn" onclick="printReceipt()">📄 PDF / Chop etish</button><button class="btn" onclick="closeReceipt()">Yopish</button></div></div></div>`;closeCheckout();m.classList.add('show')}
-async function submitOrder(e){e.preventDefault();const f=$('#checkoutForm');if(!f.reportValidity())return;const btn=$('#orderSubmit'),status=$('#checkoutStatus'),fd=new FormData(f);if(!fd.get('lat')||!fd.get('lng')){status.innerHTML='<p class="error-text">Avval “Lokatsiyamni yuborish” tugmasini bosing. Buyurtma faqat Parkent tumani hududida qabul qilinadi.</p>';setOrderButtonAllowed(false);return}btn.disabled=true;status.textContent='Buyurtma yuborilmoqda...';const order={customer:{name:fd.get('name'),phone:fd.get('phone'),area:fd.get('area'),address:fd.get('address'),deliverySlot:fd.get('deliverySlot'),payment:fd.get('payment'),comment:fd.get('comment'),lat:fd.get('lat'),lng:fd.get('lng'),accuracy:fd.get('accuracy')},items:cart.map(x=>({id:x.id,qty:x.qty})),promoCode:promo.code,language:lang};try{const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(order)});const d=await r.json();if(!r.ok&&!d.saved)throw new Error(d.error||'Xatolik');const receipt=d.order||{orderId:d.orderId,createdAt:new Date().toISOString(),status:'new',customer:order.customer,items:cart.map(x=>{const p=products.find(p=>Number(p.id)===Number(x.id));return {id:x.id,name:nameOf(p),price:Number(p?.price||0),qty:x.qty}}),subtotal:total()+promo.discount,discount:promo.discount,total:d.total??total()};cart=[];promo={code:'',discount:0};saveCart();renderCart();renderProducts();showReceipt(receipt)}catch(err){status.innerHTML=`<p class="error-text">${esc(err.message)}</p>`}finally{btn.disabled=false}}
+async function submitOrder(e){e.preventDefault();const f=$('#checkoutForm');if(!f.reportValidity())return;const btn=$('#orderSubmit'),status=$('#checkoutStatus'),fd=new FormData(f);btn.disabled=true;status.textContent='Buyurtma yuborilmoqda...';const order={customer:{name:fd.get('name'),phone:fd.get('phone'),area:fd.get('area'),address:fd.get('address'),deliverySlot:fd.get('deliverySlot'),payment:fd.get('payment'),comment:fd.get('comment'),lat:fd.get('lat'),lng:fd.get('lng'),accuracy:fd.get('accuracy')},items:cart.map(x=>({id:x.id,qty:x.qty})),promoCode:promo.code,language:lang};try{const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(order)});const d=await r.json();if(!r.ok&&!d.saved)throw new Error(d.error||'Xatolik');const receipt=d.order||{orderId:d.orderId,createdAt:new Date().toISOString(),status:'new',customer:order.customer,items:cart.map(x=>{const p=products.find(p=>Number(p.id)===Number(x.id));return {id:x.id,name:nameOf(p),price:Number(p?.price||0),qty:x.qty}}),subtotal:total()+promo.discount,discount:promo.discount,total:d.total??total()};cart=[];promo={code:'',discount:0};saveCart();renderCart();renderProducts();showReceipt(receipt)}catch(err){status.innerHTML=`<p class="error-text">${esc(err.message)}</p>`}finally{btn.disabled=false}}
 
 
 function openSiteChat(){const p=$('#siteChatPopup');if(!p)return;p.classList.add('open');p.setAttribute('aria-hidden','false');loadSiteChat();setTimeout(()=>$('#siteChatInput')?.focus(),80)}
@@ -183,15 +175,17 @@ function renderSiteChat(chat){const box=$('#siteChatMessages');if(!box)return;co
 async function loadSiteChat(){try{const r=await fetch('/api/chat/'+encodeURIComponent(siteChatId),{cache:'no-store'}),d=await r.json();if(r.ok){renderSiteChat(d);if($('#chatName')&&!$('#chatName').value&&d.name)$('#chatName').value=d.name;if($('#chatPhone')&&!$('#chatPhone').value&&d.phone)$('#chatPhone').value=d.phone}}catch(e){console.error('Chat load',e)}}
 async function sendSiteChat(e){e.preventDefault();const inp=$('#siteChatInput'),text=inp.value.trim();if(!text)return;const btn=e.currentTarget.querySelector('button');btn.disabled=true;try{const r=await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:siteChatId,name:$('#chatName')?.value||'',phone:$('#chatPhone')?.value||'',message:text})}),d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');inp.value='';renderSiteChat(d.chat)}catch(err){alert(err.message)}finally{btn.disabled=false}}
 
-let realtimeSource=null,realtimeTimer=null,realtimeReloading=false;
+let realtimeSource=null,realtimeTimer=null,realtimeReloading=false,realtimeLastEvent=Date.now();
 function initRealtime(){
  if(!window.EventSource||realtimeSource)return;
  realtimeSource=new EventSource('/api/events');
  realtimeSource.addEventListener('update',()=>{
+  realtimeLastEvent=Date.now();
   clearTimeout(realtimeTimer);
   realtimeTimer=setTimeout(refreshRealtimeStore,180);
   loadSiteChat();
  });
+ realtimeSource.onopen=()=>{realtimeLastEvent=Date.now()};
  realtimeSource.onerror=()=>{}; // EventSource reconnects automatically
 }
 async function refreshRealtimeStore(){
@@ -211,6 +205,8 @@ document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SE
 initRealtime();
 loadCatalog();
 loadSiteChat();
+// SSE uzilib qolsa ham sayt/chat 3 soniyada avtomatik sinxronlanadi.
+setInterval(()=>{if(Date.now()-realtimeLastEvent>8000){refreshRealtimeStore();loadSiteChat()}},3000);
 
 // V13.26.20 — anonim tashriflar statistikasi
 (function initVisitorTracking(){

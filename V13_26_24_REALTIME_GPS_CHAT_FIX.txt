@@ -1,0 +1,1 @@
+V13.26.24 — GPS timeout/fallback, Telegram WebView uchun aniq xabar, sayt va admin SSE uzilganda 3 soniyalik fallback sync, LIVE chat avtomatik sinxronlash. Mavjud DB/SEO/admin funksiyalari saqlandi.
