@@ -1,0 +1,4 @@
+V13.26.15
+- Public storefront container expanded to full browser width.
+- Desktop side gutters reduced to 18–22px; mobile to 10px.
+- Existing receipt, GPS, product catalog, admin and finance functions preserved.

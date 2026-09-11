@@ -1,0 +1,7 @@
+V13.26.14
+- Elektron chek matni foydalanuvchi tasdiqlagan ko‘rinishga o‘zgartirildi.
+- To‘lov: Mahsulot yetkazilganidan keyin / Naqd to‘lanadi.
+- Yangi buyurtma holati: BUYURTMA QABUL QILINADI.
+- GPS watchPosition orqali bir nechta o‘lchovdan eng aniqligi tanlanadi.
+- GPS aniqligi metrda ko‘rsatiladi va buyurtmaga saqlanadi.
+- Parkent hududi server orqali tekshirilishi saqlab qolindi.

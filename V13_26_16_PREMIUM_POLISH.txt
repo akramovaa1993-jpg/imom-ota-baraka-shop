@@ -1,0 +1,13 @@
+V13.26.16 — PREMIUM STOREFRONT POLISH
+
+- Katalog uchun skeleton loading
+- Mahsulotlar soni va filtrlarni tozalash
+- Katalog yuklanmasa qayta yuklash tugmasi
+- Mahsulot rasmlarini kesmasdan to‘liq ko‘rsatish
+- Premium hover/focus va accessibility
+- Savatga qo‘shilganda toast xabari
+- Tepaga qaytish tugmasi
+- Mobil kategoriya filtrlarini gorizontal scroll
+- / tugmasi bilan qidiruvga tez fokus
+- Reduced-motion accessibility
+- Oldingi chek/GPS/FINANS/Chek markazi funksiyalari saqlandi
