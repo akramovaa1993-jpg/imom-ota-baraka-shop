@@ -208,3 +208,15 @@ document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SE
 initRealtime();
 loadCatalog();
 loadSiteChat();
+
+// V13.26.19 — anonim tashriflar statistikasi
+(function initVisitorTracking(){
+  try{
+    const makeId=(prefix)=>prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+    let visitorId=localStorage.getItem('zarbuloqVisitorId');if(!visitorId){visitorId=makeId('v');localStorage.setItem('zarbuloqVisitorId',visitorId)}
+    let sessionId=sessionStorage.getItem('zarbuloqSessionId');if(!sessionId){sessionId=makeId('s');sessionStorage.setItem('zarbuloqSessionId',sessionId)}
+    const payload=()=>({visitorId,sessionId,page:location.pathname+location.hash,referrer:document.referrer||'',lang:document.documentElement.lang||'uz'});
+    fetch('/api/visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload()),keepalive:true}).catch(()=>{});
+    setInterval(()=>fetch('/api/visit/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload()),keepalive:true}).catch(()=>{}),60000);
+  }catch(_){ }
+})();

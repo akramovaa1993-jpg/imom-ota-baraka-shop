@@ -1,0 +1,11 @@
+V13.26.19 — TASHRIFLAR STATISTIKASI
+
+- Saytga kirishlar anonim visitor ID bilan hisoblanadi.
+- Bugun, 7 kun, 30 kun, jami va noyob tashriflar.
+- Hozir online (2 daqiqa heartbeat).
+- Admin chap menyuda Tashriflar bo‘limi.
+- Dashboard KPI kartalarida Bugun tashrif / Online / Noyob.
+- So‘nggi 7 kunlik grafik va tashriflar tarixi.
+- Excel eksport: /api/admin/visitors.xls
+- IP manzil va shaxsiy ma’lumot saqlanmaydi.
+- V13.26.18 dagi 8 ta mahsulot qatori va barcha oldingi funksiyalar saqlangan.
