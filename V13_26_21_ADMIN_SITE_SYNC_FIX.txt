@@ -1,0 +1,8 @@
+V13.26.21 — ADMIN ↔ SAYT SYNC FIX
+
+- Bosh sahifa markaziy slayder, chap va o‘ng promo banner yozuvlaridagi hardcoded fallback matnlar olib tashlandi.
+- Admin panelda sarlavha/matn/tugma bo‘sh qoldirilsa, sayt ham aynan bo‘sh ko‘rsatadi.
+- Bo‘sh tugmada faqat strelka (→) qolib ketmaydi; element yashiriladi.
+- Serverdagi mavjud SSE real-time yangilanishi saqlandi: admin saqlagandan so‘ng sayt /api/events orqali yangi katalog/sozlamalarni qayta oladi.
+- /api/catalog allaqachon cache:no-store bilan yuklanadi.
+- Version: 13.26.21
