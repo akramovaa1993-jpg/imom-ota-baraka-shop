@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.25",
+  "version": "13.26.26",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.23 — sitemap XML header/format fix, valid lastmod and RU slug transliteration",
+  "description": "ZARBULOQ.UZ v13.26.26 — mandatory automatic GPS (±20 m), Parkent validation, dynamic receipt payment text",
   "scripts": {
     "start": "node server.js"
   },

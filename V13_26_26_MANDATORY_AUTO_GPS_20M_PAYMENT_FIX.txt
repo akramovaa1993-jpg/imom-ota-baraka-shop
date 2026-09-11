@@ -1,0 +1,9 @@
+ZARBULOQ.UZ v13.26.26
+
+- Checkout ochilganda GPS avtomatik ishga tushadi.
+- GPS lokatsiya majburiy.
+- Buyurtma faqat aniqlik ±20 m yoki yaxshiroq bo‘lsa ochiladi.
+- Server ham GPS va accuracy <= 20 m talabini tekshiradi.
+- Parkent tumani chegarasi serverda tekshiriladi.
+- GPS Parkent tashqarisida bo‘lsa buyurtma bloklanadi.
+- Chekda to‘lov turi endi Naqd/Karta terminal/O‘tkazma bo‘yicha dinamik chiqadi.
