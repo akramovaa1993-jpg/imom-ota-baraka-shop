@@ -336,3 +336,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media (min-width: 1101px) and (max-width: 1249px){.product-first .products{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
 @media (min-width: 801px) and (max-width: 1100px){.product-first .products{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 @media (max-width: 800px){.product-first .products{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+.chat-identity-hint{font-size:12px;color:#8a5b00;background:#fff8df;border:1px solid #f0df9a;border-radius:10px;padding:8px 10px;margin:-2px 0 10px}.chat-identity-hint.ok{color:#08735e;background:#eaf8f2;border-color:#bfe5d6}.site-chat-form input:disabled{background:#f1f4f2;color:#8b9691;cursor:not-allowed}.site-chat-form button:disabled{opacity:.55;cursor:not-allowed}

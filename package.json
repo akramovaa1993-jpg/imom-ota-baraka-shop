@@ -1,6 +1,6 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.27",
+  "version": "13.26.28",
   "private": true,
   "description": "ZARBULOQ.UZ v13.26.27 — Telegram webhook conflict fix; realtime/GPS/payment features preserved",
   "scripts": {

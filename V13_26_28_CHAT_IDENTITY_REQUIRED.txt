@@ -1,0 +1,7 @@
+V13.26.28
+- LIVE chatdan oldin ism majburiy.
+- Telefon raqami majburiy va +998/9 xonali format server va frontendda tekshiriladi.
+- Ism/telefon to‘g‘ri bo‘lmaguncha xabar maydoni va Yuborish bloklanadi.
+- Tasdiqlangan mijoz ma’lumoti shu qurilmada saqlanadi.
+- Admin LIVE chatda ism va telefon avvalgidek ko‘rinadi.
+- V13.26.27 dagi Telegram webhook, GPS, payment, realtime, DB va SEO saqlandi.
