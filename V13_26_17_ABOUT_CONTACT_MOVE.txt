@@ -1,0 +1,8 @@
+V13.26.17 — ABOUT / CONTACT LAYOUT FIX
+
+- Aloqa bloki alohida pastdagi katta bo‘limdan olib tashlandi.
+- “Biz bilan bog‘laning” bloki rekvizitlarning o‘ng tomonidagi bo‘sh joyga ko‘chirildi.
+- STIR va MFO bir qatorda yaqinroq, tartibli joylashtirildi.
+- Hisob raqami va firma nomi chap rekvizit blokida saqlandi.
+- Mobil/tablet responsive holat saqlandi.
+- Boshqa sayt/admin funksiyalariga tegilmadi.

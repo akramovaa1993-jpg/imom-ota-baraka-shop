@@ -281,3 +281,34 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:900px){.catalog-meta{margin-top:0}.product-first .catalog-category-filters{overflow:auto;flex-wrap:nowrap;padding-bottom:5px;scrollbar-width:none}.product-first .catalog-category-filters::-webkit-scrollbar{display:none}.product-first .catalog-category-filters .filter{white-space:nowrap}.product-body h3{min-height:0}}
 @media(max-width:560px){.site-toast{bottom:82px;max-width:calc(100% - 28px);text-align:center}.back-to-top{right:14px;bottom:138px;width:42px;height:42px}.catalog-meta{font-size:12px}.sk-media{height:180px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+
+
+/* V13.26.17 — about/requisites/contact layout correction */
+.story{padding:58px 0!important}
+.story .about-contact-grid{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(360px,.78fr);gap:24px;align-items:stretch}
+.story .about-company-card{width:100%;min-width:0}
+.story .about-company-card>p{max-width:980px;margin-bottom:22px}
+.story .company-requisites{width:100%;max-width:none;margin:0}
+.story .requisites-3rows .req-row{background:rgba(255,255,255,.82)}
+.story .requisites-3rows .req-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.story .requisites-3rows .req-pair>div{justify-content:flex-start;gap:22px}
+.story .requisites-3rows .req-pair>div small{min-width:112px}
+.story .requisites-3rows .req-company small,.story .requisites-3rows .req-account small{min-width:112px}
+.story .about-contact-card{align-self:end;background:linear-gradient(135deg,#eaf8f2,#fff8e8);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 12px 32px rgba(7,88,76,.08);min-height:232px;display:flex;flex-direction:column;justify-content:center}
+.story .about-contact-card h2{font-family:Georgia,"Times New Roman",serif;font-size:34px;letter-spacing:-1.5px;margin:9px 0 10px;color:var(--ink)}
+.story .about-contact-card p{margin:0 0 20px;color:var(--muted);line-height:1.6}
+.story .about-contact-card .contact-actions{margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.story .about-contact-card .btn{min-height:44px}
+.newsletter{display:none!important}
+@media(max-width:1100px){
+  .story .about-contact-grid{grid-template-columns:1fr}
+  .story .about-contact-card{align-self:stretch;min-height:0}
+}
+@media(max-width:760px){
+  .story{padding:44px 0!important}
+  .story .about-contact-grid{gap:18px}
+  .story .requisites-3rows .req-pair{grid-template-columns:1fr}
+  .story .requisites-3rows .req-pair>div+div{border-left:0;border-top:1px solid var(--line)}
+  .story .about-contact-card{padding:22px}
+  .story .about-contact-card h2{font-size:30px}
+}
