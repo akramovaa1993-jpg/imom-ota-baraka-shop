@@ -1,0 +1,15 @@
+ZARBULOQ.UZ v13.26.31
+
+YANGILIKLAR:
+1. Chek markazida har bir chek uchun “Nusxa olish” tugmasi.
+2. Admin va xaridor elektron cheki bir xil ZARBULOQ.UZ dizayn/malumot tartibiga keltirildi.
+3. Mahsulot so‘rovlarida “O‘chirish” tugmasi va server DELETE API.
+4. Promo kodlarda ustun sarlavhalari: kod, turi, chegirma, minimal buyurtma, limit, muddat, holat, amal.
+5. Admin panelda alohida “Ilova boshqaruvi”: versiya, minimal versionCode, majburiy update, texnik rejim, xabarnoma, mahsulot so‘rovi/LIVE chat/reviews/tracking toggle, yordam aloqa.
+6. /api/app-config public API va /api/admin/app-config boshqaruv API.
+7. “Savdo analitikasi”: sayt/ilova manbasi, eng ko‘p/eng kam sotilgan, qolib ketayotgan, kam qoldiq, ombor qiymati, sotuv summasi.
+8. Yangi buyurtmalar source=web/app bilan yoziladi; oldingi buyurtmalar legacy sifatida ajratiladi.
+9. Server status versiyasi 13.26.31.
+
+ANDROID MOSLIK:
+Android v4.8.7 source=app yuboradi va /api/app-config sozlamalarini o‘qiydi.

@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.30",
+  "version": "13.26.31",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.30 — full realtime Android sync plus product request photo/file attachments; previous features preserved",
+  "description": "ZARBULOQ.UZ v13.26.31 — receipt parity/copy, product-request delete, promo headers, app control and sales/stock analytics; previous features preserved",
   "scripts": {
     "start": "node server.js"
   },

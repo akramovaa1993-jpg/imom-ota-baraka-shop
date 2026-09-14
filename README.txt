@@ -1,3 +1,10 @@
+ZARBULOQ.UZ v13.26.31 FULL
+
+Bu versiya v13.26.30 asosida. Asosiy sayt/admin/FINANS/ombor/Telegram/realtime funksiyalari saqlangan.
+Yangi: Chek nusxa olish + chek parity, mahsulot so‘rovi o‘chirish, promo header, Ilova boshqaruvi, Savdo analitikasi.
+
+DEPLOY: Render/GitHub ga shu papkadagi barcha fayllarni yuklang. package.json start: node server.js.
+
 V13.14 REALTIME — PostgreSQL + live synchronization
 
 IMOM OTA BARAKA — ZARBULOQ.UZ V13.8 ZARBULOQ FINAL
