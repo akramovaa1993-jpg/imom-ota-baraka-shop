@@ -1,0 +1,7 @@
+Bu server ZIP Zarbuloq Android v4.8.2 REALTIME PREMIUM FINAL bilan ishlash uchun tayyorlangan.
+
+Muhim:
+- Avval ushbu FULL serverni deploy qiling.
+- /api/status va /api/orders-realtime/health ni tekshiring.
+- Keyin Android v4.8.2 APK/AAB build qiling.
+- Admin statusni “Yetkazildi” qilgandan keyin xaridorga qabul qilish tasdig‘i chiqadi.

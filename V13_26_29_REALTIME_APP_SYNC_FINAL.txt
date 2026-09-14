@@ -1,0 +1,40 @@
+ZARBULOQ.UZ — v13.26.29 FULL REALTIME APP SYNC FINAL
+
+ASOS: v13.26.28 CHAT_NAME_PHONE_REQUIRED (to‘liq sayt).
+
+YANGILIKLAR
+1. Android ilovadagi “Buyurtmani kuzatish” real server statusini oladi:
+   GET /api/orders/:orderId
+   GET /api/order/:orderId
+   GET /api/order-status/:orderId
+
+2. Status oqimi:
+   new -> accepted -> preparing -> delivery -> delivered -> completed
+   cancelled alohida holat.
+   completed faqat xaridor tasdiqlashi uchun mo‘ljallangan.
+
+3. Admin panel statuslari:
+   Yangi / Qabul qilindi / Tayyorlanmoqda / Yetkazilmoqda / Yetkazildi / Bekor qilindi.
+   Yakunlandi xaridor tasdiqlagach avtomatik ko‘rinadi.
+
+4. Xaridor tasdig‘i:
+   POST /api/orders/:orderId/confirm-delivery
+   POST /api/orders/:orderId/complete
+
+5. Kamchilik:
+   POST /api/orders/:orderId/complaints
+   Matn + ixtiyoriy rasm saqlanadi.
+   Admin buyurtmalar jadvalida “Kamchilik” belgisi ko‘rinadi.
+
+6. Real baholash/izoh:
+   GET /api/reviews/summary
+   GET /api/products/:productId/reviews
+   POST /api/products/:productId/reviews
+
+7. Eski v13.26.28 funksiyalari (admin, FINANS, ombor, GPS, Telegram webhook,
+   mahsulot so‘rovi, LIVE chat, SEO, chek tarixi va boshqalar) saqlandi.
+
+TEKSHIRISH
+- /api/status -> version 13.26.29
+- /api/orders-realtime/health -> ok:true
+- Android v4.8.2 bilan test: buyurtma -> admin status -> ilovada 5 soniya ichida ko‘rinishi.

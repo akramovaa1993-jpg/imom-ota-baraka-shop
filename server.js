@@ -234,9 +234,9 @@ const defaultSettings={
 };
 const defaultPromos=[{code:'BARAKA5',type:'percent',value:5,minTotal:150000,active:true,usageLimit:100,used:0,expires:''}];
 
-function initialDb(){return {products:defaultProducts,categories:defaultCategories,settings:defaultSettings,logo:'',orders:[],productRequests:[],chats:[],promos:defaultPromos,audit:[],inventoryReceipts:[],financeCompanies:[],financePurchases:[],financeCompanyPayments:[],financeEmployees:[],financePayroll:[],financeExpenses:[],financeTaxPayments:[],receiptHistory:[],visits:[],financeSettings:{turnoverTaxRate:4,payrollIncomeTaxRate:12,payrollPensionRate:0.1,payrollBudgetShareRate:11.9,employerSocialTaxRate:0,payrollTaxRate:12,landTaxMonthly:0,propertyTaxRate:0,propertyTaxBase:0,otherTaxRate:0,otherTaxBase:'revenue',otherTaxMonthly:0,cashOpening:0,bankOpening:0,defaultSalesAccount:'bank',defaultMarkupRate:30}};}
+function initialDb(){return {products:defaultProducts,categories:defaultCategories,settings:defaultSettings,logo:'',orders:[],productRequests:[],productReviews:[],orderComplaints:[],chats:[],promos:defaultPromos,audit:[],inventoryReceipts:[],financeCompanies:[],financePurchases:[],financeCompanyPayments:[],financeEmployees:[],financePayroll:[],financeExpenses:[],financeTaxPayments:[],receiptHistory:[],visits:[],financeSettings:{turnoverTaxRate:4,payrollIncomeTaxRate:12,payrollPensionRate:0.1,payrollBudgetShareRate:11.9,employerSocialTaxRate:0,payrollTaxRate:12,landTaxMonthly:0,propertyTaxRate:0,propertyTaxBase:0,otherTaxRate:0,otherTaxBase:'revenue',otherTaxMonthly:0,cashOpening:0,bankOpening:0,defaultSalesAccount:'bank',defaultMarkupRate:30}};}
 function normalizeDb(db){
- const merged={...initialDb(),...(db||{}),settings:{...defaultSettings,...(db?.settings||{}),delivery:{...defaultSettings.delivery,...(db?.settings?.delivery||{})},seo:{...defaultSettings.seo,...(db?.settings?.seo||{})},company:{...defaultSettings.company,...(db?.settings?.company||{})},map:{...defaultSettings.map,...(db?.settings?.map||{})},footer:{...defaultSettings.footer,...(db?.settings?.footer||{})},ui:{...defaultSettings.ui,...(db?.settings?.ui||{})},testMode:{...defaultSettings.testMode,...(db?.settings?.testMode||{})},homePromos:{left:{...defaultSettings.homePromos.left,...(db?.settings?.homePromos?.left||{})},center:{...defaultSettings.homePromos.center,...(db?.settings?.homePromos?.center||{})},right:{...defaultSettings.homePromos.right,...(db?.settings?.homePromos?.right||{})}},benefits:Array.isArray(db?.settings?.benefits)?db.settings.benefits:defaultSettings.benefits},chats:Array.isArray(db?.chats)?db.chats:[],promos:Array.isArray(db?.promos)?db.promos:defaultPromos,audit:Array.isArray(db?.audit)?db.audit:[],inventoryReceipts:Array.isArray(db?.inventoryReceipts)?db.inventoryReceipts:[],financeCompanies:Array.isArray(db?.financeCompanies)?db.financeCompanies:[],financePurchases:Array.isArray(db?.financePurchases)?db.financePurchases:[],financeCompanyPayments:Array.isArray(db?.financeCompanyPayments)?db.financeCompanyPayments:[],financeEmployees:Array.isArray(db?.financeEmployees)?db.financeEmployees:[],financePayroll:Array.isArray(db?.financePayroll)?db.financePayroll:[],financeExpenses:Array.isArray(db?.financeExpenses)?db.financeExpenses:[],financeTaxPayments:Array.isArray(db?.financeTaxPayments)?db.financeTaxPayments:[],receiptHistory:[],visits:[],financeSettings:{...initialDb().financeSettings,...(db?.financeSettings||{})}};
+ const merged={...initialDb(),...(db||{}),settings:{...defaultSettings,...(db?.settings||{}),delivery:{...defaultSettings.delivery,...(db?.settings?.delivery||{})},seo:{...defaultSettings.seo,...(db?.settings?.seo||{})},company:{...defaultSettings.company,...(db?.settings?.company||{})},map:{...defaultSettings.map,...(db?.settings?.map||{})},footer:{...defaultSettings.footer,...(db?.settings?.footer||{})},ui:{...defaultSettings.ui,...(db?.settings?.ui||{})},testMode:{...defaultSettings.testMode,...(db?.settings?.testMode||{})},homePromos:{left:{...defaultSettings.homePromos.left,...(db?.settings?.homePromos?.left||{})},center:{...defaultSettings.homePromos.center,...(db?.settings?.homePromos?.center||{})},right:{...defaultSettings.homePromos.right,...(db?.settings?.homePromos?.right||{})}},benefits:Array.isArray(db?.settings?.benefits)?db.settings.benefits:defaultSettings.benefits},orders:Array.isArray(db?.orders)?db.orders:[],productRequests:Array.isArray(db?.productRequests)?db.productRequests:[],productReviews:Array.isArray(db?.productReviews)?db.productReviews:[],orderComplaints:Array.isArray(db?.orderComplaints)?db.orderComplaints:[],chats:Array.isArray(db?.chats)?db.chats:[],promos:Array.isArray(db?.promos)?db.promos:defaultPromos,audit:Array.isArray(db?.audit)?db.audit:[],inventoryReceipts:Array.isArray(db?.inventoryReceipts)?db.inventoryReceipts:[],financeCompanies:Array.isArray(db?.financeCompanies)?db.financeCompanies:[],financePurchases:Array.isArray(db?.financePurchases)?db.financePurchases:[],financeCompanyPayments:Array.isArray(db?.financeCompanyPayments)?db.financeCompanyPayments:[],financeEmployees:Array.isArray(db?.financeEmployees)?db.financeEmployees:[],financePayroll:Array.isArray(db?.financePayroll)?db.financePayroll:[],financeExpenses:Array.isArray(db?.financeExpenses)?db.financeExpenses:[],financeTaxPayments:Array.isArray(db?.financeTaxPayments)?db.financeTaxPayments:[],receiptHistory:Array.isArray(db?.receiptHistory)?db.receiptHistory:[],visits:Array.isArray(db?.visits)?db.visits:[],financeSettings:{...initialDb().financeSettings,...(db?.financeSettings||{})}};
  const dom=String(merged.settings.siteDomain||'').toLowerCase();
  if(['velora.uz','barkamarket.uz','barakamarket.uz','imomotamarket.uz'].includes(dom))merged.settings.siteDomain='zarbuloq.uz';
  if(merged.settings.map?.title==='Parkent tumani xaritasi')merged.settings.map.title='Yetkazib berish bepul hududlar';
@@ -249,7 +249,7 @@ function normalizeDb(db){
   if(Number.isFinite(Number(p.legacyOpeningQty))&&p.legacyOpeningQty!==''&&p.legacyOpeningQty!==null&&p.legacyOpeningQty!==undefined)continue;
   const hasTrackedInitial=Boolean(String(p.createdAt||'').slice(0,10))&&p.receivedQty!==undefined&&p.receivedQty!==null;
   if(hasTrackedInitial){p.legacyOpeningQty=0;continue;}
-  const soldAll=(merged.orders||[]).filter(o=>['delivery','done'].includes(o.status)).reduce((sum,o)=>sum+(o.items||[]).filter(i=>Number(i.id)===Number(p.id)).reduce((a,i)=>a+Number(i.qty||0),0),0);
+  const soldAll=(merged.orders||[]).filter(o=>['delivery','delivered','completed','done'].includes(o.status)).reduce((sum,o)=>sum+(o.items||[]).filter(i=>Number(i.id)===Number(p.id)).reduce((a,i)=>a+Number(i.qty||0),0),0);
   const ledgerReceived=(merged.inventoryReceipts||[]).filter(r=>Number(r.productId)===Number(p.id)).reduce((a,r)=>a+Math.max(0,Number(r.qty)||0),0);
   p.legacyOpeningQty=Math.max(0,Number(p.stock||0)+soldAll-ledgerReceived);
  }
@@ -292,10 +292,33 @@ async function initStorage(){
 }
 function clean(v,max=500){return String(v??'').replace(/[<>]/g,'').trim().slice(0,max)}
 const money=n=>new Intl.NumberFormat('ru-RU').format(Number(n)||0)+' so‘m';
-function statusLabel(code){return {new:'🕓 Yangi',accepted:'✅ Qabul qilindi',delivery:'🚚 Yetkazilmoqda',done:'📦 Yakunlandi',cancelled:'❌ Bekor qilindi'}[code]||'🕓 Yangi'}
+function normalizeOrderStatus(raw){
+ const s=String(raw||'').trim().toLowerCase().replace(/[_-]+/g,' ');
+ if(/cancel|bekor|отмен/.test(s))return 'cancelled';
+ if(/complete|customer confirmed|yakun|заверш/.test(s))return 'completed';
+ if(/delivered|yetkazildi|доставлен/.test(s)||s==='done')return 'delivered';
+ if(/delivery|shipping|yetkazilmoqda|courier|доставк/.test(s))return 'delivery';
+ if(/ready|prepar|tayyor|готов/.test(s))return 'preparing';
+ if(/accept|qabul|принят/.test(s))return 'accepted';
+ if(/new|yangi/.test(s))return 'new';
+ return s||'new';
+}
+function statusLabel(code){code=normalizeOrderStatus(code);return {new:'🕓 Yangi',accepted:'✅ Qabul qilindi',preparing:'🧺 Tayyorlanmoqda',delivery:'🚚 Yetkazilmoqda',delivered:'📦 Yetkazildi',completed:'✅ Yakunlandi',cancelled:'❌ Bekor qilindi'}[code]||'🕓 Yangi'}
 function statusKeyboard(orderId,current='new'){
- const rows=[[{text:'✅ Qabul qilindi',callback_data:`st|accepted|${orderId}`},{text:'🚚 Yetkazilmoqda',callback_data:`st|delivery|${orderId}`}],[{text:'📦 Yakunlandi',callback_data:`st|done|${orderId}`},{text:'❌ Bekor qilindi',callback_data:`st|cancelled|${orderId}`}]];
+ current=normalizeOrderStatus(current);
+ const rows=[
+  [{text:'✅ Qabul qilindi',callback_data:`st|accepted|${orderId}`},{text:'🧺 Tayyorlanmoqda',callback_data:`st|preparing|${orderId}`}],
+  [{text:'🚚 Yetkazilmoqda',callback_data:`st|delivery|${orderId}`},{text:'📦 Yetkazildi',callback_data:`st|delivered|${orderId}`}],
+  [{text:'❌ Bekor qilindi',callback_data:`st|cancelled|${orderId}`}]
+ ];
+ if(['delivered','completed','cancelled'].includes(current))return {inline_keyboard:[]};
  return {inline_keyboard:rows.map(row=>row.map(b=>{const active=b.callback_data.includes(`|${current}|`);return {...b,text:active?`${b.text.toUpperCase()} — HOZIRGI STATUS`:b.text}}))};
+}
+function pushOrderHistory(order,status,source='system'){
+ order.statusHistory=Array.isArray(order.statusHistory)?order.statusHistory:[];
+ const st=normalizeOrderStatus(status),last=order.statusHistory[order.statusHistory.length-1];
+ if(!last||normalizeOrderStatus(last.status)!==st)order.statusHistory.push({status:st,at:new Date().toISOString(),source:clean(source,40)||'system'});
+ order.statusHistory=order.statusHistory.slice(-40);
 }
 async function tgCall(method,payload){const r=await fetch(`${TG}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({ok:false,description:'Invalid Telegram response'}));if(!r.ok||!data.ok)throw new Error(data.description||`Telegram ${method} failed`);return data.result}
 function parseCookies(req){return Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim()).filter(Boolean).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),decodeURIComponent(x.slice(i+1))]}));}
@@ -321,7 +344,7 @@ function receiptHistoryRows(db){
  return [...byId.values()].sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
 }
 
-function getCustomers(orders){const m=new Map();for(const o of orders){const phone=String(o.customer?.phone||'').replace(/\D/g,'');if(!phone)continue;const c=m.get(phone)||{name:o.customer?.name||'',phone:o.customer?.phone||'',orders:0,total:0,lastOrder:'',areas:{}};c.orders++;if(o.status==='done')c.total+=Number(o.total||0);if(!c.lastOrder||String(o.createdAt)>c.lastOrder)c.lastOrder=o.createdAt;c.areas[o.customer?.area||'Noma’lum']=(c.areas[o.customer?.area||'Noma’lum']||0)+1;m.set(phone,c);}return [...m.values()].sort((a,b)=>b.total-a.total);}
+function getCustomers(orders){const m=new Map();for(const o of orders){const phone=String(o.customer?.phone||'').replace(/\D/g,'');if(!phone)continue;const c=m.get(phone)||{name:o.customer?.name||'',phone:o.customer?.phone||'',orders:0,total:0,lastOrder:'',areas:{}};c.orders++;if(['completed','done'].includes(o.status))c.total+=Number(o.total||0);if(!c.lastOrder||String(o.createdAt)>c.lastOrder)c.lastOrder=o.createdAt;c.areas[o.customer?.area||'Noma’lum']=(c.areas[o.customer?.area||'Noma’lum']||0)+1;m.set(phone,c);}return [...m.values()].sort((a,b)=>b.total-a.total);}
 
 
 // V13.23 FINANS — yagona moliyaviy modul
@@ -343,7 +366,7 @@ function finMonthCount(opts={}){
 }
 function financeSummary(db,opts={}){
  const products=db.products||[], orders=db.orders||[], fsx=db.financeSettings||{}, purchases=db.financePurchases||[], payments=db.financeCompanyPayments||[], payroll=db.financePayroll||[], expenses=db.financeExpenses||[], taxPayments=db.financeTaxPayments||[];
- const done=orders.filter(o=>o.status==='done'&&finPeriodMatch(o.statusUpdatedAt||o.createdAt,opts));
+ const done=orders.filter(o=>['completed','done'].includes(o.status)&&finPeriodMatch(o.statusUpdatedAt||o.createdAt,opts));
  const revenue=done.reduce((a,o)=>a+finNum(o.total),0);
  const cogs=done.reduce((a,o)=>a+(o.items||[]).reduce((x,i)=>{const pr=products.find(p=>Number(p.id)===Number(i.id));return x+finNum(pr?.cost)*finNum(i.qty)},0),0);
  const purchaseTotal=purchases.filter(x=>finPeriodMatch(x.date||x.createdAt,opts)).reduce((a,x)=>a+finNum(x.total),0);
@@ -379,7 +402,7 @@ function financeCurrentBalance(db){
  const inventoryValue=products.reduce((a,p)=>a+finNum(p.stock)*finNum(p.cost),0);
  let payrollDebt=0,payrollAdvances=0;for(const x of payroll){const net=finNum(x.payable)-finNum(x.paid);if(net>=0)payrollDebt+=net;else payrollAdvances+=-net;}
  const year=String(new Date().getFullYear()),y=financeSummary(db,{period:'yearly',value:year}),taxPaidYear=taxPayments.filter(x=>finDate(x.date||x.createdAt).slice(0,4)===year).reduce((a,x)=>a+finNum(x.amount),0),taxNet=y.taxAccrued-taxPaidYear,taxDebt=Math.max(0,taxNet),taxAdvances=Math.max(0,-taxNet);
- const revenueAll=(db.orders||[]).filter(o=>o.status==='done').reduce((a,o)=>a+finNum(o.total),0);
+ const revenueAll=(db.orders||[]).filter(o=>['completed','done'].includes(o.status)).reduce((a,o)=>a+finNum(o.total),0);
  let cash=finNum(fsx.cashOpening),bank=finNum(fsx.bankOpening);if(fsx.defaultSalesAccount==='cash')cash+=revenueAll;else bank+=revenueAll;
  const subtract=(rows)=>{for(const r of rows){const amt=finNum(r.amount??r.paid),acc=r.account==='cash'?'cash':'bank';if(acc==='cash')cash-=amt;else bank-=amt;}};
  subtract(companyPayments);subtract(db.financeExpenses||[]);subtract(taxPayments);subtract(payroll.map(x=>({amount:x.paid,account:x.account})));
@@ -417,7 +440,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.27',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.29',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -433,6 +456,44 @@ app.get('/api/catalog',(req,res)=>{const db=readDb();res.json({products:db.produ
 app.post('/api/promo/validate',(req,res)=>{const db=readDb();const result=validatePromo(db,req.body?.code,Number(req.body?.subtotal||0));if(!result.ok)return res.status(400).json(result);res.json({ok:true,discount:result.discount,code:result.promo?.code||''});});
 app.get('/api/track/:orderId',(req,res)=>{const db=readDb();const order=(db.orders||[]).find(o=>o.orderId===req.params.orderId);if(!order)return res.status(404).json({error:'Buyurtma topilmadi'});const phone=String(req.query.phone||'').replace(/\D/g,'');const stored=String(order.customer?.phone||'').replace(/\D/g,'');if(!phone||phone.slice(-9)!==stored.slice(-9))return res.status(403).json({error:'Telefon raqami mos kelmadi'});res.json({orderId:order.orderId,status:order.status,statusLabel:statusLabel(order.status),createdAt:order.createdAt,total:order.total,area:order.customer?.area||'',deliverySlot:order.customer?.deliverySlot||'',items:(order.items||[]).map(x=>({name:x.name,qty:x.qty}))});});
 
+
+
+// V13.26.29 — Android ilova uchun haqiqiy mahsulot baholari va izohlar.
+const reviewHits=new Map();
+function normalizeReviewPhone(v){let d=String(v??'').replace(/\D/g,'');if(d.length===9)d='998'+d;return d;}
+function reviewKey(productId,phone){return crypto.createHash('sha256').update(`${productId}|${normalizeReviewPhone(phone)}`).digest('hex');}
+function publicReview(r){return {id:String(r.id||''),productId:String(r.productId||''),name:clean(r.name,80)||'Foydalanuvchi',rating:Math.max(1,Math.min(5,Number(r.rating)||1)),comment:clean(r.comment,500),createdAt:r.createdAt||new Date().toISOString(),updatedAt:r.updatedAt||r.createdAt||new Date().toISOString()};}
+function reviewSummary(rows){const a=Array.isArray(rows)?rows:[];if(!a.length)return {average:0,count:0};return {average:Math.round((a.reduce((x,r)=>x+Math.max(1,Math.min(5,Number(r.rating)||1)),0)/a.length)*10)/10,count:a.length};}
+function reviewAllowed(req){const k=String(req.ip||req.socket?.remoteAddress||'unknown'),now=Date.now(),a=(reviewHits.get(k)||[]).filter(t=>now-t<60000);if(a.length>=15)return false;a.push(now);reviewHits.set(k,a);return true;}
+app.get('/api/reviews/summary',(req,res)=>{
+ const db=readDb(),out={};
+ for(const r of db.productReviews||[]){const pid=String(r.productId||'');if(!pid)continue;(out[pid]??=[]).push(r);}
+ const products={};for(const [pid,rows] of Object.entries(out))products[pid]=reviewSummary(rows);
+ res.json({ok:true,products});
+});
+app.get('/api/products/:productId/reviews',(req,res)=>{
+ const pid=clean(req.params.productId,80);if(!pid)return res.status(400).json({error:'Mahsulot ID topilmadi'});
+ const rows=(readDb().productReviews||[]).filter(r=>String(r.productId)===String(pid)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))).slice(0,100).map(publicReview);
+ res.json({ok:true,productId:pid,summary:reviewSummary(rows),reviews:rows});
+});
+app.post('/api/products/:productId/reviews',async(req,res)=>{
+ try{
+  if(!reviewAllowed(req))return res.status(429).json({error:'Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring.'});
+  const pid=clean(req.params.productId,80),b=req.body||{},name=clean(b.name,80),comment=clean(b.comment,500),rating=Number(b.rating),phone=normalizeReviewPhone(b.phone);
+  if(!pid)return res.status(400).json({error:'Mahsulot ID topilmadi'});
+  if(name.length<2)return res.status(400).json({error:'Ismni kiriting'});
+  if(!/^998\d{9}$/.test(phone))return res.status(400).json({error:'+998 telefon raqamini to‘g‘ri kiriting'});
+  if(!Number.isInteger(rating)||rating<1||rating>5)return res.status(400).json({error:'1 dan 5 gacha baho tanlang'});
+  if(comment.length<2)return res.status(400).json({error:'Izoh yozing'});
+  const db=readDb(),key=reviewKey(pid,phone),now=new Date().toISOString();db.productReviews=Array.isArray(db.productReviews)?db.productReviews:[];
+  let row=db.productReviews.find(r=>String(r.productId)===String(pid)&&r.reviewerKey===key);
+  if(row){row.name=name;row.rating=rating;row.comment=comment;row.updatedAt=now;}
+  else{row={id:crypto.randomUUID(),productId:String(pid),reviewerKey:key,name,rating,comment,createdAt:now,updatedAt:now};db.productReviews.unshift(row);}
+  db.productReviews=db.productReviews.slice(0,5000);audit(db,'customer','Mahsulot izohi',`#${pid} • ${name} • ${rating}★`);await writeDb(db);
+  const rows=(db.productReviews||[]).filter(r=>String(r.productId)===String(pid)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))).slice(0,100).map(publicReview);
+  res.status(201).json({ok:true,published:true,productId:String(pid),summary:reviewSummary(rows),reviews:rows});
+ }catch(e){console.error('Review save:',e);res.status(500).json({error:'Fikrni saqlab bo‘lmadi'})}
+});
 
 app.post('/api/product-requests',async(req,res)=>{
  try{
@@ -463,7 +524,7 @@ app.post('/api/admin/logout',(req,res)=>{res.setHeader('Set-Cookie','iob_admin=;
 app.get('/api/admin/me',requireAdmin,(req,res)=>res.json({ok:true,user:req.adminUser,role:req.adminRole}));
 
 app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
- const db=readDb(),orders=db.orders||[],products=db.products||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[];const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);const done=orders.filter(o=>o.status==='done');
+ const db=readDb(),orders=db.orders||[],products=db.products||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[];const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);const done=orders.filter(o=>['completed','done'].includes(o.status));
  const costFor=o=>(o.items||[]).reduce((s,i)=>{const p=products.find(x=>Number(x.id)===Number(i.id));return s+(Number(p?.cost||0)*Number(i.qty||1));},0);
  const revenue=done.reduce((s,o)=>s+Number(o.total||0),0),profit=done.reduce((s,o)=>s+Number(o.total||0)-costFor(o),0);const avg=done.length?Math.round(revenue/done.length):0;
  const topMap={};for(const o of done)for(const i of o.items||[]){topMap[i.name]=(topMap[i.name]||0)+Number(i.qty||1)}
@@ -472,12 +533,12 @@ app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
  // V13.22 dashboard analytics: all history aggregated by month/product/status.
  const monthlyMap=new Map();
  const ensure=(m,p)=>{const k=`${m}|${p.id}`;if(!monthlyMap.has(k))monthlyMap.set(k,{month:m,productId:Number(p.id),receivedQty:0,soldQty:0,soldAmount:0,applicationQty:0,applicationAmount:0,deliveryQty:0,deliveryAmount:0,doneQty:0,doneAmount:0,acceptedQty:0,acceptedAmount:0,cancelledQty:0,cancelledAmount:0});return monthlyMap.get(k)};
- for(const o of orders){const eventDate=['delivery','done','accepted','cancelled'].includes(o.status)?String(o.statusUpdatedAt||o.stockAdjustedAt||o.createdAt||''):String(o.createdAt||'');const om=eventDate.slice(0,7);if(!/^\d{4}-\d{2}$/.test(om))continue;for(const it of o.items||[]){const p=products.find(x=>Number(x.id)===Number(it.id));if(!p)continue;const r=ensure(om,p),qty=Math.max(0,Number(it.qty||0)),unitPrice=Math.max(0,Number(it.price??p.price??0)),amount=qty*unitPrice;if(o.status==='new'){r.applicationQty+=qty;r.applicationAmount+=amount}else if(o.status==='accepted'){r.acceptedQty+=qty;r.acceptedAmount+=amount}else if(o.status==='delivery'){r.deliveryQty+=qty;r.deliveryAmount+=amount;r.soldQty+=qty;r.soldAmount+=amount}else if(o.status==='done'){r.doneQty+=qty;r.doneAmount+=amount;r.soldQty+=qty;r.soldAmount+=amount}else if(o.status==='cancelled'){r.cancelledQty+=qty;r.cancelledAmount+=amount}}}
+ for(const o of orders){const eventDate=['accepted','preparing','delivery','delivered','completed','done','cancelled'].includes(o.status)?String(o.statusUpdatedAt||o.stockAdjustedAt||o.createdAt||''):String(o.createdAt||'');const om=eventDate.slice(0,7);if(!/^\d{4}-\d{2}$/.test(om))continue;for(const it of o.items||[]){const p=products.find(x=>Number(x.id)===Number(it.id));if(!p)continue;const r=ensure(om,p),qty=Math.max(0,Number(it.qty||0)),unitPrice=Math.max(0,Number(it.price??p.price??0)),amount=qty*unitPrice;if(o.status==='new'){r.applicationQty+=qty;r.applicationAmount+=amount}else if(['accepted','preparing'].includes(o.status)){r.acceptedQty+=qty;r.acceptedAmount+=amount}else if(['delivery','delivered'].includes(o.status)){r.deliveryQty+=qty;r.deliveryAmount+=amount;r.soldQty+=qty;r.soldAmount+=amount}else if(['completed','done'].includes(o.status)){r.doneQty+=qty;r.doneAmount+=amount;r.soldQty+=qty;r.soldAmount+=amount}else if(o.status==='cancelled'){r.cancelledQty+=qty;r.cancelledAmount+=amount}}}
  for(const rc of receipts){const rm=String(rc.createdAt||'').slice(0,7),p=products.find(x=>Number(x.id)===Number(rc.productId));if(!p||!/^\d{4}-\d{2}$/.test(rm))continue;ensure(rm,p).receivedQty+=Math.max(0,Number(rc.qty)||0)}
  for(const p of products){const cm=String(p.createdAt||'').slice(0,7),initial=Math.max(0,Number(p.receivedQty)||0);if(initial>0&&/^\d{4}-\d{2}$/.test(cm))ensure(cm,p).receivedQty+=initial}
  const years=[...new Set([...monthlyMap.values()].map(r=>Number(String(r.month).slice(0,4))).filter(Boolean))].sort((a,b)=>b-a);if(!years.includes(Number(year)))years.unshift(Number(year));
  const analytics={products:products.map(p=>({id:Number(p.id),name:p.name?.uz||'',nameRu:p.name?.ru||'',unit:p.unit?.uz||'dona',stock:Number(p.stock||0),cost:Number(p.cost||0),price:Number(p.price||0)})),years,monthly:[...monthlyMap.values()].sort((a,b)=>a.month.localeCompare(b.month)||a.productId-b.productId)};
- res.json({visitorStats:visitorStats(db),visits:(db.visits||[]).slice().reverse().slice(0,1000),role:req.adminRole,financeQuick:{summary:financeSummary(db,{period:'monthly',value:month}),balance:financeCurrentBalance(db)},warehousePurchases:(db.financePurchases||[]).slice().reverse().slice(0,1500).map(x=>{const c=(db.financeCompanies||[]).find(z=>String(z.id)===String(x.companyId)),p=(db.products||[]).find(z=>Number(z.id)===Number(x.productId));return {id:x.id,productId:Number(x.productId),productName:p?.name?.uz||x.productName||'',unit:p?.unit?.uz||x.unit||'',companyId:x.companyId,companyName:c?.name||'',companyInn:c?.inn||'',date:x.date||'',invoice:x.invoice||'',qty:finNum(x.qty),unitCost:finNum(x.unitCost),salePrice:finNum(x.salePrice||x.suggestedSalePrice),total:finNum(x.total)}}),productRequests:(db.productRequests||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','delivery'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],audit:(db.audit||[]).slice(0,500),analytics,charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
+ res.json({visitorStats:visitorStats(db),visits:(db.visits||[]).slice().reverse().slice(0,1000),role:req.adminRole,financeQuick:{summary:financeSummary(db,{period:'monthly',value:month}),balance:financeCurrentBalance(db)},warehousePurchases:(db.financePurchases||[]).slice().reverse().slice(0,1500).map(x=>{const c=(db.financeCompanies||[]).find(z=>String(z.id)===String(x.companyId)),p=(db.products||[]).find(z=>Number(z.id)===Number(x.productId));return {id:x.id,productId:Number(x.productId),productName:p?.name?.uz||x.productName||'',unit:p?.unit?.uz||x.unit||'',companyId:x.companyId,companyName:c?.name||'',companyInn:c?.inn||'',date:x.date||'',invoice:x.invoice||'',qty:finNum(x.qty),unitCost:finNum(x.unitCost),salePrice:finNum(x.salePrice||x.suggestedSalePrice),total:finNum(x.total)}}),productRequests:(db.productRequests||[]).slice(0,500),orderComplaints:(db.orderComplaints||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','preparing','delivery','delivered'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],audit:(db.audit||[]).slice(0,500),analytics,charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
 });
 app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120)},description:{uz:clean(p.description?.uz,1200),ru:clean(p.description?.ru,1200)},seo:{title:{uz:clean(p.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru,180)},description:{uz:clean(p.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru,400)},keywords:clean(p.seo?.keywords,500)},unit:{uz:clean(p.unit?.uz,30),ru:clean(p.unit?.ru,30)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Number(p.stock)||0),receivedQty:Math.max(0,Number(p.receivedQty)||0),legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty)||0),createdAt:clean(p.createdAt,40),updatedAt:clean(p.updatedAt,40)||new Date().toISOString(),lastReceivedAt:clean(p.lastReceivedAt,40),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100);if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
 
@@ -501,7 +562,7 @@ app.put('/api/admin/promos',requireAdmin,async(req,res)=>{const db=readDb();db.p
 
 app.get('/api/admin/finance',requireAdmin,(req,res)=>{
  const db=readDb(),period=clean(req.query.period,20)||'monthly',value=clean(req.query.value,20),year=clean(req.query.year,4)||String(new Date().getFullYear()),products=db.products||[];
- const sales=(db.orders||[]).filter(o=>['delivery','done'].includes(o.status)&&finPeriodMatch(o.stockAdjustedAt||o.statusUpdatedAt||o.createdAt,{period,value})).slice().reverse().slice(0,1200).map(o=>({orderId:o.orderId,date:finDate(o.stockAdjustedAt||o.statusUpdatedAt||o.createdAt),status:o.status,customer:o.customer?.name||'',total:finNum(o.total),items:(o.items||[]).map(i=>{const p=products.find(x=>Number(x.id)===Number(i.id));const qty=finNum(i.qty),salePrice=finNum(i.price??p?.price),cost=finNum(p?.cost);return {id:Number(i.id),name:i.name||p?.name?.uz||'',qty,unit:p?.unit?.uz||'dona',salePrice,cost,amount:qty*salePrice,costAmount:qty*cost}})}));
+ const sales=(db.orders||[]).filter(o=>['delivery','delivered','completed','done'].includes(o.status)&&finPeriodMatch(o.stockAdjustedAt||o.statusUpdatedAt||o.createdAt,{period,value})).slice().reverse().slice(0,1200).map(o=>({orderId:o.orderId,date:finDate(o.stockAdjustedAt||o.statusUpdatedAt||o.createdAt),status:o.status,customer:o.customer?.name||'',total:finNum(o.total),items:(o.items||[]).map(i=>{const p=products.find(x=>Number(x.id)===Number(i.id));const qty=finNum(i.qty),salePrice=finNum(i.price??p?.price),cost=finNum(p?.cost);return {id:Number(i.id),name:i.name||p?.name?.uz||'',qty,unit:p?.unit?.uz||'dona',salePrice,cost,amount:qty*salePrice,costAmount:qty*cost}})}));
  res.json({ok:true,settings:db.financeSettings||{},companies:financeCompanyBalances(db),purchases:(db.financePurchases||[]).slice().reverse().slice(0,1000),companyPayments:(db.financeCompanyPayments||[]).slice().reverse().slice(0,1000),employees:db.financeEmployees||[],payroll:(db.financePayroll||[]).slice().reverse().slice(0,1000),expenses:(db.financeExpenses||[]).slice().reverse().slice(0,1500),taxPayments:(db.financeTaxPayments||[]).slice().reverse().slice(0,1500),receipts:receiptHistoryRows(db).slice().reverse().slice(0,5000),sales,products:products.map(p=>({id:Number(p.id),name:p.name?.uz||'',nameRu:p.name?.ru||'',stock:finNum(p.stock),cost:finNum(p.cost),price:finNum(p.price),unit:p.unit?.uz||'dona'})),summary:financeSummary(db,{period,value}),balance:financeCurrentBalance(db),series:financeSeries(db,year)});
 });
 app.put('/api/admin/finance/settings',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},f=db.financeSettings||{};for(const k of ['turnoverTaxRate','payrollIncomeTaxRate','payrollPensionRate','payrollBudgetShareRate','employerSocialTaxRate','landTaxMonthly','propertyTaxRate','propertyTaxBase','otherTaxRate','otherTaxMonthly','cashOpening','bankOpening','defaultMarkupRate'])if(b[k]!==undefined)f[k]=finNum(b[k]);f.payrollTaxRate=finNum(f.payrollIncomeTaxRate ?? f.payrollTaxRate ?? 12);f.otherTaxBase=['revenue','payroll','fixed'].includes(b.otherTaxBase)?b.otherTaxBase:(f.otherTaxBase||'revenue');f.defaultSalesAccount=b.defaultSalesAccount==='cash'?'cash':'bank';db.financeSettings=f;audit(db,req.adminUser,'Finans sozlamalari','Soliq, narx va balans sozlamalari yangilandi');await writeDb(db);res.json({ok:true,settings:f});});
@@ -557,8 +618,8 @@ app.get('/api/admin/reports.xls',requireAdmin,(req,res)=>{
  const db=readDb(),orders=db.orders||[],products=db.products||[];const period=String(req.query.period||'custom'),value=String(req.query.value||''),from=String(req.query.from||''),to=String(req.query.to||''),status=String(req.query.status||''),area=String(req.query.area||'');
  const filtered=orders.filter(o=>{const d=String(o.createdAt||'').slice(0,10);if(period==='daily'&&value&&d!==value)return false;if(period==='monthly'&&value&&d.slice(0,7)!==value)return false;if(period==='yearly'&&value&&d.slice(0,4)!==value)return false;if(from&&d<from)return false;if(to&&d>to)return false;if(status&&o.status!==status)return false;if(area&&o.customer?.area!==area)return false;return true;});
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const rows=filtered.map(o=>{const cost=(o.items||[]).reduce((s,i)=>s+Number(products.find(p=>Number(p.id)===Number(i.id))?.cost||0)*Number(i.qty||1),0);const profit=o.status==='done'?Number(o.total||0)-cost:0;return `<tr><td>${esc(o.orderId)}</td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'}))}</td><td>${esc(o.customer?.name)}</td><td>${esc(o.customer?.phone)}</td><td>${esc(o.customer?.area)}</td><td>${esc(o.customer?.address)}</td><td>${esc(o.customer?.deliverySlot)}</td><td>${esc((o.items||[]).map(x=>`${x.name} × ${x.qty}`).join('; '))}</td><td>${Number(o.subtotal||0)}</td><td>${Number(o.discount||0)}</td><td>${Number(o.total||0)}</td><td>${cost}</td><td>${profit}</td><td>${esc(statusLabel(o.status))}</td></tr>`}).join('');
- const revenue=filtered.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);const html=`<html><head><meta charset="UTF-8"></head><body><h2>IMOM OTA BARAKA — Hisobot</h2><p>Buyurtmalar: ${filtered.length} | Yakunlangan tushum: ${revenue}</p><table border="1"><tr><th>Buyurtma</th><th>Sana</th><th>Mijoz</th><th>Telefon</th><th>Hudud</th><th>Manzil</th><th>Vaqt</th><th>Mahsulotlar</th><th>Subtotal</th><th>Chegirma</th><th>Jami</th><th>Tannarx</th><th>Foyda</th><th>Status</th></tr>${rows}</table></body></html>`;
+ const rows=filtered.map(o=>{const cost=(o.items||[]).reduce((s,i)=>s+Number(products.find(p=>Number(p.id)===Number(i.id))?.cost||0)*Number(i.qty||1),0);const profit=['completed','done'].includes(o.status)?Number(o.total||0)-cost:0;return `<tr><td>${esc(o.orderId)}</td><td>${esc(new Date(o.createdAt).toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'}))}</td><td>${esc(o.customer?.name)}</td><td>${esc(o.customer?.phone)}</td><td>${esc(o.customer?.area)}</td><td>${esc(o.customer?.address)}</td><td>${esc(o.customer?.deliverySlot)}</td><td>${esc((o.items||[]).map(x=>`${x.name} × ${x.qty}`).join('; '))}</td><td>${Number(o.subtotal||0)}</td><td>${Number(o.discount||0)}</td><td>${Number(o.total||0)}</td><td>${cost}</td><td>${profit}</td><td>${esc(statusLabel(o.status))}</td></tr>`}).join('');
+ const revenue=filtered.filter(o=>['completed','done'].includes(o.status)).reduce((s,o)=>s+Number(o.total||0),0);const html=`<html><head><meta charset="UTF-8"></head><body><h2>IMOM OTA BARAKA — Hisobot</h2><p>Buyurtmalar: ${filtered.length} | Yakunlangan tushum: ${revenue}</p><table border="1"><tr><th>Buyurtma</th><th>Sana</th><th>Mijoz</th><th>Telefon</th><th>Hudud</th><th>Manzil</th><th>Vaqt</th><th>Mahsulotlar</th><th>Subtotal</th><th>Chegirma</th><th>Jami</th><th>Tannarx</th><th>Foyda</th><th>Status</th></tr>${rows}</table></body></html>`;
  res.setHeader('Content-Type','application/vnd.ms-excel; charset=utf-8');res.setHeader('Content-Disposition',`attachment; filename="zarbuloq-report-${Date.now()}.xls"`);res.send('\ufeff'+html);
 });
 
@@ -566,12 +627,12 @@ app.get('/api/admin/inventory-report.xls',requireAdmin,(req,res)=>{
  const db=readDb(),month=/^\d{4}-\d{2}$/.test(String(req.query.month||''))?String(req.query.month):new Date().toISOString().slice(0,7),start=month+'-01',end=new Date(Number(month.slice(0,4)),Number(month.slice(5,7)),0).toISOString().slice(0,10),orders=db.orders||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[],purchases=Array.isArray(db.financePurchases)?db.financePurchases:[],companies=Array.isArray(db.financeCompanies)?db.financeCompanies:[];
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const soldDate=o=>String(o.stockAdjustedAt||o.statusUpdatedAt||o.createdAt||'').slice(0,10);
- const soldQty=(pid,from,to)=>orders.filter(o=>['delivery','done'].includes(o.status)&&(!from||soldDate(o)>=from)&&(!to||soldDate(o)<=to)).reduce((sum,o)=>sum+(o.items||[]).filter(i=>Number(i.id)===Number(pid)).reduce((a,i)=>a+Number(i.qty||0),0),0);
+ const soldQty=(pid,from,to)=>orders.filter(o=>['delivery','delivered','completed','done'].includes(o.status)&&(!from||soldDate(o)>=from)&&(!to||soldDate(o)<=to)).reduce((sum,o)=>sum+(o.items||[]).filter(i=>Number(i.id)===Number(pid)).reduce((a,i)=>a+Number(i.qty||0),0),0);
  const applicationQty=(pid,from,to)=>orders.filter(o=>o.status==='new'&&(!from||String(o.createdAt||'').slice(0,10)>=from)&&(!to||String(o.createdAt||'').slice(0,10)<=to)).reduce((sum,o)=>sum+(o.items||[]).filter(i=>Number(i.id)===Number(pid)).reduce((a,i)=>a+Number(i.qty||0),0),0);
  const receiptEvents=p=>{const arr=[];const initialQty=Math.max(0,Number(p.receivedQty??0)),initialDate=String(p.createdAt||'').slice(0,10);if(initialQty>0&&initialDate)arr.push({qty:initialQty,date:initialDate,initial:true});for(const r of receipts){if(Number(r.productId)!==Number(p.id))continue;const date=String(r.createdAt||'').slice(0,10),qty=Math.max(0,Number(r.qty)||0);if(qty>0&&date)arr.push({qty,date,initial:false});}return arr;};
  const rows=(db.products||[]).map(p=>{const events=receiptEvents(p),legacyOpening=Math.max(0,Number(p.legacyOpeningQty)||0),receivedBefore=events.filter(r=>r.date<start).reduce((a,r)=>a+r.qty,0),receivedMonth=events.filter(r=>r.date>=start&&r.date<=end).reduce((a,r)=>a+r.qty,0),soldBefore=soldQty(p.id,'',new Date(new Date(start+'T00:00:00').getTime()-86400000).toISOString().slice(0,10)),opening=Math.max(0,legacyOpening+receivedBefore-soldBefore),sold=soldQty(p.id,start,end),applications=applicationQty(p.id,start,end),closing=Math.max(0,opening+receivedMonth-sold),dates=[...new Set(events.filter(r=>r.date>=start&&r.date<=end).map(r=>r.date))].join(', ')||'—',pp=purchases.filter(x=>Number(x.productId)===Number(p.id)&&String(x.date||x.createdAt||'').slice(0,7)===month),firmas=[...new Set(pp.map(x=>{const c=companies.find(c=>String(c.id)===String(x.companyId));return c?`${c.name}${c.inn?' (INN '+c.inn+')':''}`:''}).filter(Boolean))].join('; ')||'—',docs=[...new Set(pp.map(x=>x.invoice).filter(Boolean))].join(', ')||'—';return `<tr><td>${esc(p.name?.uz)}</td><td>${esc(p.name?.ru)}</td><td>${esc(p.unit?.uz||'dona')}</td><td>${Number(p.cost||0)}</td><td>${Number(p.price||0)}</td><td>${opening}</td><td>${receivedMonth}</td><td>${esc(firmas)}</td><td>${esc(docs)}</td><td>${sold}</td><td>${applications}</td><td>${closing}</td><td>${Number(p.stock||0)}</td><td>${esc(dates)}</td></tr>`}).join('');
  const detail=purchases.filter(x=>String(x.date||x.createdAt||'').slice(0,7)===month).sort((a,b)=>String(a.date).localeCompare(String(b.date))).map((x,i)=>{const c=companies.find(c=>String(c.id)===String(x.companyId)),p=(db.products||[]).find(p=>Number(p.id)===Number(x.productId));return `<tr><td>${i+1}</td><td>${esc(x.date||'')}</td><td>${esc(c?.name||'—')}</td><td>${esc(c?.inn||'—')}</td><td>${esc(p?.name?.uz||x.productName||'')}</td><td>${Number(x.qty||0)}</td><td>${Number(x.unitCost||0)}</td><td>${Number(x.salePrice||0)}</td><td>${Number(x.total||0)}</td><td>${esc(x.invoice||'—')}</td></tr>`}).join('');
- const html=`<html><head><meta charset="UTF-8"></head><body><h2>IMOM OTA BARAKA — Ombor hisoboti ${esc(month)}</h2><table border="1"><tr><th>Mahsulot nomi</th><th>Название товара</th><th>Birlik</th><th>Tannarxi</th><th>Sotuv narxi</th><th>Oy boshiga ostatka</th><th>Qabul qilingan</th><th>Yetkazib beruvchi firma / INN</th><th>Nakladnoy / hujjat №</th><th>Sotilgan (Yetkazilmoqda + Yakunlandi)</th><th>Zayavka (Yangi)</th><th>Oy oxiriga qoldiq</th><th>Joriy qoldiq</th><th>Qabul sanasi</th></tr>${rows}</table><br><h3>${esc(month)} — Firma bo‘yicha prixod tafsilotlari</h3><table border="1"><tr><th>#</th><th>Sana</th><th>Firma</th><th>INN</th><th>Mahsulot</th><th>Miqdor</th><th>Xarid narxi</th><th>Sotuv narxi</th><th>Jami</th><th>Hujjat №</th></tr>${detail||'<tr><td colspan="10">Bu oy firma prixodi yo‘q</td></tr>'}</table></body></html>`;res.setHeader('Content-Type','application/vnd.ms-excel; charset=utf-8');res.setHeader('Content-Disposition',`attachment; filename="zarbuloq-ombor-${month}.xls"`);res.send('\ufeff'+html);
+ const html=`<html><head><meta charset="UTF-8"></head><body><h2>IMOM OTA BARAKA — Ombor hisoboti ${esc(month)}</h2><table border="1"><tr><th>Mahsulot nomi</th><th>Название товара</th><th>Birlik</th><th>Tannarxi</th><th>Sotuv narxi</th><th>Oy boshiga ostatka</th><th>Qabul qilingan</th><th>Yetkazib beruvchi firma / INN</th><th>Nakladnoy / hujjat №</th><th>Sotilgan (Yetkazilmoqda + Yetkazildi + Yakunlandi)</th><th>Zayavka (Yangi)</th><th>Oy oxiriga qoldiq</th><th>Joriy qoldiq</th><th>Qabul sanasi</th></tr>${rows}</table><br><h3>${esc(month)} — Firma bo‘yicha prixod tafsilotlari</h3><table border="1"><tr><th>#</th><th>Sana</th><th>Firma</th><th>INN</th><th>Mahsulot</th><th>Miqdor</th><th>Xarid narxi</th><th>Sotuv narxi</th><th>Jami</th><th>Hujjat №</th></tr>${detail||'<tr><td colspan="10">Bu oy firma prixodi yo‘q</td></tr>'}</table></body></html>`;res.setHeader('Content-Type','application/vnd.ms-excel; charset=utf-8');res.setHeader('Content-Disposition',`attachment; filename="zarbuloq-ombor-${month}.xls"`);res.send('\ufeff'+html);
 });
 
 function pointInParkentFallback(lat,lng){
@@ -609,6 +670,44 @@ app.get('/api/geo/parkent-check',async(req,res)=>{
  if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat<-90||lat>90||lng<-180||lng>180)return res.status(400).json({error:'Noto‘g‘ri koordinata'});
  try{const inside=await checkParkentLocation(lat,lng);res.json({ok:true,inside,lat,lng})}catch(e){res.status(503).json({error:'Hududni tekshirib bo‘lmadi'})}
 });
+
+function publicOrderView(order){
+ if(!order)return null;
+ return {
+  orderId:order.orderId,
+  createdAt:order.createdAt,
+  status:normalizeOrderStatus(order.status),
+  statusLabel:statusLabel(order.status),
+  statusUpdatedAt:order.statusUpdatedAt||order.createdAt,
+  statusHistory:Array.isArray(order.statusHistory)?order.statusHistory:[],
+  items:Array.isArray(order.items)?order.items.map(x=>({id:x.id,name:x.name,price:Number(x.price||0),qty:Number(x.qty||1)})):[],
+  subtotal:Number(order.subtotal||0),
+  discount:Number(order.discount||0),
+  deliveryFee:Number(order.deliveryFee||0),
+  total:Number(order.total||0),
+  payment:order.customer?.payment||order.payment||'Naqd',
+  customerConfirmed:Boolean(order.customerConfirmed),
+  customerConfirmedAt:order.customerConfirmedAt||'',
+  complaintOpen:Boolean(order.complaintOpen)
+ };
+}
+function findOrderById(orderId){
+ const id=clean(orderId,100);
+ return (readDb().orders||[]).find(o=>String(o.orderId)===String(id))||null;
+}
+function sendPublicOrder(req,res,orderId){
+ const o=findOrderById(orderId);
+ if(!o)return res.status(404).json({error:'Buyurtma topilmadi'});
+ res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');
+ res.setHeader('Pragma','no-cache');
+ return res.json({ok:true,order:publicOrderView(o)});
+}
+app.get('/api/orders/status',(req,res)=>sendPublicOrder(req,res,req.query.orderId));
+app.get('/api/orders/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
+app.get('/api/order/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
+app.get('/api/order-status/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
+app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.29',storage:pool?'postgresql':'local-json'}));
+
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
@@ -624,7 +723,7 @@ app.post('/api/orders',async(req,res)=>{
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});
  const promoResult=validatePromo(db,b.promoCode,subtotal);if(!promoResult.ok)return res.status(400).json({error:promoResult.error});const discount=promoResult.discount,total=subtotal-discount;
  const orderId=`IOB-${String(Date.now()).slice(-8)}-${String(Math.floor(Math.random()*90)+10)}`,createdAt=new Date().toISOString();
- const order={orderId,createdAt,status:'new',customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:clean(customer.deliverySlot,50),payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy)},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false};
+ const order={orderId,createdAt,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:clean(customer.deliverySlot,50),payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy)},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,complaintOpen:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:'order'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
  if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order,warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}
@@ -632,11 +731,92 @@ app.post('/api/orders',async(req,res)=>{
 });
 
 async function updateOrderStatus(orderId,status,actor='admin'){
- const allowed=['new','accepted','delivery','done','cancelled'];if(!allowed.includes(status))throw new Error('Invalid status');const db=readDb(),o=(db.orders||[]).find(x=>x.orderId===orderId);if(!o)throw new Error('Order not found');const prev=o.status,soldStatuses=['delivery','done'],wasSold=soldStatuses.includes(prev)&&o.stockAdjusted===true,willSold=soldStatuses.includes(status);if(willSold&&!wasSold){for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p){if(Number(p.stock||0)<Number(it.qty||0))throw new Error(`${p.name?.uz||'Mahsulot'} omborda yetarli emas`);p.stock=Math.max(0,Number(p.stock||0)-Number(it.qty||0));}}o.stockAdjusted=true;o.stockAdjustedAt=new Date().toISOString()}else if(!willSold&&wasSold){for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0)}o.stockAdjusted=false;o.stockAdjustedAt=''}o.status=status;o.statusUpdatedAt=new Date().toISOString();audit(db,actor,'Buyurtma statusi',`${orderId}: ${prev} → ${status}`);await writeDb(db);
- if(BOT_TOKEN&&o.telegram?.chatId&&o.telegram?.messageId){try{await tgCall('editMessageText',{chat_id:o.telegram.chatId,message_id:o.telegram.messageId,text:orderText(o),reply_markup:['done','cancelled'].includes(status)?{inline_keyboard:[]}:statusKeyboard(o.orderId,status)});}catch(e){console.error('Telegram edit error:',e.message)}}return o;
+ status=normalizeOrderStatus(status);
+ const allowed=['new','accepted','preparing','delivery','delivered','completed','cancelled'];
+ if(!allowed.includes(status))throw new Error('Invalid status');
+ const db=readDb(),o=(db.orders||[]).find(x=>x.orderId===orderId);
+ if(!o)throw new Error('Order not found');
+ const prev=normalizeOrderStatus(o.status),soldStatuses=['delivery','delivered','completed'],wasSold=soldStatuses.includes(prev)&&o.stockAdjusted===true,willSold=soldStatuses.includes(status);
+ if(willSold&&!wasSold){
+  for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p){if(Number(p.stock||0)<Number(it.qty||0))throw new Error(`${p.name?.uz||'Mahsulot'} omborda yetarli emas`);p.stock=Math.max(0,Number(p.stock||0)-Number(it.qty||0));}}
+  o.stockAdjusted=true;o.stockAdjustedAt=new Date().toISOString();
+ }else if(!willSold&&wasSold){
+  for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0)}
+  o.stockAdjusted=false;o.stockAdjustedAt='';
+ }
+ o.status=status;o.statusUpdatedAt=new Date().toISOString();pushOrderHistory(o,status,actor);
+ if(status==='completed'){o.customerConfirmed=true;o.customerConfirmedAt=o.customerConfirmedAt||o.statusUpdatedAt;}
+ audit(db,actor,'Buyurtma statusi',`${orderId}: ${prev} → ${status}`);await writeDb(db);
+ if(BOT_TOKEN&&o.telegram?.chatId&&o.telegram?.messageId){
+  try{await tgCall('editMessageText',{chat_id:o.telegram.chatId,message_id:o.telegram.messageId,text:orderText(o),reply_markup:statusKeyboard(o.orderId,status)});}
+  catch(e){console.error('Telegram edit error:',e.message)}
+ }
+ return o;
 }
 app.patch('/api/admin/orders/:id/status',requireAdmin,requireRole('operator'),async(req,res)=>{try{const o=await updateOrderStatus(req.params.id,String(req.body?.status||''),req.adminUser);res.json({ok:true,order:o});}catch(e){res.status(400).json({error:e.message})}});
-app.delete('/api/admin/orders/:id',requireAdmin,requireRole('operator'),async(req,res)=>{try{const db=readDb(),idx=(db.orders||[]).findIndex(x=>String(x.orderId)===String(req.params.id));if(idx<0)return res.status(404).json({error:'Buyurtma topilmadi'});const o=db.orders[idx];if(o.stockAdjusted===true&&['delivery','done'].includes(o.status)){for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0);}}db.orders.splice(idx,1);audit(db,req.adminUser,'Buyurtma o‘chirildi',String(o.orderId));await writeDb(db);res.json({ok:true,deleted:o.orderId})}catch(e){res.status(400).json({error:e.message})}});
+
+app.post('/api/orders/:orderId/confirm-delivery',async(req,res)=>{
+ try{
+  const id=clean(req.params.orderId,100),current=findOrderById(id);
+  if(!current)return res.status(404).json({error:'Buyurtma topilmadi'});
+  const st=normalizeOrderStatus(current.status);
+  if(!['delivered','completed'].includes(st))return res.status(409).json({error:'Buyurtma hali “Yetkazildi” holatiga kelmagan'});
+  const o=st==='completed'?current:await updateOrderStatus(id,'completed','customer');
+  const db=readDb(),fresh=(db.orders||[]).find(x=>String(x.orderId)===String(id));
+  if(fresh){
+   fresh.customerConfirmed=true;
+   fresh.customerConfirmedAt=fresh.customerConfirmedAt||new Date().toISOString();
+   fresh.customerDeviceId=clean(req.body?.deviceId,120);
+   fresh.complaintOpen=false;
+   await writeDb(db);
+  }
+  if(BOT_TOKEN&&CHAT_ID){
+   try{await tgCall('sendMessage',{chat_id:CHAT_ID,text:`✅ MIJOZ BUYURTMANI TASDIQLADI\n\n📦 #${id}\n🕐 ${new Date().toLocaleString('uz-UZ',{timeZone:'Asia/Tashkent'})}`});}catch(e){console.error('Customer confirm Telegram:',e.message)}
+  }
+  res.json({ok:true,status:'completed',customerConfirmed:true,order:publicOrderView(fresh||o)});
+ }catch(e){console.error('Confirm delivery:',e);res.status(500).json({error:'Tasdiqlashda server xatosi'})}
+});
+app.post('/api/orders/:orderId/complete',async(req,res)=>{
+ try{
+  const id=clean(req.params.orderId,100),current=findOrderById(id);
+  if(!current)return res.status(404).json({error:'Buyurtma topilmadi'});
+  const st=normalizeOrderStatus(current.status);
+  if(!['delivered','completed'].includes(st))return res.status(409).json({error:'Buyurtma hali “Yetkazildi” holatiga kelmagan'});
+  const o=st==='completed'?current:await updateOrderStatus(id,'completed','customer');
+  const db=readDb(),fresh=(db.orders||[]).find(x=>String(x.orderId)===String(id));
+  if(fresh){fresh.customerConfirmed=true;fresh.customerConfirmedAt=fresh.customerConfirmedAt||new Date().toISOString();fresh.customerDeviceId=clean(req.body?.deviceId,120);fresh.complaintOpen=false;await writeDb(db);}
+  res.json({ok:true,status:'completed',customerConfirmed:true,order:publicOrderView(fresh||o)});
+ }catch(e){console.error('Complete order:',e);res.status(500).json({error:'Tasdiqlashda server xatosi'})}
+});
+app.post('/api/orders/:orderId/complaints',async(req,res)=>{
+ try{
+  const id=clean(req.params.orderId,100),db=readDb(),o=(db.orders||[]).find(x=>String(x.orderId)===String(id));
+  if(!o)return res.status(404).json({error:'Buyurtma topilmadi'});
+  const message=clean(req.body?.message||req.body?.comment,500);
+  if(message.length<3)return res.status(400).json({error:'Kamchilikni yozing'});
+  const photo=String(req.body?.photo||'');
+  if(photo&&(!photo.startsWith('data:image/')||photo.length>1_800_000))return res.status(400).json({error:'Rasm hajmi yoki formati noto‘g‘ri'});
+  const row={complaintId:`CMP-${Date.now()}-${crypto.randomInt(10,99)}`,orderId:id,name:clean(req.body?.name,80),phone:clean(req.body?.phone,30),message,photo:photo.slice(0,1_800_000),deviceId:clean(req.body?.deviceId,120),createdAt:new Date().toISOString(),status:'open'};
+  db.orderComplaints=Array.isArray(db.orderComplaints)?db.orderComplaints:[];
+  db.orderComplaints.unshift(row);db.orderComplaints=db.orderComplaints.slice(0,1000);
+  o.complaint=row;o.complaintOpen=true;o.complaintUpdatedAt=row.createdAt;
+  audit(db,'customer','Buyurtma kamchiligi',`${id}: ${message.slice(0,120)}`);await writeDb(db);
+  if(BOT_TOKEN&&CHAT_ID){
+   try{await tgCall('sendMessage',{chat_id:CHAT_ID,text:`⚠️ BUYURTMA BO‘YICHA KAMCHILIK\n\n📦 #${id}\n👤 ${row.name||'—'}\n📞 ${row.phone||'—'}\n💬 ${message}\n📷 Rasm: ${row.photo?'biriktirilgan — admin panelda ko‘ring':'yo‘q'}`});}catch(e){console.error('Complaint Telegram:',e.message)}
+  }
+  res.status(201).json({ok:true,complaint:{...row,photo:row.photo?'attached':''}});
+ }catch(e){console.error('Complaint:',e);res.status(500).json({error:'Kamchilikni yuborib bo‘lmadi'})}
+});
+app.get('/api/admin/order-complaints',requireAdmin,(req,res)=>{const db=readDb();res.json({ok:true,complaints:(db.orderComplaints||[]).slice(0,1000)})});
+app.patch('/api/admin/order-complaints/:id',requireAdmin,async(req,res)=>{
+ const db=readDb(),c=(db.orderComplaints||[]).find(x=>String(x.complaintId)===String(req.params.id));
+ if(!c)return res.status(404).json({error:'Kamchilik topilmadi'});
+ const st=clean(req.body?.status,30);if(!['open','working','resolved','closed'].includes(st))return res.status(400).json({error:'Status noto‘g‘ri'});
+ c.status=st;c.updatedAt=new Date().toISOString();const o=(db.orders||[]).find(x=>String(x.orderId)===String(c.orderId));if(o&&['resolved','closed'].includes(st))o.complaintOpen=false;
+ audit(db,req.adminUser,'Kamchilik statusi',`${c.complaintId}: ${st}`);await writeDb(db);res.json({ok:true,complaint:c});
+});
+
+app.delete('/api/admin/orders/:id',requireAdmin,requireRole('operator'),async(req,res)=>{try{const db=readDb(),idx=(db.orders||[]).findIndex(x=>String(x.orderId)===String(req.params.id));if(idx<0)return res.status(404).json({error:'Buyurtma topilmadi'});const o=db.orders[idx];if(o.stockAdjusted===true&&['delivery','delivered','completed','done'].includes(o.status)){for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0);}}db.orders.splice(idx,1);audit(db,req.adminUser,'Buyurtma o‘chirildi',String(o.orderId));await writeDb(db);res.json({ok:true,deleted:o.orderId})}catch(e){res.status(400).json({error:e.message})}});
 
 
 
@@ -702,7 +882,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.27 TELEGRAM WEBHOOK + REALTIME / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.29 FULL REALTIME APP SYNC / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
