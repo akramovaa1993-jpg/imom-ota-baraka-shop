@@ -1,39 +1,12 @@
-ZARBULOQ.UZ v13.26.31 FULL
+ZARBULOQ.UZ v13.26.32 FULL
 
-Bu versiya v13.26.30 asosida. Asosiy sayt/admin/FINANS/ombor/Telegram/realtime funksiyalari saqlangan.
-Yangi: Chek nusxa olish + chek parity, mahsulot so‘rovi o‘chirish, promo header, Ilova boshqaruvi, Savdo analitikasi.
+YANGILIKLAR:
+- Admin panelga alohida “Xabarlar” bo‘limi qo‘shildi.
+- Xabarlar UZ/RU/EN tilida serverga saqlanadi va Android ilovaning Xabarlar bo‘limida ko‘rinadi.
+- Android ilova ochiq bo‘lganda yangi server xabari uchun tizim bildirishnomasi chiqadi (ruxsat berilgan bo‘lsa).
+- Saytda UZ/RU/EN tarjimalar kengaytirildi: menyu, katalog, savat, tracking, checkout, footer, kompaniya rekvizitlari va Parkent yetkazib berish banneri.
+- Yetkazilgan buyurtma yakunlanganda kim tasdiqlagani saqlanadi: “Haridor tomonidan tasdiqlangan” yoki “Admin tomonidan tasdiqlangan”.
+- Bu manba v13.26.31 dagi chek, analitika, ilova boshqaruvi, ombor, finans va boshqa funksiyalarni saqlaydi.
 
-DEPLOY: Render/GitHub ga shu papkadagi barcha fayllarni yuklang. package.json start: node server.js.
-
-V13.14 REALTIME — PostgreSQL + live synchronization
-
-IMOM OTA BARAKA — ZARBULOQ.UZ V13.8 ZARBULOQ FINAL
-
-Boshlash:
-npm o'rnatish
-npm boshlanishi
-
-Onlayn administrator:
-/admin.html
-
-V13.6:
-- To'liq Sahifalar / SEO muharriri
-- Logotip yuklash va o'lchamini boshqarish
-- Korxona rekvizitlari va xarita tahriri
-- Footer / aloqa / katalog matnlari
-- Yangi kategoriya qo'shish
-- Mahsulot rasmlari va zoom
-- Katta buyurtma kuzatuv paneli
-
-Render muhit o'zgaruvchilari avvalgidek qoladi.
-
-
-V13.26.30 PRODUCT REQUEST ATTACHMENTS FULL
-- v13.26.28 dagi barcha sayt/admin funksiyalari saqlandi.
-- Android Buyurtmani kuzatish uchun real GET /api/orders/:orderId qo‘shildi.
-- Statuslar: Yangi → Qabul qilindi → Tayyorlanmoqda → Yetkazilmoqda → Yetkazildi → xaridor tasdiqlaydi → Yakunlandi.
-- Admin va Telegram statusi bitta PostgreSQL/local shop bazasiga yoziladi.
-- Yetkazildi bo‘lgach xaridor tasdiqlashi mumkin.
-- “Yo‘q” holatida kamchilik + rasm server/admin panelga tushadi.
-- Mahsulot baholash va izohlar serverda saqlanadi; bir telefon/mahsulot uchun bitta fikr.
-- Android v4.8.2 REALTIME PREMIUM FINAL bilan mos.
+DEPLOY:
+Render/GitHub ga ushbu papka tarkibini to‘liq yuklang. Eski data/PostgreSQL bazani o‘chirmang.

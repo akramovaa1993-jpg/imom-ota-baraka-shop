@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.32
+
+1. Admin → Xabarlar: UZ/RU/EN xabar yaratish, faol/o‘chiq qilish, o‘chirish.
+2. Public API: GET /api/app-notifications?lang=uz|ru|en.
+3. Sayt UZ/RU/EN: statik va dinamik matnlar, tracking/checkout/footer va Parkent banner variantlari.
+4. Buyurtma yakuni: completionSource=customer|admin, customerConfirmed/adminConfirmed.
+5. Admin, sayt tracking va Android bu manbani ko‘rsatishi uchun API kengaytirildi.
+6. Ilova boshqaruvi default: Android v4.8.8 / versionCode 68.
