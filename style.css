@@ -351,3 +351,31 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(min-width:1200px){.parkent-compact-section .container{width:min(58vw,980px)!important}}
 @media(max-width:1199px){.parkent-compact-section .container{width:min(92vw,980px)!important}}
 @media(max-width:760px){.story{padding-bottom:22px!important}.parkent-compact-section{padding-bottom:38px!important}.parkent-compact-section .container{width:calc(100% - 24px)!important}.parkent-compact-section .parkent-promo-visual{border-radius:16px!important}}
+
+
+/* V13.26.36 — footer information moved beside compact delivery map */
+.parkent-compact-section{padding:0 0 34px!important;background:linear-gradient(180deg,#fffaf1 0%,#f7fbf9 100%)!important}
+.parkent-compact-section .parkent-footer-layout{width:100%!important;max-width:none!important;display:grid!important;grid-template-columns:minmax(560px,1.18fr) minmax(600px,.82fr)!important;gap:24px!important;align-items:stretch!important;padding-left:18px!important;padding-right:18px!important}
+.parkent-compact-section .parkent-promo-visual{height:100%;min-height:336px;border-radius:22px!important;box-shadow:0 16px 44px rgba(7,88,76,.08)!important;background:#fff}
+.parkent-compact-section .parkent-promo-visual>img{width:100%;height:100%;object-fit:contain;background:#fff}
+.parkent-info-panels.footer-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important;margin:0!important;padding:0!important;align-items:stretch!important}
+.parkent-info-card{min-width:0;background:linear-gradient(155deg,#f6fffb,#fffdf6);border:1px solid #dcebe5;border-radius:20px;padding:22px 18px;box-shadow:0 10px 30px rgba(7,88,76,.06);display:flex;flex-direction:column;align-items:stretch}
+.parkent-info-card .parkent-info-icon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#d9fae8;color:#0a8c67;font-size:22px;font-weight:900;margin-bottom:14px}
+.parkent-info-card h4{font-family:Georgia,"Times New Roman",serif;font-size:22px;letter-spacing:-.5px;margin:0 0 14px;color:#112a23}
+.parkent-info-card a,.parkent-info-card>span:not(.parkent-info-icon){display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:10px 12px;margin:0 0 8px;background:rgba(255,255,255,.92);border:1px solid #dfebe6;border-radius:12px;color:#173b31;font-size:13px;font-weight:800;word-break:break-word}
+.parkent-info-card a:hover{border-color:#9ed5c3;background:#effaf5;transform:translateY(-1px)}
+.parkent-info-card a b{font-size:19px;line-height:1;color:#247a64}
+.footer-copyright-only{padding:0!important;background:#fff!important;border-top:1px solid #e7efeb!important}
+.footer-copyright-only .copyright{padding:15px 18px!important;text-align:center!important;font-size:12px!important;color:#70817a!important}
+@media(max-width:1320px){
+  .parkent-compact-section .parkent-footer-layout{grid-template-columns:1fr!important}
+  .parkent-compact-section .parkent-promo-visual{min-height:0!important}
+  .parkent-info-panels.footer-grid{grid-template-columns:repeat(3,1fr)!important}
+}
+@media(max-width:820px){
+  .parkent-info-panels.footer-grid{grid-template-columns:1fr!important}
+  .parkent-info-card{padding:18px}
+  .parkent-compact-section .parkent-footer-layout{gap:16px!important;padding-left:10px!important;padding-right:10px!important}
+}
+
+.parkent-info-card:first-child a::after,.parkent-info-card:last-child a::after{content:"›";font-size:19px;line-height:1;color:#247a64;margin-left:auto}

@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.36
+
+- Tezkor havolalar, Aloqa va Xizmat bloklari pastki footerdan olib, Parkent bepul yetkazib berish xaritasi yoniga ko‘chirildi.
+- Uchta blok premium kartochka ko‘rinishida joylashtirildi.
+- Pastki footer faqat copyright qatoriga ixchamlashtirildi.
+- UZ/RU/EN tarjima IDlari va Buyurtmani kuzatish funksiyasi saqlandi.
+- Mobil va planshet uchun responsive joylashuv qo‘shildi.
+- v13.26.35 admin-panel stability hotfix saqlandi.
