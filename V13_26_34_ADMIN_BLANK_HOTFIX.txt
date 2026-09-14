@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.34 — ADMIN BLANK SCREEN HOTFIX
+
+Tuzatildi:
+- admin.html endi bo‘sh oq sahifada qolmaydi; login UI darhol ko‘rinadi.
+- /api/admin/me yoki dashboard javobi osilib qolsa 10 soniyada fallback beradi.
+- admin.html uchun no-store/no-cache header qo‘shildi.
+- realtime ulanish xatosi admin panel yuklanishini to‘sib qo‘ymaydi.
+- v13.26.33 dagi sayt dizayni, 3 til, Xabarlar, Ilova boshqaruvi, Analitika va tasdiqlash funksiyalari saqlandi.

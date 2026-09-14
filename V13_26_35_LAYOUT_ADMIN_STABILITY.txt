@@ -1,0 +1,9 @@
+ZARBULOQ.UZ v13.26.35 — LAYOUT + ADMIN STABILITY
+
+1. Parkent bepul yetkazib berish bloki BIZ HAQIMIZDA / rekvizitlar / ALOQA blokidan keyin pastga ko‘chirildi.
+2. Yetkazib berish vizuali desktopda ixcham va markazda, mobil qurilmada esa xavfsiz responsive ko‘rinishda.
+3. Admin panel boshlanishida oq ekran qolmasligi uchun ko‘rinadigan yuklanish fallbacki qo‘shildi.
+4. JavaScript xatosi yuz bersa admin panel tiklash xabari ko‘rsatadi.
+5. index.html va admin.html cache aralashib qolmasligi uchun no-cache HTML va CSS/JS version query qo‘shildi.
+6. Oldingi Xabarlar, Ilova boshqaruvi, Savdo analitikasi, chek markazi, promo, mahsulot so‘rovlari, real-time status, 3 til va mijoz/admin tasdiqlash funksiyalari saqlandi.
+7. API yo‘llari audit qilindi: admin va sayt ishlatadigan endpointlar server.js dagi marshrutlar bilan solishtirildi.

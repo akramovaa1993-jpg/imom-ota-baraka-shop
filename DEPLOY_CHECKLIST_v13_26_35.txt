@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.35 DEPLOY CHECKLIST
+
+1) FULL papkani eski loyiha ustiga to‘liq yuklang.
+2) Render deploy tugagach /api/status -> version 13.26.35 bo‘lishini tekshiring.
+3) Saytda Ctrl+F5 bosing.
+4) admin.html da Ctrl+F5 bosing va login/admin dashboard ochilishini tekshiring.
+5) Sayt pastida tartib: BIZ HAQIMIZDA + rekvizitlar + ALOQA -> pastida kichik Parkent bepul yetkazib berish bloki.
+6) Test: katalog, savat, buyurtma, tracking, mijoz tasdig‘i, admin status, chek, mahsulot so‘rovi, xabarlar, analitika.

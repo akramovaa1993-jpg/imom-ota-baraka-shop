@@ -341,3 +341,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 /* V13.26.32 — website customer delivery confirmation */
 .web-confirm-card{margin-top:14px;padding:14px;border:1px solid #b8dfd0;border-radius:16px;background:#eef9f4}.web-confirm-card>b{display:block;color:#075e4d;margin-bottom:10px}.web-confirm-card>div{display:flex;gap:8px;flex-wrap:wrap}.web-confirm-card .btn{min-width:150px}.track-confirm-source{display:inline-flex;align-items:center;gap:6px;margin:6px 0 8px;padding:6px 10px;border-radius:999px;background:#dff6ec;color:#08705a;font-size:12px;font-weight:800;border:1px solid #b5e7d5}
+
+
+/* V13.26.35 — approved lower-page layout: compact delivery map below requisites + contact */
+.story{padding-bottom:30px!important}
+.parkent-compact-section{padding:0 0 54px!important;background:linear-gradient(180deg,#fffaf1 0%,#f7fbf9 100%)!important}
+.parkent-compact-section .container{max-width:980px!important}
+.parkent-compact-section .parkent-promo-visual{border-radius:22px!important;box-shadow:0 16px 44px rgba(7,88,76,.08)!important}
+@media(min-width:1200px){.parkent-compact-section .container{width:min(58vw,980px)!important}}
+@media(max-width:1199px){.parkent-compact-section .container{width:min(92vw,980px)!important}}
+@media(max-width:760px){.story{padding-bottom:22px!important}.parkent-compact-section{padding-bottom:38px!important}.parkent-compact-section .container{width:calc(100% - 24px)!important}.parkent-compact-section .parkent-promo-visual{border-radius:16px!important}}

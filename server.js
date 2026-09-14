@@ -191,6 +191,7 @@ function renderProductSeoPage(req,res,lang='uz'){
 app.get('/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'uz'));
 app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
 
+app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
 app.use(express.static(__dirname));
 
 const defaultCategories=[
@@ -441,7 +442,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.33',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.35',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -754,7 +755,7 @@ app.get('/api/orders/status',(req,res)=>sendPublicOrder(req,res,req.query.orderI
 app.get('/api/orders/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order-status/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
-app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.33',storage:pool?'postgresql':'local-json'}));
+app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.35',storage:pool?'postgresql':'local-json'}));
 
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
@@ -932,7 +933,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.33 NOTIFICATIONS + I18N + CONFIRMATION FULL / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.35 LAYOUT + ADMIN STABILITY FULL / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
