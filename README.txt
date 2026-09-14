@@ -1,4 +1,4 @@
-ZARBULOQ.UZ v13.26.32 FULL
+ZARBULOQ.UZ v13.26.33 FULL
 
 YANGILIKLAR:
 - Admin panelga alohida “Xabarlar” bo‘limi qo‘shildi.

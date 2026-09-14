@@ -1,0 +1,7 @@
+ZARBULOQ.UZ v13.26.33
+
+FIX:
+- Parkent bepul yetkazib berish bloki v13.26.31 dagi original ko‘rinishga qaytarildi.
+- UZ/RU/EN tanlanganda Parkent banner rasmi endi almashtirilmaydi yoki kattalashib/crop bo‘lib ketmaydi.
+- Saytning til tizimi (menyu, katalog, savat, tracking, checkout, aloqa, footer va boshqa matnlar) v13.26.32 dagidek saqlanadi.
+- Xabarlar, ilova boshqaruvi, savdo analitikasi va buyurtma tasdiqlash manbasi saqlandi.

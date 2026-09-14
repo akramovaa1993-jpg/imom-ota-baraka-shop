@@ -441,7 +441,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.32',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.33',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -454,7 +454,7 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb();res.json({products:db.products||[],categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.32'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.33'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -754,7 +754,7 @@ app.get('/api/orders/status',(req,res)=>sendPublicOrder(req,res,req.query.orderI
 app.get('/api/orders/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order-status/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
-app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.32',storage:pool?'postgresql':'local-json'}));
+app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.33',storage:pool?'postgresql':'local-json'}));
 
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
@@ -932,7 +932,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.32 NOTIFICATIONS + I18N + CONFIRMATION FULL / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.33 NOTIFICATIONS + I18N + CONFIRMATION FULL / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
