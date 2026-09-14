@@ -440,7 +440,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.29',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.30',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -500,11 +500,14 @@ app.post('/api/product-requests',async(req,res)=>{
   const db=readDb(), b=req.body||{};
   const name=clean(b.productName,160), phone=clean(b.phone,40), customer=clean(b.customerName,100), size=clean(b.size,80), comment=clean(b.comment,500), qty=Math.max(1,Math.min(999,Math.floor(Number(b.qty)||1)));
   if(!name||!phone)return res.status(400).json({error:'Mahsulot nomi va telefon raqami majburiy'});
-  const image=String(b.image||''); if(image && (!image.startsWith('data:image/')||image.length>3_000_000))return res.status(400).json({error:'Rasm hajmi yoki formati noto‘g‘ri'});
+  const image=String(b.image||''); if(image && (!image.startsWith('data:image/')||image.length>5_000_000))return res.status(400).json({error:'Rasm hajmi yoki formati noto‘g‘ri'});
+  const attachment=String(b.attachment||'');
+  const attachmentName=clean(b.attachmentName,180),attachmentMime=clean(b.attachmentMime,120);
+  if(attachment && (!attachment.startsWith('data:')||attachment.length>5_000_000))return res.status(400).json({error:'Fayl hajmi yoki formati noto‘g‘ri'});
   const requestId='REQ-'+new Date().toISOString().slice(2,10).replace(/-/g,'')+'-'+String(Date.now()).slice(-5);
-  const item={requestId,createdAt:new Date().toISOString(),status:'new',productName:name,qty,size,customerName:customer,phone,comment,image:image.slice(0,3_000_000)};
+  const item={requestId,createdAt:new Date().toISOString(),status:'new',productName:name,qty,size,customerName:customer,phone,comment,image:image.slice(0,5_000_000),attachment:attachment.slice(0,5_000_000),attachmentName,attachmentMime};
   db.productRequests=db.productRequests||[]; db.productRequests.unshift(item); db.productRequests=db.productRequests.slice(0,1000); audit(db,'mijoz','Mahsulot so‘rovi',requestId+' '+name); await writeDb(db);
-  if(BOT_TOKEN&&CHAT_ID){let text=`🔎 YANGI MAHSULOT SO‘ROVI #${requestId}\n\n📦 Mahsulot: ${name}\n🔢 Miqdor: ${qty}\n📐 O‘lcham/Hajm: ${size||'—'}\n👤 Mijoz: ${customer||'—'}\n📞 Telefon: ${phone}\n💬 Izoh: ${comment||'—'}\n🌐 ZARBULOQ.UZ`;try{if(image)text+='\n🖼 Rasm biriktirilgan — Admin panelda ko‘ring.';await tgCall('sendMessage',{chat_id:CHAT_ID,text})}catch(e){console.error('Product request Telegram:',e.message||e)}}
+  if(BOT_TOKEN&&CHAT_ID){let text=`🔎 YANGI MAHSULOT SO‘ROVI #${requestId}\n\n📦 Mahsulot: ${name}\n🔢 Miqdor: ${qty}\n📐 O‘lcham/Hajm: ${size||'—'}\n👤 Mijoz: ${customer||'—'}\n📞 Telefon: ${phone}\n💬 Izoh: ${comment||'—'}\n🌐 ZARBULOQ.UZ`;try{if(attachment||image)text+=`\n📎 Biriktirma: ${attachmentName||'rasm/fayl'} — Admin panelda ko‘ring.`;await tgCall('sendMessage',{chat_id:CHAT_ID,text})}catch(e){console.error('Product request Telegram:',e.message||e)}}
   res.json({ok:true,requestId});
  }catch(e){console.error(e);res.status(500).json({error:'So‘rovni yuborib bo‘lmadi'})}
 });
@@ -706,7 +709,7 @@ app.get('/api/orders/status',(req,res)=>sendPublicOrder(req,res,req.query.orderI
 app.get('/api/orders/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order-status/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
-app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.29',storage:pool?'postgresql':'local-json'}));
+app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.30',storage:pool?'postgresql':'local-json'}));
 
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
@@ -882,7 +885,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.29 FULL REALTIME APP SYNC / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.30 PRODUCT REQUEST ATTACHMENTS FULL / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

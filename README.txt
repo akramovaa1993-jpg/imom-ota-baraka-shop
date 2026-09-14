@@ -21,7 +21,7 @@ V13.6:
 Render muhit o'zgaruvchilari avvalgidek qoladi.
 
 
-V13.26.29 FULL REALTIME APP SYNC FINAL
+V13.26.30 PRODUCT REQUEST ATTACHMENTS FULL
 - v13.26.28 dagi barcha sayt/admin funksiyalari saqlandi.
 - Android Buyurtmani kuzatish uchun real GET /api/orders/:orderId qo‘shildi.
 - Statuslar: Yangi → Qabul qilindi → Tayyorlanmoqda → Yetkazilmoqda → Yetkazildi → xaridor tasdiqlaydi → Yakunlandi.

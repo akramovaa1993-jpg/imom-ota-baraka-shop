@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.30 — PRODUCT REQUEST ATTACHMENTS
+
+- Android mahsulot so‘rovlaridan rasm yoki fayl qabul qiladi.
+- attachment / attachmentName / attachmentMime maydonlari saqlanadi.
+- Rasm, PDF, Word, Excel, TXT kabi data-URI fayllar 5 MB encoded limitgacha.
+- Admin panel Mahsulot so‘rovlari jadvalida rasm preview yoki faylni ochish/yuklash tugmasi chiqadi.
+- Telegram xabarida biriktirma borligi ko‘rsatiladi.
+- Oldingi v13.26.29 realtime order status va barcha modullar saqlangan.
