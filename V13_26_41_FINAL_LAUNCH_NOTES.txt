@@ -1,0 +1,20 @@
+ZARBULOQ.UZ v13.26.41 — FINAL LAUNCH
+
+Faqat kelishilgan o‘zgarishlar:
+1. Mahsulot SEO/detail sahifasiga baholar va izohlar qo‘shildi.
+2. Sayt va Android bitta review bazasidan foydalanadi.
+3. Admin panelga “Izohlar va baholar” bo‘limi qo‘shildi:
+   - ko‘rish
+   - qidirish / javob berilgan-kutilmoqda filteri
+   - admin javobi yozish
+   - izohni o‘chirish
+4. Admin javobi sayt va Android mahsulot sahifasida ko‘rinadi.
+5. Ilova bosh sahifa katta banneri admin paneldan boshqariladi:
+   - rasm
+   - sarlavha
+   - badge
+   - “Mahsulotga so‘rov qoldirish” tugmasi matni
+6. Reklama/aksiya bannerlari (24 tagacha), admin F5 sessiyasi, GPS, tez yuklash,
+   sariq qo‘ng‘iroqcha, rasm fit, yuqori menyu va suzuvchi savat saqlab qolindi.
+
+Boshqa mavjud funksiyalar o‘zgartirilmadi.

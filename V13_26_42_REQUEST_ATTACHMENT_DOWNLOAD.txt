@@ -1,0 +1,6 @@
+ZARBULOQ.UZ v13.26.42 — REQUEST ATTACHMENT DOWNLOAD
+
+- Admin panel > Mahsulot so‘rovlari > Biriktirma ustuniga aniq Ko‘rish/Ochish va Yuklab olish tugmalari qo‘shildi.
+- Rasm uchun thumbnail saqlandi, rasmni alohida ko‘rish va original fayl nomi bilan yuklab olish mumkin.
+- Boshqa turdagi fayllarni ham ochish va yuklab olish mumkin.
+- Boshqa ishlayotgan funksiyalar o‘zgartirilmadi.
