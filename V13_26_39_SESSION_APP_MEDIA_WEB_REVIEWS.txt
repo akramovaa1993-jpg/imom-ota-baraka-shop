@@ -1,0 +1,25 @@
+ZARBULOQ.UZ v13.26.39 — SESSION + APP MEDIA + WEB REVIEWS
+
+1. ADMIN F5 SESSION FIX
+- Admin login 12 soatlik signed session cookie bilan ishlaydi.
+- Login javobidagi session token sessionStorage ga ham saqlanadi.
+- Admin API cookie yoki X-Admin-Session orqali sessiyani tekshiradi.
+- F5/refresh vaqtida qayta login so‘ramasligi uchun credentials va fallback session qo‘shildi.
+
+2. ILOVA BOSHQARUVI — MEDIA
+- Ilova boshqaruvida 24 tagacha reklama / aksiya / yangilik / boshqa banner rasmlarini qo‘shish mumkin.
+- Rasm nomi, turi, aktiv holati, tartibi va o‘chirish boshqaruvi mavjud.
+- Rasmlar brauzerda avtomatik optimallashtiriladi.
+- Server JSON limit 55 MB ga oshirildi.
+
+3. SAYT MAHSULOT BAHOLARI / IZOHLAR
+- Mahsulot kartasida o‘rtacha baho va izoh soni ko‘rinadi.
+- Mahsulot baholari oynasi: 1–5 yulduz, ism, telefon va izoh.
+- Android va sayt aynan bir xil review API dan foydalanadi.
+- Ilovada qoldirilgan baho/izoh saytda; saytdagi izoh ilovada ko‘rinadi.
+
+4. APP CONFIG
+- Android v4.9.2 uchun currentVersion=4.9.2 / latestVersionCode=72.
+- appBanners ilovaga /api/app-config orqali yetkaziladi.
+
+Kirish musiqasi qo‘shilmagan.

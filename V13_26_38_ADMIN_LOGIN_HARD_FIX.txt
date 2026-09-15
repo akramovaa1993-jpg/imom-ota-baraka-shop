@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.38 ADMIN LOGIN HARD FIX
+
+- Admin login va dashboard render xatolari ajratildi.
+- Undefined/stale dashboard obyektlari uchun qattiq normalizatsiya qo‘shildi.
+- financeSummary, financeCurrentBalance, visitorStats va /api/admin/dashboard DB guard bilan himoyalandi.
+- Login oynasida v13.26.38 marker ko‘rinadi — yangi admin.html haqiqatan deploy bo‘lganini tekshirish uchun.
+- /api/version -> 13.26.38.
+- Oldingi sayt dizayni va funksiyalar saqlandi.

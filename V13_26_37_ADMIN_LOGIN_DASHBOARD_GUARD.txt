@@ -1,0 +1,9 @@
+ZARBULOQ.UZ V13.26.37 — ADMIN LOGIN / DASHBOARD GUARD
+
+Tuzatildi:
+- Admin loginidan keyin "Cannot read properties of undefined (reading 'orders')" xatosi bloklandi.
+- /api/admin/dashboard javobida stats yoki ayrim massivlar vaqtincha yo‘q bo‘lsa, admin panel standart xavfsiz qiymatlar bilan ochiladi.
+- orders, products, customers, chats, promos, audit, notifications va boshqa admin kolleksiyalar uchun fallback qo‘shildi.
+- stats bo‘lmasa buyurtmalar asosida orders/today/month/year/revenue/pending/cancelled qayta hisoblanadi.
+- Realtime refresh ham shu himoyalangan normalizatsiyadan foydalanadi.
+- V13.26.36 dagi sayt layouti va barcha funksiyalar saqlangan.

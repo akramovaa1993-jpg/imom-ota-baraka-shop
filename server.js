@@ -32,6 +32,7 @@ function uzDayKey(value=new Date()){
 }
 function visitorDevice(ua=''){ua=String(ua||'').toLowerCase();if(/ipad|tablet/.test(ua))return 'Planshet';if(/mobi|android|iphone/.test(ua))return 'Telefon';return 'Kompyuter';}
 function visitorStats(db){
+  db=normalizeDb(db||initialDb());
   const rows=Array.isArray(db.visits)?db.visits:[], now=Date.now(), today=uzDayKey(now);
   const dayMs=86400000, cutoff7=now-6*dayMs, cutoff30=now-29*dayMs;
   const todayRows=rows.filter(x=>uzDayKey(x.at)===today), last7=rows.filter(x=>new Date(x.at).getTime()>=cutoff7), last30=rows.filter(x=>new Date(x.at).getTime()>=cutoff30);
@@ -59,7 +60,7 @@ const USERS = [
   ...(process.env.STOCK_USERNAME && process.env.STOCK_PASSWORD ? [{username:process.env.STOCK_USERNAME,password:process.env.STOCK_PASSWORD,role:'stock'}] : [])
 ];
 
-app.use(express.json({limit:'12mb'}));
+app.use(express.json({limit:'55mb'}));
 
 // V13.16 PRODUCT SEO — har bir mahsulot uchun Google indekslaydigan alohida sahifa.
 function seoSlug(value=''){
@@ -230,7 +231,7 @@ const defaultSettings={
  ],
  heroSlides:[{id:'slide-1',image:'parkent-slide-1.webp',active:true}],
  phone:'+998901361211',telegram:'https://t.me/imomotabaraka',email:'info@imomotamarket.uz',
- appControl:{currentVersion:'4.8.8',latestVersionCode:68,minVersionCode:68,forceUpdate:false,maintenance:false,maintenanceMessage:'Ilovada texnik ishlar olib borilmoqda. Iltimos, birozdan so‘ng qayta urinib ko‘ring.',updateTitle:'Yangi versiya mavjud',updateMessage:'ZARBULOQ.UZ ilovasining yangi versiyasini o‘rnating.',updateUrl:'https://zarbuloq.uz',noticeEnabled:false,noticeText:'',productRequestEnabled:true,liveChatEnabled:true,reviewsEnabled:true,trackingEnabled:true,supportPhone:'+998901361211',supportTelegram:'https://t.me/imomotabaraka'},
+ appControl:{currentVersion:'4.9.2',latestVersionCode:72,minVersionCode:68,forceUpdate:false,maintenance:false,maintenanceMessage:'Ilovada texnik ishlar olib borilmoqda. Iltimos, birozdan so‘ng qayta urinib ko‘ring.',updateTitle:'Yangi versiya mavjud',updateMessage:'ZARBULOQ.UZ ilovasining yangi versiyasini o‘rnating.',updateUrl:'https://zarbuloq.uz',noticeEnabled:false,noticeText:'',productRequestEnabled:true,liveChatEnabled:true,reviewsEnabled:true,trackingEnabled:true,supportPhone:'+998901361211',supportTelegram:'https://t.me/imomotabaraka',appBanners:[]},
  delivery:{free:true,district:'Parkent tumani',areas:['Parkent shahri','Chinor','Zarkent','So‘qoq','Kumushkon','Nevich','Boshqizilsoy','Changi','Qoraqalpoq','Nomdanak'],slots:['09:00–12:00','12:00–15:00','15:00–18:00','18:00–21:00']},
  seo:{title:'IMOM OTA BARAKA — ZARBULOQ.UZ',description:'ZARBULOQ.UZ — Parkent tumani bo‘ylab bepul yetkazib beruvchi IMOM OTA BARAKA internet do‘koni.',keywords:'zarbuloq, imom ota baraka, parkent, internet do‘kon, bepul yetkazib berish'}
 };
@@ -326,7 +327,7 @@ async function tgCall(method,payload){const r=await fetch(`${TG}/${method}`,{met
 function parseCookies(req){return Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim()).filter(Boolean).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),decodeURIComponent(x.slice(i+1))]}));}
 function signSession(user,role,exp){const raw=`${user}|${role}|${exp}`;const sig=crypto.createHmac('sha256',SESSION_SECRET).update(raw).digest('hex');return Buffer.from(`${raw}|${sig}`).toString('base64url');}
 function verifySession(token){try{const [user,role,exp,sig]=Buffer.from(token,'base64url').toString().split('|');if(!user||!role||!exp||!sig||Date.now()>Number(exp))return null;const raw=`${user}|${role}|${exp}`;const good=crypto.createHmac('sha256',SESSION_SECRET).update(raw).digest('hex');if(sig.length!==good.length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(good)))return null;return {user,role};}catch{return null}}
-function requireAdmin(req,res,next){const s=verifySession(parseCookies(req).iob_admin||'');if(!s)return res.status(401).json({error:'Unauthorized'});req.adminUser=s.user;req.adminRole=s.role;next();}
+function requireAdmin(req,res,next){const bearer=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim(),fallback=String(req.headers['x-admin-session']||'').trim();const token=parseCookies(req).iob_admin||bearer||fallback||'';const s=verifySession(token);if(!s)return res.status(401).json({error:'Kirish talab qilinadi'});req.adminUser=s.user;req.adminRole=s.role;next();}
 function requireRole(...roles){return (req,res,next)=>{if(req.adminRole==='admin'||roles.includes(req.adminRole))return next();return res.status(403).json({error:'Ruxsat yetarli emas'});}}
 function audit(db,user,action,details=''){db.audit=db.audit||[];db.audit.unshift({id:Date.now()+Math.random(),at:new Date().toISOString(),user:user||'system',action:clean(action,120),details:clean(details,500)});db.audit=db.audit.slice(0,1500);}
 function orderText(order){
@@ -367,6 +368,7 @@ function finMonthCount(opts={}){
  return 1;
 }
 function financeSummary(db,opts={}){
+ db=normalizeDb(db||initialDb());
  const products=db.products||[], orders=db.orders||[], fsx=db.financeSettings||{}, purchases=db.financePurchases||[], payments=db.financeCompanyPayments||[], payroll=db.financePayroll||[], expenses=db.financeExpenses||[], taxPayments=db.financeTaxPayments||[];
  const done=orders.filter(o=>['completed','done'].includes(o.status)&&finPeriodMatch(o.statusUpdatedAt||o.createdAt,opts));
  const revenue=done.reduce((a,o)=>a+finNum(o.total),0);
@@ -396,6 +398,7 @@ function financeSummary(db,opts={}){
  return {revenue,cogs,grossProfit,purchaseTotal,supplierPaid,payrollGross,payrollPaid,otherExpenses,turnoverTax,payrollTax,payrollIncomeTaxRate,payrollPensionRate,payrollBudgetShareRate,payrollPensionShare,payrollBudgetShare,employerSocialTax,employerSocialTaxRate,landTax,propertyTax,otherTax,taxAccrued,taxPaid,taxDebt:Math.max(0,taxAccrued-taxPaid),netProfit,orders:done.length};
 }
 function financeCurrentBalance(db){
+ db=normalizeDb(db||initialDb());
  const fsx=db.financeSettings||{}, products=db.products||[];
  const purchases=db.financePurchases||[], companyPayments=db.financeCompanyPayments||[], payroll=db.financePayroll||[], taxPayments=db.financeTaxPayments||[];
  const companyIds=new Set([...(db.financeCompanies||[]).map(x=>String(x.id)),...purchases.map(x=>String(x.companyId||'')),...companyPayments.map(x=>String(x.companyId||''))]);
@@ -421,6 +424,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.39',adminFix:'session-media-reviews'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -442,7 +446,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.36',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.39',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -454,8 +458,8 @@ app.get('/api/events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: ping ${Date.now()}\n\n`)}catch{}},25000);
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
-app.get('/api/catalog',(req,res)=>{const db=readDb();res.json({products:db.products||[],categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.33'});});
+app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.39'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -535,12 +539,12 @@ app.patch('/api/admin/chats/:sessionId/read',requireAdmin,async(req,res)=>{const
 app.delete('/api/admin/chats/:sessionId',requireAdmin,async(req,res)=>{const id=chatId(req.params.sessionId);if(!id)return res.status(400).json({error:'Chat ID noto‘g‘ri'});const db=readDb();const before=(db.chats||[]).length;db.chats=(db.chats||[]).filter(x=>x.sessionId!==id);if(db.chats.length===before)return res.status(404).json({error:'Chat topilmadi'});audit(db,req.adminUser,'Chat o‘chirildi',id);await writeDb(db);res.json({ok:true})});
 app.delete('/api/admin/chats',requireAdmin,async(req,res)=>{const db=readDb();const count=(db.chats||[]).length;db.chats=[];audit(db,req.adminUser,'Barcha chatlar o‘chirildi',String(count));await writeDb(db);res.json({ok:true,count})});
 
-app.post('/api/admin/login',(req,res)=>{const u=clean(req.body?.username,80),p=String(req.body?.password||'');const found=USERS.find(x=>x.username===u&&x.password===p);if(!found)return res.status(401).json({error:'Login yoki parol noto‘g‘ri'});const exp=Date.now()+12*60*60*1000;res.setHeader('Set-Cookie',`iob_admin=${signSession(found.username,found.role,exp)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200${process.env.NODE_ENV==='production'?'; Secure':''}`);res.json({ok:true,user:found.username,role:found.role});});
+app.post('/api/admin/login',(req,res)=>{const u=clean(req.body?.username,80),p=String(req.body?.password||'');const found=USERS.find(x=>x.username===u&&x.password===p);if(!found)return res.status(401).json({error:'Login yoki parol noto‘g‘ri'});const exp=Date.now()+12*60*60*1000,sessionToken=signSession(found.username,found.role,exp);res.setHeader('Set-Cookie',`iob_admin=${sessionToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200; Expires=${new Date(exp).toUTCString()}${process.env.NODE_ENV==='production'?'; Secure':''}`);res.json({ok:true,user:found.username,role:found.role,sessionToken,expiresAt:exp});});
 app.post('/api/admin/logout',(req,res)=>{res.setHeader('Set-Cookie','iob_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');res.json({ok:true});});
 app.get('/api/admin/me',requireAdmin,(req,res)=>res.json({ok:true,user:req.adminUser,role:req.adminRole}));
 
 app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
- const db=readDb(),orders=db.orders||[],products=db.products||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[];const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);const done=orders.filter(o=>['completed','done'].includes(o.status));
+ const db=normalizeDb(readDb()||initialDb()),orders=db.orders||[],products=db.products||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[];const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);const done=orders.filter(o=>['completed','done'].includes(o.status));
  const costFor=o=>(o.items||[]).reduce((s,i)=>{const p=products.find(x=>Number(x.id)===Number(i.id));return s+(Number(p?.cost||0)*Number(i.qty||1));},0);
  const revenue=done.reduce((s,o)=>s+Number(o.total||0),0),profit=done.reduce((s,o)=>s+Number(o.total||0)-costFor(o),0);const avg=done.length?Math.round(revenue/done.length):0;
  const topMap={};for(const o of done)for(const i of o.items||[]){topMap[i.name]=(topMap[i.name]||0)+Number(i.qty||1)}
@@ -583,7 +587,7 @@ app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(
 });
 app.patch('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),r=(db.productRequests||[]).find(x=>x.requestId===req.params.id);if(!r)return res.status(404).json({error:'So‘rov topilmadi'});const st=clean(req.body?.status,30);if(!['new','working','found','closed'].includes(st))return res.status(400).json({error:'Status noto‘g‘ri'});r.status=st;r.updatedAt=new Date().toISOString();audit(db,req.adminUser,'Mahsulot so‘rovi statusi',`${r.requestId}: ${st}`);await writeDb(db);res.json({ok:true});});
 app.delete('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),id=String(req.params.id||''),before=(db.productRequests||[]).length;db.productRequests=(db.productRequests||[]).filter(x=>String(x.requestId)!==id);if(db.productRequests.length===before)return res.status(404).json({error:'So‘rov topilmadi'});audit(db,req.adminUser,'Mahsulot so‘rovi o‘chirildi',id);await writeDb(db);res.json({ok:true,deleted:id});});
-app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);res.json({ok:true,app:c});});
+app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);if(Array.isArray(b.appBanners))c.appBanners=b.appBanners.slice(0,24).map((x,i)=>({id:clean(x?.id,80)||`app-banner-${Date.now()}-${i}`,title:clean(x?.title,160),kind:['reklama','aksiya','yangilik','boshqa'].includes(String(x?.kind))?String(x.kind):'reklama',active:x?.active!==false,image:(()=>{const img=String(x?.image||'');return /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=1800000?img:''})()})).filter(x=>x.image);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);res.json({ok:true,app:c});});
 app.post('/api/admin/app-notifications',requireAdmin,async(req,res)=>{
  try{
   const db=readDb(),b=req.body||{};
@@ -755,7 +759,7 @@ app.get('/api/orders/status',(req,res)=>sendPublicOrder(req,res,req.query.orderI
 app.get('/api/orders/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/order-status/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
-app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.36',storage:pool?'postgresql':'local-json'}));
+app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.39',storage:pool?'postgresql':'local-json'}));
 
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
@@ -933,7 +937,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.36 LAYOUT + ADMIN STABILITY FULL / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.39 SESSION APP MEDIA WEB REVIEWS FULL / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
