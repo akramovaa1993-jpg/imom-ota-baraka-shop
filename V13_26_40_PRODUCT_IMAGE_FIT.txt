@@ -1,0 +1,4 @@
+Zarbuloq v13.26.40
+- Mahsulot rasmlari kesilmaydi: contain/center.
+- Admin rasm yuklaganda oq/transparent bo‘sh chetlar avtomatik kesilib, kvadrat oq fonli formatga normallashtiriladi.
+- Saytdagi mavjud data-rasmlar ham ko‘rsatishda bo‘sh chetlardan vizual tozalanadi.
