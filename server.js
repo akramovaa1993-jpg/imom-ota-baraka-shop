@@ -784,6 +784,7 @@ app.post('/api/orders',async(req,res)=>{
  const finalItems=[];let subtotal=0;
  for(const i of items){const p=(db.products||[]).find(x=>Number(x.id)===Number(i.id));if(!p)continue;const qty=Math.max(1,Math.floor(Number(i.qty)||1));if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:Number(p.price||0),qty});subtotal+=Number(p.price||0)*qty;}
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});
+ if(subtotal<100000)return res.status(400).json({error:`Minimal buyurtma 100 000 so‘m. Yana ${money(100000-subtotal)}lik mahsulot qo‘shing`});
  const promoResult=validatePromo(db,b.promoCode,subtotal);if(!promoResult.ok)return res.status(400).json({error:promoResult.error});const discount=promoResult.discount,total=subtotal-discount;
  const orderId=`IOB-${String(Date.now()).slice(-8)}-${String(Math.floor(Math.random()*90)+10)}`,createdAt=new Date().toISOString();
  const orderSource=['app','android','mobile'].includes(String(b.source||'').toLowerCase())?'app':'web';

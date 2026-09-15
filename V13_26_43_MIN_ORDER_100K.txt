@@ -1,0 +1,7 @@
+ZARBULOQ.UZ v13.26.43 — MINIMUM ORDER 100K
+
+- Sayt va API uchun minimal buyurtma 100 000 so‘m qilindi.
+- Savatda 100 000 so‘mga yetmasa Buyurtma berish tugmasi bloklanadi.
+- Qancha summa yetishmayotgani mijozga ko‘rsatiladi.
+- Server API ham 100 000 so‘mdan kam buyurtmani qabul qilmaydi.
+- Promo chegirmadan oldingi mahsulotlar summasi minimum uchun hisoblanadi.
