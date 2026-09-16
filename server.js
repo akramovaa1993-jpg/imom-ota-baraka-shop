@@ -730,6 +730,25 @@ app.get('/api/geo/parkent-check',async(req,res)=>{
  try{const inside=await checkParkentLocation(lat,lng);res.json({ok:true,inside,lat,lng})}catch(e){res.status(503).json({error:'Hududni tekshirib bo‘lmadi'})}
 });
 
+app.get('/api/geo/geocode',async(req,res)=>{
+ const q=clean(req.query.q,240);
+ if(q.length<3)return res.status(400).json({error:'Manzilni kiriting'});
+ try{
+  const query=/parkent/i.test(q)?q:`${q}, Parkent tumani, Toshkent viloyati, Uzbekistan`;
+  const u='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=uz&addressdetails=1&q='+encodeURIComponent(query);
+  const r=await fetch(u,{headers:{'User-Agent':'Zarbuloq/13.26.44 (zarbuloq.uz)','Accept':'application/json','Accept-Language':'uz,ru;q=0.8,en;q=0.6'}});
+  if(!r.ok)throw new Error('Geocoding failed');
+  const rows=await r.json();
+  for(const x of (Array.isArray(rows)?rows:[])){
+   const lat=Number(x.lat),lng=Number(x.lon);if(!Number.isFinite(lat)||!Number.isFinite(lng))continue;
+   if(await checkParkentLocation(lat,lng))return res.json({ok:true,inside:true,lat,lng,displayName:clean(x.display_name,300),source:'nominatim'});
+  }
+  const first=Array.isArray(rows)&&rows[0]?rows[0]:null;
+  if(first){const lat=Number(first.lat),lng=Number(first.lon);return res.json({ok:true,inside:false,lat,lng,displayName:clean(first.display_name,300),source:'nominatim'});}
+  return res.status(404).json({error:'Manzil topilmadi'});
+ }catch(e){console.error('Geocode:',e.message||e);res.status(503).json({error:'Manzilni xaritada aniqlab bo‘lmadi'})}
+});
+
 function publicOrderView(order){
  if(!order)return null;
  return {
@@ -775,12 +794,12 @@ app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
  if(!(db.settings?.delivery?.areas||[]).includes(customer.area))return res.status(400).json({error:'Yetkazib berish hududini tanlang'});
- const hasGps=customer.lat!==undefined&&customer.lat!==null&&String(customer.lat).trim()!==''&&customer.lng!==undefined&&customer.lng!==null&&String(customer.lng).trim()!=='';
- if(!hasGps)return res.status(400).json({error:'GPS lokatsiya majburiy. Lokatsiyaga ruxsat bering va qayta aniqlang'});
- const lat=Number(customer.lat),lng=Number(customer.lng),accuracy=Number(customer.accuracy);
+ const hasLocation=customer.lat!==undefined&&customer.lat!==null&&String(customer.lat).trim()!==''&&customer.lng!==undefined&&customer.lng!==null&&String(customer.lng).trim()!=='';
+ if(!hasLocation)return res.status(400).json({error:'Tasdiqlangan lokatsiya majburiy. GPS yoki qo‘lda manzil kiriting'});
+ const lat=Number(customer.lat),lng=Number(customer.lng),accuracy=Number(customer.accuracy),locationMethod=clean(customer.locationMethod,20)||'gps';
  if(!Number.isFinite(lat)||!Number.isFinite(lng))return res.status(400).json({error:'Lokatsiya koordinatasi noto‘g‘ri'});
- if(!Number.isFinite(accuracy)||accuracy>20)return res.status(400).json({error:`GPS aniqligi yetarli emas${Number.isFinite(accuracy)?`: ±${Math.round(accuracy)} m`:''}. ±20 m yoki yaxshiroq aniqlik talab qilinadi`});
- if(!(await checkParkentLocation(lat,lng)))return res.status(400).json({error:'Yuborilgan GPS lokatsiya Parkent tumani hududidan tashqarida'});
+ if(locationMethod!=='manual'&&(!Number.isFinite(accuracy)||accuracy>20))return res.status(400).json({error:`GPS aniqligi yetarli emas${Number.isFinite(accuracy)?`: ±${Math.round(accuracy)} m`:''}. ±20 m yoki yaxshiroq aniqlik talab qilinadi`});
+ if(!(await checkParkentLocation(lat,lng)))return res.status(400).json({error:'Yuborilgan lokatsiya Parkent tumani hududidan tashqarida'});
  const finalItems=[];let subtotal=0;
  for(const i of items){const p=(db.products||[]).find(x=>Number(x.id)===Number(i.id));if(!p)continue;const qty=Math.max(1,Math.floor(Number(i.qty)||1));if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:Number(p.price||0),qty});subtotal+=Number(p.price||0)*qty;}
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});
@@ -788,7 +807,7 @@ app.post('/api/orders',async(req,res)=>{
  const promoResult=validatePromo(db,b.promoCode,subtotal);if(!promoResult.ok)return res.status(400).json({error:promoResult.error});const discount=promoResult.discount,total=subtotal-discount;
  const orderId=`IOB-${String(Date.now()).slice(-8)}-${String(Math.floor(Math.random()*90)+10)}`,createdAt=new Date().toISOString();
  const orderSource=['app','android','mobile'].includes(String(b.source||'').toLowerCase())?'app':'web';
- const order={orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:clean(customer.deliverySlot,50),payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy)},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:clean(b.deviceId,120),complaintOpen:false};
+ const order={orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:'1 kun ichida',payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps'},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:clean(b.deviceId,120),complaintOpen:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:order.source||'web'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
  if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order,warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}

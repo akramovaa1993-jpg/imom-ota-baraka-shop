@@ -387,3 +387,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .product-media{background:#fff!important;padding:10px!important;}
 .product-media img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center!important;background:#fff!important;padding:0!important;}
 .cart-thumb img,.web-review-head img,.inv-img{object-fit:contain!important;object-position:center!important;background:#fff!important;}
+
+/* v13.26.44 — GPS + qo'lda manzil, faqat Parkent */
+.location-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.location-choice .location-btn{margin:0;min-height:48px}
+.manual-location-btn{background:#eef8f2!important;color:#087544!important;border:1px solid #b9dfc9!important}
+.delivery-one-day{margin:10px 0;padding:12px 14px;border-radius:14px;background:#eef9f2;border:1px solid #c7e9d2;color:#075d38;font-weight:800}
+@media(max-width:640px){.location-choice{grid-template-columns:1fr}}

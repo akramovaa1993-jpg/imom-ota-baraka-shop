@@ -1,0 +1,10 @@
+Zarbuloq v13.26.44
+
+Faqat kelishilgan o'zgarishlar:
+- Saytda GPS bilan birga qo'lda manzil kiritib tekshirish qo'shildi.
+- Qo'lda kiritilgan manzil server orqali xaritada aniqlanadi.
+- Faqat Parkent tumani ichida bo'lsa buyurtma qabul qilinadi.
+- Parkent tashqarisida buyurtma bloklanadi.
+- Barcha yangi buyurtmalarda yetkazib berish vaqti: 1 kun ichida.
+- Minimal buyurtma 100 000 so'm saqlandi.
+- Boshqa funksiyalar va dizayn o'zgartirilmadi.
