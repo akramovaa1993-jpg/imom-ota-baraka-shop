@@ -193,12 +193,30 @@ app.get('/sitemap.xml',(req,res)=>{
     '</urlset>',
     ''
   ].join('\n');
-  res.status(200);
-  res.setHeader('Content-Type','application/xml; charset=utf-8');
-  res.setHeader('X-Content-Type-Options','nosniff');
-  res.setHeader('Cache-Control','public, max-age=60, must-revalidate');
-  res.setHeader('Last-Modified',new Date().toUTCString());
-  res.send(xml);
+  // Final sitemap response: write headers + body directly so Express cannot
+  // reinterpret the XML string as HTML.
+  res.writeHead(200,{
+    'Content-Type':'application/xml; charset=utf-8',
+    'Content-Disposition':'inline; filename="sitemap.xml"',
+    'X-Content-Type-Options':'nosniff',
+    'Cache-Control':'no-cache, no-store, must-revalidate',
+    'Pragma':'no-cache',
+    'Expires':'0'
+  });
+  return res.end(xml,'utf8');
+});
+
+app.get('/api/seo-status',(req,res)=>{
+  const db=readDb();
+  res.setHeader('Cache-Control','no-store');
+  res.json({
+    ok:true,
+    version:'13.26.50',
+    robots:'/robots.txt',
+    sitemap:'/sitemap.xml',
+    productCount:Array.isArray(db.products)?db.products.length:0,
+    sitemapContentType:'application/xml; charset=utf-8'
+  });
 });
 
 app.get('/mahsulot-rasm/:id',(req,res)=>{
@@ -249,7 +267,7 @@ app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
 app.get('/en/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'en'));
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
-// V13.26.49 — APK faylini persistent DATA_DIR dan tarqatish.
+// V13.26.50 — APK faylini persistent DATA_DIR dan tarqatish.
 const APK_DIR = path.join(DATA_DIR,'downloads');
 const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
 app.get('/downloads/Zarbuloq.apk',(req,res)=>{
@@ -540,7 +558,7 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.49'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.50'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);

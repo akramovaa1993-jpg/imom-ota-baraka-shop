@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.50 — SITEMAP CONTENT TYPE FINAL
+
+- sitemap.xml javobi endi Express res.send orqali emas, writeHead + res.end orqali to'g'ridan-to'g'ri yuboriladi.
+- Content-Type qat'iy: application/xml; charset=utf-8
+- Cache vaqtincha o'chirildi, shunda eski noto'g'ri sitemap brauzer/CDN keshida qolmaydi.
+- /api/seo-status diagnostika endpointi qo'shildi.
+- Dinamik sitemap, robots, canonical, hreflang, 301 redirect va 410 Gone saqlangan.
+- Sayt/adminning boshqa funksiyalariga tegilmadi.
