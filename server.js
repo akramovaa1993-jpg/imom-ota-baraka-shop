@@ -425,7 +425,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.41',adminFix:'final-reviews-hero-admin'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.45',adminFix:'telegram-phone-verification'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -447,7 +447,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.39',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.45',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -460,7 +460,7 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.39'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.45'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -790,6 +790,90 @@ app.get('/api/order/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orde
 app.get('/api/order-status/:orderId',(req,res)=>sendPublicOrder(req,res,req.params.orderId));
 app.get('/api/orders-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-integrated-realtime-order-status',version:'13.26.39',storage:pool?'postgresql':'local-json'}));
 
+
+// V13.26.45 — Telegram orqali telefon raqamini tasdiqlash.
+// SMS provayder kerak emas: foydalanuvchi botdagi Telegram "contact sharing" tugmasi orqali
+// o‘z akkauntiga bog‘langan telefon raqamini yuboradi.
+let telegramBotUsernameCache='';
+function normalizeVerifiedPhone(v){
+ let d=String(v??'').replace(/\D/g,'');
+ if(d.length===9)d='998'+d;
+ if(d.length===12&&d.startsWith('998'))return d;
+ return '';
+}
+function phoneVerifyTokenHash(token){
+ return crypto.createHash('sha256').update(String(token||'')).digest('hex');
+}
+function trimPhoneVerifications(db){
+ const now=Date.now(),rows=Array.isArray(db.phoneVerifications)?db.phoneVerifications:[];
+ db.phoneVerifications=rows.filter(x=>{
+  const exp=new Date(x.expiresAt||0).getTime();
+  // verified records are retained until their long-lived credential expires;
+  // stale pending records are removed after one day.
+  if(x.status==='verified')return exp>now;
+  return exp>now-24*60*60*1000;
+ }).slice(-5000);
+ return db.phoneVerifications;
+}
+async function telegramBotUsername(){
+ if(telegramBotUsernameCache)return telegramBotUsernameCache;
+ const fromEnv=clean(process.env.TELEGRAM_BOT_USERNAME,120).replace(/^@/,'');
+ if(fromEnv){telegramBotUsernameCache=fromEnv;return fromEnv;}
+ const me=await tgCall('getMe',{});
+ telegramBotUsernameCache=clean(me?.username,120).replace(/^@/,'');
+ return telegramBotUsernameCache;
+}
+function findPhoneVerification(db,rawToken,deviceId=''){
+ const hash=phoneVerifyTokenHash(rawToken);
+ const rows=trimPhoneVerifications(db);
+ return rows.find(x=>x.tokenHash===hash && (!deviceId || String(x.deviceId)===String(deviceId)))||null;
+}
+app.post('/api/phone-verification/start',async(req,res)=>{
+ try{
+  if(!BOT_TOKEN)return res.status(503).json({error:'Telegram bot hozircha sozlanmagan'});
+  const phone=normalizeVerifiedPhone(req.body?.phone),deviceId=clean(req.body?.deviceId,120);
+  if(!/^998\d{9}$/.test(phone))return res.status(400).json({error:'+998 telefon raqamini to‘g‘ri kiriting'});
+  if(!deviceId)return res.status(400).json({error:'Qurilma identifikatori topilmadi'});
+  const rawToken=crypto.randomBytes(24).toString('hex'),tokenHash=phoneVerifyTokenHash(rawToken);
+  const now=new Date(),expiresAt=new Date(now.getTime()+10*60*1000).toISOString();
+  const db=readDb();trimPhoneVerifications(db);
+  // One active pending verification per device/phone is enough.
+  db.phoneVerifications=(db.phoneVerifications||[]).filter(x=>!(x.status!=='verified'&&x.deviceId===deviceId&&x.phone===phone));
+  db.phoneVerifications.push({
+   id:`PV-${Date.now()}-${crypto.randomInt(100,999)}`,
+   tokenHash,phone,deviceId,status:'pending',
+   telegramChatId:'',telegramUserId:'',createdAt:now.toISOString(),expiresAt,verifiedAt:''
+  });
+  await writeDb(db);
+  const username=await telegramBotUsername();
+  if(!username)return res.status(503).json({error:'Telegram bot username topilmadi'});
+  res.json({ok:true,token:rawToken,telegramUrl:`https://t.me/${username}?start=verify_${rawToken}`,expiresAt,phone:'+998'+phone.slice(3)});
+ }catch(e){
+  console.error('Phone verification start:',e);
+  res.status(500).json({error:'Telegram tasdiqlashni boshlab bo‘lmadi'});
+ }
+});
+app.get('/api/phone-verification/status',(req,res)=>{
+ try{
+  const token=clean(req.query.token,120),deviceId=clean(req.query.deviceId,120);
+  if(!token||!deviceId)return res.status(400).json({error:'Tasdiqlash ma’lumoti yetarli emas'});
+  const db=readDb(),row=findPhoneVerification(db,token,deviceId);
+  if(!row)return res.status(404).json({error:'Tasdiqlash topilmadi'});
+  const expired=new Date(row.expiresAt||0).getTime()<=Date.now();
+  if(expired)return res.json({ok:true,status:'expired',verified:false});
+  res.setHeader('Cache-Control','no-store');
+  res.json({ok:true,status:row.status||'pending',verified:row.status==='verified',verifiedAt:row.verifiedAt||'',phone:row.phone?'+998'+row.phone.slice(3):''});
+ }catch(e){res.status(500).json({error:'Tasdiqlash holatini tekshirib bo‘lmadi'})}
+});
+function validAppPhoneVerification(db,token,deviceId,phone){
+ const row=findPhoneVerification(db,token,deviceId);
+ if(!row)return null;
+ if(row.status!=='verified')return null;
+ if(new Date(row.expiresAt||0).getTime()<=Date.now())return null;
+ if(normalizeVerifiedPhone(phone)!==row.phone)return null;
+ return row;
+}
+
 app.post('/api/orders',async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
@@ -807,7 +891,9 @@ app.post('/api/orders',async(req,res)=>{
  const promoResult=validatePromo(db,b.promoCode,subtotal);if(!promoResult.ok)return res.status(400).json({error:promoResult.error});const discount=promoResult.discount,total=subtotal-discount;
  const orderId=`IOB-${String(Date.now()).slice(-8)}-${String(Math.floor(Math.random()*90)+10)}`,createdAt=new Date().toISOString();
  const orderSource=['app','android','mobile'].includes(String(b.source||'').toLowerCase())?'app':'web';
- const order={orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:'1 kun ichida',payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps'},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:clean(b.deviceId,120),complaintOpen:false};
+ const verificationToken=clean(b.phoneVerificationToken,120),verificationRow=orderSource==='app'?validAppPhoneVerification(db,verificationToken,clean(b.deviceId,120),customer.phone):null;
+ if(orderSource==='app'&&!verificationRow)return res.status(403).json({error:'Telefon raqamingizni Telegram orqali tasdiqlang'});
+ const order={orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),phoneVerified:orderSource==='app',address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:'1 kun ichida',payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps'},items:finalItems,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:clean(b.deviceId,120),complaintOpen:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:order.source||'web'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
  if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order,warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}
@@ -908,6 +994,67 @@ app.delete('/api/admin/orders/:id',requireAdmin,requireRole('operator'),async(re
 // V13.26.27 — Telegram webhook mode.
 // Polling (getUpdates) caused 409 Conflict during Render rolling deploys / duplicate bot instances.
 // A webhook gives Telegram one canonical HTTPS endpoint and removes long-polling conflicts.
+
+async function handleTelegramVerificationMessage(msg){
+ if(!msg||!msg.chat)return;
+ const chatId=String(msg.chat.id),userId=String(msg.from?.id||'');
+ const text=String(msg.text||'').trim();
+
+ if(text.startsWith('/start')){
+  const m=text.match(/verify_([a-f0-9]{48})/i);
+  if(!m){
+   await tgCall('sendMessage',{chat_id:chatId,text:'ZARBULOQ.UZ botiga xush kelibsiz.'}).catch(()=>{});
+   return;
+  }
+  const rawToken=m[1],db=readDb(),row=findPhoneVerification(db,rawToken);
+  if(!row || row.status==='verified' || new Date(row.expiresAt||0).getTime()<=Date.now()){
+   await tgCall('sendMessage',{chat_id:chatId,text:'❌ Tasdiqlash havolasi eskirgan. ZARBULOQ ilovasidan qayta boshlang.',reply_markup:{remove_keyboard:true}}).catch(()=>{});
+   return;
+  }
+  row.telegramChatId=chatId;row.telegramUserId=userId;row.startedAtTelegram=new Date().toISOString();
+  await writeDb(db);
+  await tgCall('sendMessage',{
+   chat_id:chatId,
+   text:'📱 ZARBULOQ.UZ\n\nTelefon raqamingizni tasdiqlash uchun pastdagi “Telefon raqamimni yuborish” tugmasini bosing.\n\nTelegram sizning akkauntingizga bog‘langan raqamni Zarbuloq botiga yuboradi.',
+   reply_markup:{keyboard:[[{text:'📱 Telefon raqamimni yuborish',request_contact:true}]],resize_keyboard:true,one_time_keyboard:true,input_field_placeholder:'Telefon raqamingizni yuboring'}
+  });
+  return;
+ }
+
+ if(msg.contact){
+  const db=readDb();trimPhoneVerifications(db);
+  const rows=(db.phoneVerifications||[]).filter(x=>x.status==='pending'&&String(x.telegramChatId)===chatId&&new Date(x.expiresAt||0).getTime()>Date.now()).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  const row=rows[0];
+  if(!row){
+   await tgCall('sendMessage',{chat_id:chatId,text:'Tasdiqlash so‘rovi topilmadi. ZARBULOQ ilovasidan qayta boshlang.',reply_markup:{remove_keyboard:true}}).catch(()=>{});
+   return;
+  }
+  if(msg.contact.user_id && userId && String(msg.contact.user_id)!==userId){
+   await tgCall('sendMessage',{chat_id:chatId,text:'❌ Faqat o‘zingizning Telegram raqamingizni yuboring.',reply_markup:{remove_keyboard:true}}).catch(()=>{});
+   return;
+  }
+  const contactPhone=normalizeVerifiedPhone(msg.contact.phone_number);
+  if(!contactPhone || contactPhone!==row.phone){
+   await tgCall('sendMessage',{
+    chat_id:chatId,
+    text:`❌ Telegram raqami ilovada kiritilgan raqam bilan mos kelmadi.\n\nIlovaga qaytib telefon raqamingizni to‘g‘rilang va qayta tasdiqlang.`,
+    reply_markup:{remove_keyboard:true}
+   }).catch(()=>{});
+   return;
+  }
+  row.status='verified';row.verifiedAt=new Date().toISOString();
+  // Once verified, keep the device credential valid for 180 days.
+  row.expiresAt=new Date(Date.now()+180*24*60*60*1000).toISOString();
+  row.telegramUserId=userId;row.telegramChatId=chatId;
+  await writeDb(db);
+  await tgCall('sendMessage',{
+   chat_id:chatId,
+   text:'✅ Telefon raqamingiz tasdiqlandi!\n\nZARBULOQ ilovasiga qayting. Tasdiqlash avtomatik aniqlanadi.',
+   reply_markup:{remove_keyboard:true}
+  });
+ }
+}
+
 async function handleTelegramCallback(q){
  if(!q)return;
  const [kind,status,orderId]=String(q.data||'').split('|');
@@ -930,6 +1077,7 @@ app.post('/api/telegram/webhook',async(req,res)=>{
   res.sendStatus(200);
   const update=req.body||{};
   if(update.callback_query)handleTelegramCallback(update.callback_query).catch(e=>console.error('Telegram webhook handler:',e.message));
+  if(update.message)handleTelegramVerificationMessage(update.message).catch(e=>console.error('Telegram verification handler:',e.message));
  }catch(e){
   console.error('Telegram webhook error:',e.message);
   if(!res.headersSent)res.sendStatus(200);
@@ -950,7 +1098,7 @@ async function configureTelegramWebhook(){
   const result=await tgCall('setWebhook',{
    url:TELEGRAM_WEBHOOK_URL,
    secret_token:TELEGRAM_WEBHOOK_SECRET,
-   allowed_updates:['callback_query'],
+   allowed_updates:['callback_query','message'],
    drop_pending_updates:false,
    max_connections:20
   });
@@ -967,7 +1115,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.41 FINAL REVIEWS HERO ADMIN / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.45 TELEGRAM PHONE VERIFY / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

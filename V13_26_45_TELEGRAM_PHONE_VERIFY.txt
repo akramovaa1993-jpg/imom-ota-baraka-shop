@@ -1,0 +1,10 @@
+ZARBULOQ.UZ v13.26.45 — TELEGRAM PHONE VERIFY
+
+- Mavjud Telegram bot webhookiga message/update qo‘shildi.
+- Android telefon tasdiqlash uchun /api/phone-verification/start va /status API qo‘shildi.
+- Server Telegram Bot API getMe orqali bot username-ni avtomatik oladi.
+- Foydalanuvchi botdagi request_contact tugmasi orqali o‘z Telegram raqamini yuboradi.
+- Telegram raqami ilovada kiritilgan raqam bilan mos kelsa tasdiqlanadi.
+- Tasdiqlangan qurilma tokeni 180 kun amal qiladi.
+- Android ilovadan buyurtma berishda server ham tasdiqlangan telefon tokenini tekshiradi.
+- Sayt buyurtma oqimiga tegilmadi.
