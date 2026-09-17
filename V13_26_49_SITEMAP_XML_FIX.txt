@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.49 — SITEMAP XML FIX
+
+Tuzatildi:
+- Dinamik sitemap.xml ichidagi mahsulot URLlari endi haqiqiy XML qatorlari bilan yaratiladi.
+- Oldingi versiyadagi literal \n belgilar olib tashlandi.
+- Google Search Console sitemap.xml ni normal XML sifatida o‘qiy oladi.
+- robots.txt, canonical, hreflang, 301 legacy URL redirect, 410 removed-product handling saqlangan.
+- APK manager, Telegram tasdiqlash, lokatsiya, 100 000 so‘m minimum va 1 kun yetkazish o‘zgarmagan.

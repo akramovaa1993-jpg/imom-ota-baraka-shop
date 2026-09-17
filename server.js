@@ -175,7 +175,7 @@ app.get('/sitemap.xml',(req,res)=>{
       ...entries.map(alt=>`    <xhtml:link rel="alternate" hreflang="${alt.lang}" href="${xmlEsc(alt.url)}"/>`),
       `    <xhtml:link rel="alternate" hreflang="x-default" href="${xmlEsc(entries[0].url)}"/>`,
       '  </url>'
-    ].join('\\n'));
+    ].join('\n'));
   });
   const home=[
     '  <url>',
@@ -249,7 +249,7 @@ app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
 app.get('/en/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'en'));
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
-// V13.26.48 — APK faylini persistent DATA_DIR dan tarqatish.
+// V13.26.49 — APK faylini persistent DATA_DIR dan tarqatish.
 const APK_DIR = path.join(DATA_DIR,'downloads');
 const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
 app.get('/downloads/Zarbuloq.apk',(req,res)=>{
@@ -540,7 +540,7 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.48'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.49'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
