@@ -1,0 +1,15 @@
+ZARBULOQ.UZ v13.26.48 — AUTO SEO INDEX FIX
+
+SEO avtomatlashtirildi:
+- robots.txt serverdan dinamik va to'g'ri beriladi.
+- sitemap.xml jonli katalogdan avtomatik yaratiladi; yangi mahsulot qo'shilsa sitemapga avtomatik kiradi.
+- UZ/RU va mavjud bo'lsa EN mahsulot URLlari sitemapga kiradi.
+- hreflang + canonical avtomatik.
+- Eski URLdagi product ID o'zgargan bo'lsa, slug nomi bo'yicha joriy mahsulot topilib 301 canonical URLga yo'naltiriladi.
+- Haqiqatan o'chirilgan mahsulot 410 Gone + noindex qaytaradi; Google eski URLni tezroq chiqarib tashlaydi.
+- /uz/mahsulot/... dublikat URLlari canonical /mahsulot/... ga 301 qiladi.
+- Admin katalog saqlaganda EN nom/description/SEO/unit maydonlari ham yo'qolmaydi.
+- APK manager, Telegram tasdiqlash, lokatsiya, minimum 100 000 so'm, 1 kun yetkazish va boshqa funksiyalar saqlangan.
+
+Eslatma:
+Google indekslashni hech bir sayt 100% majburlay olmaydi. Ushbu versiya texnik SEO xatolarini avtomatik boshqaradi; Google indekslash qarorini o'zi qabul qiladi.

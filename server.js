@@ -79,13 +79,46 @@ function seoSlug(value=''){
 function productSlug(p,lang='uz'){return `${seoSlug(p?.name?.[lang] || p?.name?.uz || p?.name?.ru || 'mahsulot')}-${Number(p?.id)||0}`;}
 function htmlEsc(v=''){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function xmlEsc(v=''){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
+function stripProductIdFromSlug(slug=''){
+  return String(slug||'').replace(/-\d+$/,'').replace(/^-+|-+$/g,'');
+}
+function productSlugBases(p){
+  return ['uz','ru','en']
+    .map(lang=>seoSlug(p?.name?.[lang]||''))
+    .filter(Boolean)
+    .filter(x=>x!=='mahsulot');
+}
+function legacySlugScore(a,b){
+  a=stripProductIdFromSlug(a);b=stripProductIdFromSlug(b);
+  if(!a||!b)return 0;
+  if(a===b)return 1;
+  const aa=new Set(a.split('-').filter(Boolean)),bb=new Set(b.split('-').filter(Boolean));
+  if(!aa.size||!bb.size)return 0;
+  let common=0;for(const x of aa)if(bb.has(x))common++;
+  return (2*common)/(aa.size+bb.size);
+}
 function productBySlug(db,slug){
-  const idMatch=String(slug||'').match(/-(\d+)$/);
+  const products=db.products||[],incoming=String(slug||'');
+  const idMatch=incoming.match(/-(\d+)$/);
   if(idMatch){
-    const p=(db.products||[]).find(x=>Number(x.id)===Number(idMatch[1]));
+    const p=products.find(x=>Number(x.id)===Number(idMatch[1]));
     if(p)return p;
   }
-  return (db.products||[]).find(p=>productSlug(p)===String(slug||''));
+  // Current canonical slugs in any supported language.
+  const exact=products.find(p=>['uz','ru','en'].some(lang=>productSlug(p,lang)===incoming));
+  if(exact)return exact;
+
+  // Legacy URLs often keep the old product id after a product was re-created.
+  // Match the human-readable slug part to the current product name automatically.
+  const base=stripProductIdFromSlug(incoming);
+  const exactLegacy=products.filter(p=>productSlugBases(p).includes(base));
+  if(exactLegacy.length===1)return exactLegacy[0];
+
+  // Conservative fuzzy fallback: redirect only when one product is a very strong unique match.
+  const scored=products.map(p=>({p,score:Math.max(0,...productSlugBases(p).map(x=>legacySlugScore(base,x)))}))
+    .filter(x=>x.score>=0.86).sort((a,b)=>b.score-a.score);
+  if(scored.length && (!scored[1] || scored[0].score-scored[1].score>=0.12))return scored[0].p;
+  return null;
 }
 function productCategory(db,p){return (db.categories||[]).find(c=>String(c.id)===String(p?.cat)) || {name:{uz:'Mahsulot'}};}
 function productDescription(db,p){
@@ -102,6 +135,21 @@ function productImageUrl(p){
   return `https://zarbuloq.uz/${img.replace(/^\/+/, '')}`;
 }
 
+app.get('/robots.txt',(req,res)=>{
+  res.type('text/plain; charset=utf-8');
+  res.setHeader('Cache-Control','public, max-age=300');
+  res.send([
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /admin.html',
+    'Disallow: /api/admin/',
+    'Disallow: /downloads/',
+    '',
+    'Sitemap: https://zarbuloq.uz/sitemap.xml',
+    ''
+  ].join('\n'));
+});
+
 app.get('/sitemap.xml',(req,res)=>{
   const db=readDb();
   const today=new Date().toISOString().slice(0,10);
@@ -113,29 +161,21 @@ app.get('/sitemap.xml',(req,res)=>{
   };
   const productUrls=(db.products||[]).flatMap(p=>{
     const last=validDate(p.updatedAt||p.lastReceivedAt||p.createdAt||today);
-    const uz=`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`;
-    const ru=`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`;
-    const uzEntry=[
+    const entries=[
+      {lang:'uz',url:`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`},
+      {lang:'ru',url:`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`}
+    ];
+    if(p?.name?.en)entries.push({lang:'en',url:`https://zarbuloq.uz/en/mahsulot/${productSlug(p,'en')}`});
+    return entries.map(entry=>[
       '  <url>',
-      `    <loc>${xmlEsc(uz)}</loc>`,
+      `    <loc>${xmlEsc(entry.url)}</loc>`,
       `    <lastmod>${xmlEsc(last)}</lastmod>`,
       '    <changefreq>daily</changefreq>',
       '    <priority>0.9</priority>',
-      `    <xhtml:link rel="alternate" hreflang="uz" href="${xmlEsc(uz)}"/>`,
-      `    <xhtml:link rel="alternate" hreflang="ru" href="${xmlEsc(ru)}"/>`,
+      ...entries.map(alt=>`    <xhtml:link rel="alternate" hreflang="${alt.lang}" href="${xmlEsc(alt.url)}"/>`),
+      `    <xhtml:link rel="alternate" hreflang="x-default" href="${xmlEsc(entries[0].url)}"/>`,
       '  </url>'
-    ].join('\n');
-    const ruEntry=[
-      '  <url>',
-      `    <loc>${xmlEsc(ru)}</loc>`,
-      `    <lastmod>${xmlEsc(last)}</lastmod>`,
-      '    <changefreq>daily</changefreq>',
-      '    <priority>0.9</priority>',
-      `    <xhtml:link rel="alternate" hreflang="ru" href="${xmlEsc(ru)}"/>`,
-      `    <xhtml:link rel="alternate" hreflang="uz" href="${xmlEsc(uz)}"/>`,
-      '  </url>'
-    ].join('\n');
-    return [uzEntry,ruEntry];
+    ].join('\\n'));
   });
   const home=[
     '  <url>',
@@ -156,7 +196,8 @@ app.get('/sitemap.xml',(req,res)=>{
   res.status(200);
   res.setHeader('Content-Type','application/xml; charset=utf-8');
   res.setHeader('X-Content-Type-Options','nosniff');
-  res.setHeader('Cache-Control','public, max-age=300');
+  res.setHeader('Cache-Control','public, max-age=60, must-revalidate');
+  res.setHeader('Last-Modified',new Date().toUTCString());
   res.send(xml);
 });
 
@@ -177,24 +218,38 @@ app.get('/mahsulot-rasm/:id',(req,res)=>{
 });
 
 function renderProductSeoPage(req,res,lang='uz'){
-  const db=readDb(),p=productBySlug(db,req.params.slug);if(!p)return res.status(404).send('Mahsulot topilmadi');
-  const canonicalSlug=productSlug(p,lang),prefix=lang==='ru'?'/ru/mahsulot/':'/mahsulot/';if(req.params.slug!==canonicalSlug)return res.redirect(301,prefix+canonicalSlug);
-  const isRu=lang==='ru',name=p.name?.[lang]||p.name?.uz||'Mahsulot',catObj=productCategory(db,p),cat=catObj?.name?.[lang]||catObj?.name?.uz||(isRu?'Товар':'Mahsulot');
+  const db=readDb(),p=productBySlug(db,req.params.slug);
+  const prefix=lang==='ru'?'/ru/mahsulot/':lang==='en'?'/en/mahsulot/':'/mahsulot/';
+  if(!p){
+    // A genuinely removed product should disappear from Google cleanly instead of lingering as a soft 404.
+    res.status(410);
+    res.setHeader('X-Robots-Tag','noindex, follow');
+    return res.send(`<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="robots" content="noindex,follow"><title>Mahsulot mavjud emas | ZARBULOQ.UZ</title></head><body style="font-family:Arial;padding:40px"><h1>Mahsulot hozir mavjud emas</h1><p>Mahsulot katalogdan o‘chirilgan yoki manzili yangilangan.</p><p><a href="/#products">Barcha mahsulotlarni ko‘rish</a></p></body></html>`);
+  }
+  const canonicalSlug=productSlug(p,lang);if(req.params.slug!==canonicalSlug)return res.redirect(301,prefix+canonicalSlug);
+  const isRu=lang==='ru',isEn=lang==='en',name=p.name?.[lang]||p.name?.uz||'Mahsulot',catObj=productCategory(db,p),cat=catObj?.name?.[lang]||catObj?.name?.uz||(isRu?'Товар':isEn?'Product':'Mahsulot');
   const customDesc=p.seo?.description?.[lang]||p.description?.[lang]||p.description?.uz||'',desc=customDesc||productDescription(db,p),img=productImageUrl(p),price=Number(p.price||0),old=Number(p.oldPrice||0),stock=Number(p.stock||0),unit=p.unit?.[lang]||p.unit?.uz||'';
-  const url=`https://zarbuloq.uz${prefix}${canonicalSlug}`,altLang=lang==='ru'?'uz':'ru',altPrefix=altLang==='ru'?'/ru/mahsulot/':'/mahsulot/',altUrl=`https://zarbuloq.uz${altPrefix}${productSlug(p,altLang)}`;
+  const url=`https://zarbuloq.uz${prefix}${canonicalSlug}`;
+  const alternates=[
+    {lang:'uz',url:`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`},
+    {lang:'ru',url:`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`}
+  ];
+  if(p?.name?.en)alternates.push({lang:'en',url:`https://zarbuloq.uz/en/mahsulot/${productSlug(p,'en')}`});
   const seoReviews=(db.productReviews||[]).filter(r=>String(r.productId)===String(p.id)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))),seoSummary=reviewSummary(seoReviews);
-  const autoTitle=isRu?`${name} — цена | ZARBULOQ.UZ`:`${name} narxi | ZARBULOQ.UZ`,title=p.seo?.title?.[lang]||autoTitle,stockText=stock>0?(isRu?`В наличии: ${stock}${unit?' '+unit:''}`:`Omborda: ${stock}${unit?' '+unit:''}`):(isRu?'Нет в наличии':'Omborda yo‘q'),keywords=p.seo?.keywords||[p.name?.uz,p.name?.ru,catObj?.name?.uz,catObj?.name?.ru,'ZARBULOQ.UZ','Parkent'].filter(Boolean).join(', ');
+  const autoTitle=isRu?`${name} — цена | ZARBULOQ.UZ`:isEn?`${name} — price | ZARBULOQ.UZ`:`${name} narxi | ZARBULOQ.UZ`,title=p.seo?.title?.[lang]||autoTitle,stockText=stock>0?(isRu?`В наличии: ${stock}${unit?' '+unit:''}`:isEn?`In stock: ${stock}${unit?' '+unit:''}`:`Omborda: ${stock}${unit?' '+unit:''}`):(isRu?'Нет в наличии':isEn?'Out of stock':'Omborda yo‘q'),keywords=p.seo?.keywords||[p.name?.uz,p.name?.ru,catObj?.name?.uz,catObj?.name?.ru,'ZARBULOQ.UZ','Parkent'].filter(Boolean).join(', ');
   const schema={'@context':'https://schema.org','@type':'Product',name,alternateName:[p.name?.uz,p.name?.ru].filter(Boolean),description:desc,image:[img],sku:String(p.id),category:cat,brand:{'@type':'Brand',name:'IMOM OTA BARAKA'},offers:{'@type':'Offer',url,priceCurrency:'UZS',price,availability:stock>0?'https://schema.org/InStock':'https://schema.org/OutOfStock',itemCondition:'https://schema.org/NewCondition',seller:{'@type':'Organization',name:'IMOM OTA BARAKA',url:'https://zarbuloq.uz/'}},...(seoSummary.count?{aggregateRating:{'@type':'AggregateRating',ratingValue:seoSummary.average,reviewCount:seoSummary.count}}:{})};
   const oldPrice=old>price?`<span class="old">${old.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</span>`:'';
   res.setHeader('X-Robots-Tag','index, follow, max-image-preview:large');
-  res.send(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEsc(title)}</title><meta name="description" content="${htmlEsc(desc)}"><meta name="keywords" content="${htmlEsc(keywords)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${htmlEsc(url)}"><link rel="alternate" hreflang="${altLang}" href="${htmlEsc(altUrl)}"><link rel="alternate" hreflang="${lang}" href="${htmlEsc(url)}"><link rel="alternate" hreflang="x-default" href="${htmlEsc(`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`)}"><meta property="og:type" content="product"><meta property="og:title" content="${htmlEsc(title)}"><meta property="og:description" content="${htmlEsc(desc)}"><meta property="og:url" content="${htmlEsc(url)}"><meta property="og:image" content="${htmlEsc(img)}"><meta property="product:price:amount" content="${price}"><meta property="product:price:currency" content="UZS"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${htmlEsc(title)}"><meta name="twitter:description" content="${htmlEsc(desc)}"><meta name="twitter:image" content="${htmlEsc(img)}"><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script>
+  res.send(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEsc(title)}</title><meta name="description" content="${htmlEsc(desc)}"><meta name="keywords" content="${htmlEsc(keywords)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${htmlEsc(url)}">${alternates.map(a=>`<link rel="alternate" hreflang="${a.lang}" href="${htmlEsc(a.url)}">`).join('')}<link rel="alternate" hreflang="x-default" href="${htmlEsc(alternates[0].url)}"><meta property="og:type" content="product"><meta property="og:title" content="${htmlEsc(title)}"><meta property="og:description" content="${htmlEsc(desc)}"><meta property="og:url" content="${htmlEsc(url)}"><meta property="og:image" content="${htmlEsc(img)}"><meta property="product:price:amount" content="${price}"><meta property="product:price:currency" content="UZS"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${htmlEsc(title)}"><meta name="twitter:description" content="${htmlEsc(desc)}"><meta name="twitter:image" content="${htmlEsc(img)}"><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script>
 <style>body{margin:0;font-family:Arial,sans-serif;background:#f5faf5;color:#17351f}.wrap{max-width:1100px;margin:auto;padding:22px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.top img{width:58px;height:58px;object-fit:contain}.top a{text-decoration:none;color:#17351f}.card{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1fr);gap:34px;background:#fff;border-radius:24px;padding:28px;box-shadow:0 12px 40px #17351f12}.media{min-height:420px;display:flex;align-items:center;justify-content:center;background:#f3f7f3;border-radius:18px;overflow:hidden}.media img{max-width:100%;max-height:480px;object-fit:contain}.cat{color:#2a7b3f;font-weight:700}.price{font-size:32px;font-weight:800;margin:16px 0}.old{text-decoration:line-through;color:#888;font-size:16px;margin-right:10px}.stock{display:inline-block;padding:8px 12px;border-radius:999px;background:#eaf6ec}.desc{line-height:1.65;color:#48604e}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:12px;padding:14px 20px;font-weight:700;cursor:pointer;text-decoration:none}.primary{background:#1f6b35;color:white}.secondary{background:#edf5ee;color:#17351f}.ratingline{display:flex;align-items:center;gap:10px;margin:8px 0 12px}.stars{color:#f4b400;letter-spacing:2px;font-size:20px}.reviews{margin-top:22px;background:#fff;border-radius:24px;padding:26px;box-shadow:0 12px 40px #17351f12}.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.summary-box,.review-form{border:1px solid #e2ece5;border-radius:18px;padding:18px}.avg{font-size:48px;font-weight:900;color:#166d3a}.review-form input,.review-form textarea{width:100%;box-sizing:border-box;border:1px solid #d8e5dc;border-radius:12px;padding:12px;margin:6px 0;font:inherit}.review-form textarea{min-height:95px;resize:vertical}.pickstars button{border:0;background:transparent;color:#c7d0ca;font-size:28px;cursor:pointer;padding:2px}.pickstars button.on{color:#f4b400}.review-row{padding:16px 0;border-top:1px solid #e8efea}.review-row:first-child{border-top:0}.review-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.admin-reply{margin:10px 0 0 28px;padding:12px 14px;background:#eaf7ef;border-radius:12px;border-left:4px solid #1b8a4b}.admin-reply b{display:block;color:#176837;margin-bottom:4px}@media(max-width:760px){.card{grid-template-columns:1fr;padding:18px}.media{min-height:300px}.price{font-size:27px}.review-grid{grid-template-columns:1fr}.reviews{padding:18px}.avg{font-size:40px}}</style></head><body><main class="wrap"><header class="top"><a href="/"><img src="/logo.png" alt="IMOM OTA BARAKA"></a><div><a href="/"><b>ZARBULOQ.UZ</b></a><div>${isRu?'Интернет-магазин IMOM OTA BARAKA':'IMOM OTA BARAKA internet do‘koni'}</div></div></header><section class="card"><div class="media"><img src="${htmlEsc(img)}" alt="${htmlEsc(name)}" loading="eager"></div><div><div class="cat">${htmlEsc(cat)}</div><h1>${htmlEsc(name)}</h1><div class="ratingline"><span class="stars">${seoSummary.count?'★'.repeat(Math.round(seoSummary.average))+'☆'.repeat(5-Math.round(seoSummary.average)):'☆☆☆☆☆'}</span><b>${seoSummary.count?seoSummary.average.toFixed(1):'—'}</b><span>(${seoSummary.count} ${isRu?'отзывов':'ta baho'})</span></div><p class="desc">${htmlEsc(desc)}</p><div class="price">${oldPrice}${price.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</div><div class="stock">${htmlEsc(stockText)}</div><div class="actions">${stock>0?`<button class="btn primary" onclick="addToCartAndOpen()">${isRu?'В корзину':'Savatga qo‘shish'}</button>`:''}<a class="btn secondary" href="/#products">${isRu?'Все товары':'Barcha mahsulotlar'}</a></div></div></section><section class="reviews"><h2>${isRu?'Оценки и отзывы':'Baholar va izohlar'} (${seoSummary.count})</h2><div class="review-grid"><div class="summary-box"><div>${isRu?'Общая оценка':'Umumiy baho'}</div><div class="avg">${seoSummary.count?seoSummary.average.toFixed(1):'—'}</div><div class="stars">${seoSummary.count?'★'.repeat(Math.round(seoSummary.average))+'☆'.repeat(5-Math.round(seoSummary.average)):'☆☆☆☆☆'}</div><p>${seoSummary.count} ${isRu?'оценок':'ta baho asosida'}</p></div><form class="review-form" onsubmit="submitReview(event)"><h3>${isRu?'Оставьте свой отзыв':'O‘z fikringizni qoldiring'}</h3><div class="pickstars" id="pickStars">${[1,2,3,4,5].map(n=>`<button type="button" onclick="pickRating(${n})">★</button>`).join('')}</div><input type="hidden" id="ratingValue" value="0"><input id="reviewName" placeholder="${isRu?'Ваше имя':'Ismingiz'}" required><input id="reviewPhone" placeholder="+998 90 123 45 67" required><textarea id="reviewComment" maxlength="500" placeholder="${isRu?'Ваш отзыв':'Mahsulot haqida fikringizni yozing...'}" required></textarea><button class="btn primary" type="submit">${isRu?'Отправить отзыв':'Izoh qoldirish'}</button><div id="reviewStatus"></div></form></div><div id="reviewRows">${seoReviews.slice(0,50).map(r=>`<article class="review-row"><div class="review-meta"><b>${htmlEsc(r.name||'Foydalanuvchi')}</b><span class="stars">${'★'.repeat(Math.max(1,Math.min(5,Number(r.rating)||1)))+'☆'.repeat(5-Math.max(1,Math.min(5,Number(r.rating)||1)))}</span><small>${htmlEsc(String(r.updatedAt||r.createdAt||'').slice(0,10))}</small></div><p>${htmlEsc(r.comment||'')}</p>${r.adminReply?`<div class="admin-reply"><b>${isRu?'Ответ администратора':'Admin javobi'}</b>${htmlEsc(r.adminReply)}</div>`:''}</article>`).join('')||`<p>${isRu?'Отзывов пока нет.':'Hali izoh yo‘q.'}</p>`}</div></section></main><script>let chosenRating=0;function pickRating(n){chosenRating=n;document.getElementById('ratingValue').value=n;[...document.querySelectorAll('#pickStars button')].forEach((b,i)=>b.classList.toggle('on',i<n))}async function submitReview(e){e.preventDefault();const st=document.getElementById('reviewStatus');if(chosenRating<1){st.textContent='${isRu?'Выберите оценку':'Baho tanlang'}';return}const body={name:document.getElementById('reviewName').value.trim(),phone:document.getElementById('reviewPhone').value.trim(),rating:chosenRating,comment:document.getElementById('reviewComment').value.trim()};st.textContent='${isRu?'Отправляем...':'Yuborilmoqda...'}';try{const r=await fetch('/api/products/${encodeURIComponent(String(p.id))}/reviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');location.reload()}catch(err){st.textContent=err.message}}function addToCartAndOpen(){try{const id=${JSON.stringify(Number(p.id))},stock=${JSON.stringify(stock)};let cart=JSON.parse(localStorage.getItem('iob_cart_v13')||'[]');let x=cart.find(a=>Number(a.id)===id);if(x){if(Number(x.qty)>=stock){alert('${isRu?'Максимальное количество уже в корзине.':'Ombordagi maksimal miqdor savatda.'}');return}x.qty=Number(x.qty||0)+1}else cart.push({id:id,qty:1});localStorage.setItem('iob_cart_v13',JSON.stringify(cart));window.location.href='/#products'}catch(e){window.location.href='/#products'}}</script></body></html>`);
 }
 app.get('/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'uz'));
+app.get('/uz/mahsulot/:slug',(req,res)=>res.redirect(301,`/mahsulot/${encodeURIComponent(req.params.slug)}`));
 app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
+app.get('/en/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'en'));
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
-// V13.26.47 — APK faylini persistent DATA_DIR dan tarqatish.
+// V13.26.48 — APK faylini persistent DATA_DIR dan tarqatish.
 const APK_DIR = path.join(DATA_DIR,'downloads');
 const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
 app.get('/downloads/Zarbuloq.apk',(req,res)=>{
@@ -485,7 +540,7 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.47'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.48'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -603,7 +658,7 @@ app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
  const salesIntelligence={sources:sourceBase,topProducts:bySold.slice(0,20),lowProducts:lowSold.slice(0,20),stagnant:stagnant.slice(0,50),lowStock:lowStock.slice(0,50),inventoryValue:perf.reduce((a,x)=>a+x.stockValue,0),soldQty:perf.reduce((a,x)=>a+x.soldQty,0),soldAmount:perf.reduce((a,x)=>a+x.soldAmount,0),activeProducts:perf.filter(x=>x.soldQty>0).length,noSaleProducts:perf.filter(x=>x.soldQty===0&&x.stock>0).length};
  res.json({salesIntelligence,visitorStats:visitorStats(db),visits:(db.visits||[]).slice().reverse().slice(0,1000),role:req.adminRole,financeQuick:{summary:financeSummary(db,{period:'monthly',value:month}),balance:financeCurrentBalance(db)},warehousePurchases:(db.financePurchases||[]).slice().reverse().slice(0,1500).map(x=>{const c=(db.financeCompanies||[]).find(z=>String(z.id)===String(x.companyId)),p=(db.products||[]).find(z=>Number(z.id)===Number(x.productId));return {id:x.id,productId:Number(x.productId),productName:p?.name?.uz||x.productName||'',unit:p?.unit?.uz||x.unit||'',companyId:x.companyId,companyName:c?.name||'',companyInn:c?.inn||'',date:x.date||'',invoice:x.invoice||'',qty:finNum(x.qty),unitCost:finNum(x.unitCost),salePrice:finNum(x.salePrice||x.suggestedSalePrice),total:finNum(x.total)}}),productReviews:(db.productReviews||[]).slice(0,2000).map(r=>{const p=products.find(x=>String(x.id)===String(r.productId));return {...r,reviewerKey:undefined,productName:p?.name?.uz||p?.name?.ru||('Mahsulot #'+r.productId)}}),productRequests:(db.productRequests||[]).slice(0,500),orderComplaints:(db.orderComplaints||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),appNotifications:(db.appNotifications||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','preparing','delivery','delivered'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],audit:(db.audit||[]).slice(0,500),analytics,charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
 });
-app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120)},description:{uz:clean(p.description?.uz,1200),ru:clean(p.description?.ru,1200)},seo:{title:{uz:clean(p.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru,180)},description:{uz:clean(p.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru,400)},keywords:clean(p.seo?.keywords,500)},unit:{uz:clean(p.unit?.uz,30),ru:clean(p.unit?.ru,30)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Number(p.stock)||0),receivedQty:Math.max(0,Number(p.receivedQty)||0),legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty)||0),createdAt:clean(p.createdAt,40),updatedAt:clean(p.updatedAt,40)||new Date().toISOString(),lastReceivedAt:clean(p.lastReceivedAt,40),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100);if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
+app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120),en:clean(p.name?.en,120)},description:{uz:clean(p.description?.uz,1200),ru:clean(p.description?.ru,1200),en:clean(p.description?.en,1200)},seo:{title:{uz:clean(p.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru,180),en:clean(p.seo?.title?.en,180)},description:{uz:clean(p.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru,400),en:clean(p.seo?.description?.en,400)},keywords:clean(p.seo?.keywords,500)},unit:{uz:clean(p.unit?.uz,30),ru:clean(p.unit?.ru,30),en:clean(p.unit?.en,30)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Number(p.stock)||0),receivedQty:Math.max(0,Number(p.receivedQty)||0),legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty)||0),createdAt:clean(p.createdAt,40),updatedAt:clean(p.updatedAt,40)||new Date().toISOString(),lastReceivedAt:clean(p.lastReceivedAt,40),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100);if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
 
 app.delete('/api/admin/products/:id',requireAdmin,requireRole('stock'),async(req,res)=>{try{const db=readDb(),id=Number(req.params.id),idx=(db.products||[]).findIndex(p=>Number(p.id)===id);if(idx<0)return res.status(404).json({error:'Mahsulot topilmadi'});const p=db.products[idx];db.products.splice(idx,1);audit(db,req.adminUser,'Mahsulot o‘chirildi',`${p.name?.uz||''} (#${id})`);await writeDb(db);res.json({ok:true,id})}catch(e){res.status(400).json({error:e.message||'Mahsulotni o‘chirishda xatolik'})}});
 app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(req,res)=>{
