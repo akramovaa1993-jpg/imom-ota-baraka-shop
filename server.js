@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const XLSX = require('xlsx');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -83,7 +84,7 @@ function stripProductIdFromSlug(slug=''){
   return String(slug||'').replace(/-\d+$/,'').replace(/^-+|-+$/g,'');
 }
 function productSlugBases(p){
-  return ['uz','ru','en']
+  return ['uz','ru']
     .map(lang=>seoSlug(p?.name?.[lang]||''))
     .filter(Boolean)
     .filter(x=>x!=='mahsulot');
@@ -105,7 +106,7 @@ function productBySlug(db,slug){
     if(p)return p;
   }
   // Current canonical slugs in any supported language.
-  const exact=products.find(p=>['uz','ru','en'].some(lang=>productSlug(p,lang)===incoming));
+  const exact=products.find(p=>['uz','ru'].some(lang=>productSlug(p,lang)===incoming));
   if(exact)return exact;
 
   // Legacy URLs often keep the old product id after a product was re-created.
@@ -165,7 +166,6 @@ app.get('/sitemap.xml',(req,res)=>{
       {lang:'uz',url:`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`},
       {lang:'ru',url:`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`}
     ];
-    if(p?.name?.en)entries.push({lang:'en',url:`https://zarbuloq.uz/en/mahsulot/${productSlug(p,'en')}`});
     return entries.map(entry=>[
       '  <url>',
       `    <loc>${xmlEsc(entry.url)}</loc>`,
@@ -211,7 +211,7 @@ app.get('/api/seo-status',(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   res.json({
     ok:true,
-    version:'13.26.50',
+    version:'13.26.51',
     robots:'/robots.txt',
     sitemap:'/sitemap.xml',
     productCount:Array.isArray(db.products)?db.products.length:0,
@@ -237,7 +237,7 @@ app.get('/mahsulot-rasm/:id',(req,res)=>{
 
 function renderProductSeoPage(req,res,lang='uz'){
   const db=readDb(),p=productBySlug(db,req.params.slug);
-  const prefix=lang==='ru'?'/ru/mahsulot/':lang==='en'?'/en/mahsulot/':'/mahsulot/';
+  const prefix=lang==='ru'?'/ru/mahsulot/':'/mahsulot/';
   if(!p){
     // A genuinely removed product should disappear from Google cleanly instead of lingering as a soft 404.
     res.status(410);
@@ -245,16 +245,15 @@ function renderProductSeoPage(req,res,lang='uz'){
     return res.send(`<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="robots" content="noindex,follow"><title>Mahsulot mavjud emas | ZARBULOQ.UZ</title></head><body style="font-family:Arial;padding:40px"><h1>Mahsulot hozir mavjud emas</h1><p>Mahsulot katalogdan o‘chirilgan yoki manzili yangilangan.</p><p><a href="/#products">Barcha mahsulotlarni ko‘rish</a></p></body></html>`);
   }
   const canonicalSlug=productSlug(p,lang);if(req.params.slug!==canonicalSlug)return res.redirect(301,prefix+canonicalSlug);
-  const isRu=lang==='ru',isEn=lang==='en',name=p.name?.[lang]||p.name?.uz||'Mahsulot',catObj=productCategory(db,p),cat=catObj?.name?.[lang]||catObj?.name?.uz||(isRu?'Товар':isEn?'Product':'Mahsulot');
+  const isRu=lang==='ru',name=p.name?.[lang]||p.name?.uz||'Mahsulot',catObj=productCategory(db,p),cat=catObj?.name?.[lang]||catObj?.name?.uz||(isRu?'Товар':'Mahsulot');
   const customDesc=p.seo?.description?.[lang]||p.description?.[lang]||p.description?.uz||'',desc=customDesc||productDescription(db,p),img=productImageUrl(p),price=Number(p.price||0),old=Number(p.oldPrice||0),stock=Number(p.stock||0),unit=p.unit?.[lang]||p.unit?.uz||'';
   const url=`https://zarbuloq.uz${prefix}${canonicalSlug}`;
   const alternates=[
     {lang:'uz',url:`https://zarbuloq.uz/mahsulot/${productSlug(p,'uz')}`},
     {lang:'ru',url:`https://zarbuloq.uz/ru/mahsulot/${productSlug(p,'ru')}`}
   ];
-  if(p?.name?.en)alternates.push({lang:'en',url:`https://zarbuloq.uz/en/mahsulot/${productSlug(p,'en')}`});
   const seoReviews=(db.productReviews||[]).filter(r=>String(r.productId)===String(p.id)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))),seoSummary=reviewSummary(seoReviews);
-  const autoTitle=isRu?`${name} — цена | ZARBULOQ.UZ`:isEn?`${name} — price | ZARBULOQ.UZ`:`${name} narxi | ZARBULOQ.UZ`,title=p.seo?.title?.[lang]||autoTitle,stockText=stock>0?(isRu?`В наличии: ${stock}${unit?' '+unit:''}`:isEn?`In stock: ${stock}${unit?' '+unit:''}`:`Omborda: ${stock}${unit?' '+unit:''}`):(isRu?'Нет в наличии':isEn?'Out of stock':'Omborda yo‘q'),keywords=p.seo?.keywords||[p.name?.uz,p.name?.ru,catObj?.name?.uz,catObj?.name?.ru,'ZARBULOQ.UZ','Parkent'].filter(Boolean).join(', ');
+  const autoTitle=isRu?`${name} — цена | ZARBULOQ.UZ`:`${name} narxi | ZARBULOQ.UZ`,title=p.seo?.title?.[lang]||autoTitle,stockText=stock>0?(isRu?`В наличии: ${stock}${unit?' '+unit:''}`:`Omborda: ${stock}${unit?' '+unit:''}`):(isRu?'Нет в наличии':'Omborda yo‘q'),keywords=p.seo?.keywords||[p.name?.uz,p.name?.ru,catObj?.name?.uz,catObj?.name?.ru,'ZARBULOQ.UZ','Parkent'].filter(Boolean).join(', ');
   const schema={'@context':'https://schema.org','@type':'Product',name,alternateName:[p.name?.uz,p.name?.ru].filter(Boolean),description:desc,image:[img],sku:String(p.id),category:cat,brand:{'@type':'Brand',name:'IMOM OTA BARAKA'},offers:{'@type':'Offer',url,priceCurrency:'UZS',price,availability:stock>0?'https://schema.org/InStock':'https://schema.org/OutOfStock',itemCondition:'https://schema.org/NewCondition',seller:{'@type':'Organization',name:'IMOM OTA BARAKA',url:'https://zarbuloq.uz/'}},...(seoSummary.count?{aggregateRating:{'@type':'AggregateRating',ratingValue:seoSummary.average,reviewCount:seoSummary.count}}:{})};
   const oldPrice=old>price?`<span class="old">${old.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</span>`:'';
   res.setHeader('X-Robots-Tag','index, follow, max-image-preview:large');
@@ -264,10 +263,9 @@ function renderProductSeoPage(req,res,lang='uz'){
 app.get('/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'uz'));
 app.get('/uz/mahsulot/:slug',(req,res)=>res.redirect(301,`/mahsulot/${encodeURIComponent(req.params.slug)}`));
 app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
-app.get('/en/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'en'));
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
-// V13.26.50 — APK faylini persistent DATA_DIR dan tarqatish.
+// V13.26.51 — APK faylini persistent DATA_DIR dan tarqatish.
 const APK_DIR = path.join(DATA_DIR,'downloads');
 const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
 app.get('/downloads/Zarbuloq.apk',(req,res)=>{
@@ -295,38 +293,38 @@ app.get('/api/app-apk-info',(req,res)=>{
 app.use(express.static(__dirname));
 
 const defaultCategories=[
- {id:'food',icon:'🍎',name:{uz:'Oziq-ovqat',ru:'Продукты',en:'Food'}},
- {id:'home',icon:'🏠',name:{uz:'Uy uchun',ru:'Для дома',en:'Home'}},
- {id:'care',icon:'🧴',name:{uz:'Shaxsiy parvarish',ru:'Уход',en:'Personal care'}}
+ {id:'food',icon:'🍎',name:{uz:'Oziq-ovqat',ru:'Продукты'}},
+ {id:'home',icon:'🏠',name:{uz:'Uy uchun',ru:'Для дома'}},
+ {id:'care',icon:'🧴',name:{uz:'Shaxsiy parvarish',ru:'Уход'}}
 ];
 const defaultProducts=[
- {id:1,cat:'food',emoji:'🍚',name:{uz:'Premium guruch',ru:'Премиальный рис',en:'Premium rice'},price:45000,cost:35000,oldPrice:0,stock:25,image:'',badge:'TOP',featured:true},
- {id:2,cat:'food',emoji:'🍯',name:{uz:'Tabiiy asal',ru:'Натуральный мёд',en:'Natural honey'},price:78000,cost:59000,oldPrice:85000,stock:20,image:'',badge:'AKSIYA',featured:true},
- {id:3,cat:'food',emoji:'🫙',name:{uz:'Sof zaytun yog‘i',ru:'Оливковое масло',en:'Pure olive oil'},price:125000,cost:98000,oldPrice:0,stock:15,image:'',badge:'YANGI',featured:true},
- {id:4,cat:'home',emoji:'🧺',name:{uz:'Uy uchun to‘plam',ru:'Набор для дома',en:'Home essentials set'},price:99000,cost:72000,oldPrice:120000,stock:10,image:'',badge:'-18%',featured:false}
+ {id:1,cat:'food',emoji:'🍚',name:{uz:'Premium guruch',ru:'Премиальный рис'},price:45000,cost:35000,oldPrice:0,stock:25,image:'',badge:'TOP',featured:true},
+ {id:2,cat:'food',emoji:'🍯',name:{uz:'Tabiiy asal',ru:'Натуральный мёд'},price:78000,cost:59000,oldPrice:85000,stock:20,image:'',badge:'AKSIYA',featured:true},
+ {id:3,cat:'food',emoji:'🫙',name:{uz:'Sof zaytun yog‘i',ru:'Оливковое масло'},price:125000,cost:98000,oldPrice:0,stock:15,image:'',badge:'YANGI',featured:true},
+ {id:4,cat:'home',emoji:'🧺',name:{uz:'Uy uchun to‘plam',ru:'Набор для дома'},price:99000,cost:72000,oldPrice:120000,stock:10,image:'',badge:'-18%',featured:false}
 ];
 const defaultSettings={
  siteName:'IMOM OTA BARAKA',siteDomain:'zarbuloq.uz',theme:'original',
- tagline:{uz:'Sifat, ishonch, baraka!',ru:'Качество, доверие, баракат!',en:'Quality, trust, baraka!'},
- hero:{uz:{eyebrow:'SIFAT • ISHONCH • BARAKA',title:'Har bir xonadonga — sifat va baraka.',text:'Parkent tumani bo‘ylab bepul yetkazib berish, qulay buyurtma va ishonchli xizmat.'},ru:{eyebrow:'КАЧЕСТВО • ДОВЕРИЕ • БАРАКАТ',title:'Качество и баракат — в каждый дом.',text:'Бесплатная доставка по Паркентскому району, удобный заказ и надёжный сервис.'},en:{eyebrow:'QUALITY • TRUST • BARAKA',title:'Quality and baraka for every home.',text:'Free delivery across Parkent district, convenient ordering and reliable service.'}},
- catalog:{uz:'Mashhur mahsulotlar',ru:'Популярные товары',en:'Popular products'},
- about:{uz:{title:'IMOM OTA BARAKA — ishonchli tanlov.',text:'Biz mijozlarimizga sifatli mahsulot, shaffof xizmat, tezkor aloqa va qulay xarid tajribasini taqdim etamiz.'},ru:{title:'IMOM OTA BARAKA — надёжный выбор.',text:'Качественные товары, прозрачный сервис, быстрая связь и удобные покупки.'},en:{title:'IMOM OTA BARAKA — a trusted choice.',text:'Quality products, transparent service, fast communication and convenient shopping.'}},
- contact:{uz:{title:'Biz bilan bog‘laning',text:'Savol, taklif va buyurtmalar uchun Telegram yoki telefon orqali murojaat qiling.'},ru:{title:'Свяжитесь с нами',text:'По вопросам, предложениям и заказам свяжитесь через Telegram или по телефону.'},en:{title:'Contact us',text:'For questions, suggestions and orders, contact us via Telegram or phone.'}},
+ tagline:{uz:'Sifat, ishonch, baraka!',ru:'Качество, доверие, баракат!'},
+ hero:{uz:{eyebrow:'SIFAT • ISHONCH • BARAKA',title:'Har bir xonadonga — sifat va baraka.',text:'Parkent tumani bo‘ylab bepul yetkazib berish, qulay buyurtma va ishonchli xizmat.'},ru:{eyebrow:'КАЧЕСТВО • ДОВЕРИЕ • БАРАКАТ',title:'Качество и баракат — в каждый дом.',text:'Бесплатная доставка по Паркентскому району, удобный заказ и надёжный сервис.'}},
+ catalog:{uz:'Mashhur mahsulotlar',ru:'Популярные товары'},
+ about:{uz:{title:'IMOM OTA BARAKA — ishonchli tanlov.',text:'Biz mijozlarimizga sifatli mahsulot, shaffof xizmat, tezkor aloqa va qulay xarid tajribasini taqdim etamiz.'},ru:{title:'IMOM OTA BARAKA — надёжный выбор.',text:'Качественные товары, прозрачный сервис, быстрая связь и удобные покупки.'}},
+ contact:{uz:{title:'Biz bilan bog‘laning',text:'Savol, taklif va buyurtmalar uchun Telegram yoki telefon orqali murojaat qiling.'},ru:{title:'Свяжитесь с нами',text:'По вопросам, предложениям и заказам свяжитесь через Telegram или по телефону.'}},
  company:{name:'“GANIYEV IMOM” OILAVIY KORXONA',taxId:'312669814',mfo:'00482',account:'20208000807368873001'},
  map:{eyebrow:'BEPUL YETKAZIB BERISH HUDUDI',title:'Yetkazib berish bepul hududlar',text:'Xaritada yashil rang va qizil chegara bilan ko‘rsatilgan Parkent tumani hududlarida yetkazib berish bepul. Buyurtma vaqtida manzilingizni tanlang yoki aniq GPS lokatsiyangizni yuboring.',embedUrl:'',openUrl:'https://www.openstreetmap.org/relation/5745823'},
  footer:{service1:'Parkent tumani — bepul',service2:'Naqd / karta / o‘tkazma',copyright:'© 2026 IMOM OTA BARAKA • ZARBULOQ.UZ'},
  ui:{logoSize:68},
  testMode:{active:true,text:'Saytimiz hozirda test rejimida ishlamoqda'},
  homePromos:{
-  left:{title:{uz:'Tabiiy tozalik — har kuni siz bilan!',ru:'Естественная чистота — каждый день с вами!',en:'Natural freshness — with you every day!'},text:{uz:'Sifatli mahsulotlar va qulay xarid.',ru:'Качественные товары и удобные покупки.',en:'Quality products and convenient shopping.'},button:{uz:'Mahsulotlarni ko‘rish',ru:'Смотреть товары',en:'View products'},image:''},
-  center:{title:{uz:'Parkent tabiati — toza hayot manbai!',ru:'Природа Паркента — источник чистой жизни!',en:'Parkent nature — a source of clean living!'},text:{uz:'Sof tabiat, sog‘lom hayot, siz uchun!',ru:'Чистая природа и здоровая жизнь — для вас!',en:'Pure nature and healthy living — for you!'}},
-  right:{title:{uz:'Sifat. Ishonch. Baraka!',ru:'Качество. Доверие. Баракат!',en:'Quality. Trust. Baraka!'},text:{uz:'IMOM OTA BARAKA — har doim siz bilan.',ru:'IMOM OTA BARAKA — всегда рядом.',en:'IMOM OTA BARAKA — always with you.'},button:{uz:'Batafsil',ru:'Подробнее',en:'Learn more'},image:''}
+  left:{title:{uz:'Tabiiy tozalik — har kuni siz bilan!',ru:'Естественная чистота — каждый день с вами!'},text:{uz:'Sifatli mahsulotlar va qulay xarid.',ru:'Качественные товары и удобные покупки.'},button:{uz:'Mahsulotlarni ko‘rish',ru:'Смотреть товары'},image:''},
+  center:{title:{uz:'Parkent tabiati — toza hayot manbai!',ru:'Природа Паркента — источник чистой жизни!'},text:{uz:'Sof tabiat, sog‘lom hayot, siz uchun!',ru:'Чистая природа и здоровая жизнь — для вас!'}},
+  right:{title:{uz:'Sifat. Ishonch. Baraka!',ru:'Качество. Доверие. Баракат!'},text:{uz:'IMOM OTA BARAKA — har doim siz bilan.',ru:'IMOM OTA BARAKA — всегда рядом.'},button:{uz:'Batafsil',ru:'Подробнее'},image:''}
  },
  benefits:[
-  {title:{uz:'Bepul yetkazib berish',ru:'Бесплатная доставка',en:'Free delivery'},text:{uz:'Parkent tumani hududida',ru:'По Паркентскому району',en:'Across Parkent district'}},
-  {title:{uz:'Ishonchli to‘lov',ru:'Надёжная оплата',en:'Secure payment'},text:{uz:'Xavfsiz va qulay',ru:'Безопасно и удобно',en:'Safe and convenient'}},
-  {title:{uz:'24/7 qo‘llab-quvvatlash',ru:'Поддержка 24/7',en:'24/7 support'},text:{uz:'Telegram orqali',ru:'Через Telegram',en:'Via Telegram'}},
-  {title:{uz:'Tabiiy va sifatli mahsulotlar',ru:'Натуральные и качественные товары',en:'Natural, quality products'},text:{uz:'Sog‘lig‘ingiz uchun',ru:'Для вашего здоровья',en:'For your wellbeing'}}
+  {title:{uz:'Bepul yetkazib berish',ru:'Бесплатная доставка'},text:{uz:'Parkent tumani hududida',ru:'По Паркентскому району'}},
+  {title:{uz:'Ishonchli to‘lov',ru:'Надёжная оплата'},text:{uz:'Xavfsiz va qulay',ru:'Безопасно и удобно'}},
+  {title:{uz:'24/7 qo‘llab-quvvatlash',ru:'Поддержка 24/7'},text:{uz:'Telegram orqali',ru:'Через Telegram'}},
+  {title:{uz:'Tabiiy va sifatli mahsulotlar',ru:'Натуральные и качественные товары'},text:{uz:'Sog‘lig‘ingiz uchun',ru:'Для вашего здоровья'}}
  ],
  heroSlides:[{id:'slide-1',image:'parkent-slide-1.webp',active:true}],
  phone:'+998901361211',telegram:'https://t.me/imomotabaraka',email:'info@imomotamarket.uz',
@@ -345,6 +343,25 @@ function normalizeDb(db){
  if(merged.settings.map?.text?.startsWith('Buyurtmalar Parkent tumani bo‘ylab bepul yetkazib beriladi'))merged.settings.map.text='Xaritada yashil rang va qizil chegara bilan ko‘rsatilgan Parkent tumani hududlarida yetkazib berish bepul. Buyurtma vaqtida manzilingizni tanlang yoki aniq GPS lokatsiyangizni yuboring.';
  merged.settings.map.openUrl='https://www.openstreetmap.org/relation/5745823';
  for(const k of ['title','description','keywords'])if(typeof merged.settings.seo?.[k]==='string')merged.settings.seo[k]=merged.settings.seo[k].replace(/VELORA\.UZ/gi,'ZARBULOQ.UZ').replace(/velora/gi,'zarbuloq').replace(/BarkaMarket\.uz/gi,'ZARBULOQ.UZ').replace(/barkamarket/gi,'zarbuloq').replace(/barakamarket/gi,'zarbuloq').replace(/imomotamarket/gi,'zarbuloq');
+ // UZ/RU ONLY: old English fields are removed automatically from persisted data.
+ for(const p of merged.products||[]){
+  if(p.name&&typeof p.name==='object')delete p.name.en;
+  if(p.description&&typeof p.description==='object')delete p.description.en;
+  if(p.unit&&typeof p.unit==='object')delete p.unit.en;
+  if(p.seo?.title&&typeof p.seo.title==='object')delete p.seo.title.en;
+  if(p.seo?.description&&typeof p.seo.description==='object')delete p.seo.description.en;
+ }
+ for(const c of merged.categories||[])if(c.name&&typeof c.name==='object')delete c.name.en;
+ const stripEn=(v)=>{
+  if(!v||typeof v!=='object')return;
+  if(Object.prototype.hasOwnProperty.call(v,'en'))delete v.en;
+  for(const x of Object.values(v))if(x&&typeof x==='object')stripEn(x);
+ };
+ stripEn(merged.settings);
+ for(const n of merged.appNotifications||[]){
+  if(n.title&&typeof n.title==='object')delete n.title.en;
+  if(n.body&&typeof n.body==='object')delete n.body.en;
+ }
  // Legacy ombor migration: old products had only current stock, without receipt history.
  // Reconstruct a stable opening quantity so monthly closing stock does not become 0.
  for(const p of merged.products||[]){
@@ -558,13 +575,13 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.50'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.51'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
 }
 app.get('/api/app-notifications',(req,res)=>{
- const db=readDb(),lang=['uz','ru','en'].includes(String(req.query.lang||''))?String(req.query.lang):'uz';
+ const db=readDb(),lang=['uz','ru'].includes(String(req.query.lang||''))?String(req.query.lang):'uz';
  const after=clean(req.query.after,120),rows=(db.appNotifications||[]).filter(x=>x&&x.active!==false).filter(x=>!after||String(x.id)!==after);
  const items=rows.slice(0,100).map(x=>({id:String(x.id||''),createdAt:x.createdAt||'',title:localizedMessageField(x.title,lang),body:localizedMessageField(x.body,lang),kind:x.kind||'info',actionUrl:x.actionUrl||'',important:Boolean(x.important)}));
  res.setHeader('Cache-Control','no-store');res.json({ok:true,items,latestId:items[0]?.id||''});
@@ -676,7 +693,121 @@ app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
  const salesIntelligence={sources:sourceBase,topProducts:bySold.slice(0,20),lowProducts:lowSold.slice(0,20),stagnant:stagnant.slice(0,50),lowStock:lowStock.slice(0,50),inventoryValue:perf.reduce((a,x)=>a+x.stockValue,0),soldQty:perf.reduce((a,x)=>a+x.soldQty,0),soldAmount:perf.reduce((a,x)=>a+x.soldAmount,0),activeProducts:perf.filter(x=>x.soldQty>0).length,noSaleProducts:perf.filter(x=>x.soldQty===0&&x.stock>0).length};
  res.json({salesIntelligence,visitorStats:visitorStats(db),visits:(db.visits||[]).slice().reverse().slice(0,1000),role:req.adminRole,financeQuick:{summary:financeSummary(db,{period:'monthly',value:month}),balance:financeCurrentBalance(db)},warehousePurchases:(db.financePurchases||[]).slice().reverse().slice(0,1500).map(x=>{const c=(db.financeCompanies||[]).find(z=>String(z.id)===String(x.companyId)),p=(db.products||[]).find(z=>Number(z.id)===Number(x.productId));return {id:x.id,productId:Number(x.productId),productName:p?.name?.uz||x.productName||'',unit:p?.unit?.uz||x.unit||'',companyId:x.companyId,companyName:c?.name||'',companyInn:c?.inn||'',date:x.date||'',invoice:x.invoice||'',qty:finNum(x.qty),unitCost:finNum(x.unitCost),salePrice:finNum(x.salePrice||x.suggestedSalePrice),total:finNum(x.total)}}),productReviews:(db.productReviews||[]).slice(0,2000).map(r=>{const p=products.find(x=>String(x.id)===String(r.productId));return {...r,reviewerKey:undefined,productName:p?.name?.uz||p?.name?.ru||('Mahsulot #'+r.productId)}}),productRequests:(db.productRequests||[]).slice(0,500),orderComplaints:(db.orderComplaints||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),appNotifications:(db.appNotifications||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','preparing','delivery','delivered'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],audit:(db.audit||[]).slice(0,500),analytics,charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
 });
-app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120),en:clean(p.name?.en,120)},description:{uz:clean(p.description?.uz,1200),ru:clean(p.description?.ru,1200),en:clean(p.description?.en,1200)},seo:{title:{uz:clean(p.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru,180),en:clean(p.seo?.title?.en,180)},description:{uz:clean(p.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru,400),en:clean(p.seo?.description?.en,400)},keywords:clean(p.seo?.keywords,500)},unit:{uz:clean(p.unit?.uz,30),ru:clean(p.unit?.ru,30),en:clean(p.unit?.en,30)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Number(p.stock)||0),receivedQty:Math.max(0,Number(p.receivedQty)||0),legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty)||0),createdAt:clean(p.createdAt,40),updatedAt:clean(p.updatedAt,40)||new Date().toISOString(),lastReceivedAt:clean(p.lastReceivedAt,40),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100);if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
+
+// V13.26.51 — Excel orqali omborga mahsulot importi.
+const EXCEL_IMPORT_HEADERS=[
+ 'Mahsulot kodi','Nomi UZ','Nomi RU','Kategoriya UZ','Kategoriya RU',
+ "Sotuv narxi (so'm)","Tannarx (so'm)",'Omborga miqdor','Birlik UZ','Birlik RU',
+ 'Tavsif UZ','Tavsif RU','Rasm URL'
+];
+function excelCell(row,names){
+ for(const n of names)if(Object.prototype.hasOwnProperty.call(row,n)&&String(row[n]??'').trim()!=='')return row[n];
+ return '';
+}
+function excelNumber(v){const n=Number(String(v??'').replace(/\s/g,'').replace(/,/g,'.').replace(/[^\d.-]/g,''));return Number.isFinite(n)?n:0}
+function normalizeImportRow(row,rowNo){
+ const sku=clean(excelCell(row,['Mahsulot kodi','Kod','SKU','Артикул']),60);
+ const nameUz=clean(excelCell(row,['Nomi UZ','Mahsulot nomi UZ','Nomi','Mahsulot nomi']),120);
+ const nameRu=clean(excelCell(row,['Nomi RU','Название RU','Название товара','Название']),120);
+ const catUz=clean(excelCell(row,['Kategoriya UZ','Kategoriya','Bo‘lim']),120);
+ const catRu=clean(excelCell(row,['Kategoriya RU','Категория RU','Категория']),120);
+ const price=Math.max(0,excelNumber(excelCell(row,["Sotuv narxi (so'm)",'Sotuv narxi','Narxi',"Narxi (so'm)",'Цена продажи'])));
+ const cost=Math.max(0,excelNumber(excelCell(row,["Tannarx (so'm)",'Tannarx','Xarid narxi','Себестоимость'])));
+ const qty=Math.max(0,excelNumber(excelCell(row,['Omborga miqdor','Ombor miqdori','Miqdor','Zaxira','Количество'])));
+ const unitUz=clean(excelCell(row,['Birlik UZ','Birlik','O‘lchov birligi']),30)||'dona';
+ const unitRu=clean(excelCell(row,['Birlik RU','Единица RU','Единица']),30)||'шт';
+ const descriptionUz=clean(excelCell(row,['Tavsif UZ','Mahsulot ma’lumoti UZ','Tavsif']),1200);
+ const descriptionRu=clean(excelCell(row,['Tavsif RU','Описание RU','Описание']),1200);
+ const image=String(excelCell(row,['Rasm URL','Rasm','Фото URL','Image URL'])||'').trim().slice(0,2000);
+ return {rowNo,sku,nameUz,nameRu,catUz,catRu,price,cost,qty,unitUz,unitRu,descriptionUz,descriptionRu,image};
+}
+function parseProductExcel(buffer){
+ const wb=XLSX.read(buffer,{type:'buffer',cellDates:false});
+ const first=wb.SheetNames[0];if(!first)throw new Error('Excel ichida varaq topilmadi');
+ const rows=XLSX.utils.sheet_to_json(wb.Sheets[first],{defval:'',raw:false}).slice(0,2000);
+ return rows.map((r,i)=>normalizeImportRow(r,i+2)).filter(r=>r.nameUz||r.sku);
+}
+function importMatch(db,r){
+ if(r.sku){const bySku=(db.products||[]).find(p=>String(p.sku||'').trim().toLowerCase()===r.sku.toLowerCase());if(bySku)return bySku;}
+ if(r.nameUz){const key=r.nameUz.toLowerCase();return (db.products||[]).find(p=>String(p.name?.uz||'').trim().toLowerCase()===key)||null;}
+ return null;
+}
+function ensureImportCategory(db,r){
+ const key=String(r.catUz||'Boshqa').trim().toLowerCase();
+ let c=(db.categories||[]).find(x=>String(x.name?.uz||'').trim().toLowerCase()===key);
+ if(c)return c;
+ const base=seoSlug(r.catUz||'boshqa').slice(0,32)||'boshqa';
+ let id='excel_'+base,n=2;while((db.categories||[]).some(x=>String(x.id)===id))id='excel_'+base+'_'+n++;
+ c={id,icon:'',name:{uz:r.catUz||'Boshqa',ru:r.catRu||r.catUz||'Другое'}};
+ db.categories=db.categories||[];db.categories.push(c);return c;
+}
+function previewProductExcel(db,buffer){
+ const rows=parseProductExcel(buffer);
+ return rows.map(r=>{
+  const errors=[];if(!r.nameUz)errors.push('Nomi UZ majburiy');if(r.price<0)errors.push('Narx noto‘g‘ri');if(r.qty<0)errors.push('Miqdor noto‘g‘ri');
+  const match=importMatch(db,r);
+  return {...r,mode:match?'update':'create',currentStock:match?Number(match.stock||0):0,productId:match?.id||null,errors};
+ });
+}
+const excelRaw=express.raw({type:['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.ms-excel','application/octet-stream'],limit:'20mb'});
+app.get('/api/admin/products-import-template',requireAdmin,(req,res)=>{
+ const wb=XLSX.utils.book_new();
+ const sample=[
+  EXCEL_IMPORT_HEADERS,
+  ['M001','Suyuq sovun 500 ml','Жидкое мыло 500 мл','Gigiyena','Гигиена',18000,12000,25,'dona','шт','Yoqimli hidli suyuq sovun','Жидкое мыло с приятным ароматом',''],
+  ['M002','Kir yuvish geli 1 L','Гель для стирки 1 л','Maishiy kimyo','Бытовая химия',32000,24500,15,'dona','шт','Kundalik kir yuvish uchun gel','Гель для ежедневной стирки','']
+ ];
+ const ws=XLSX.utils.aoa_to_sheet(sample);
+ ws['!cols']=[{wch:16},{wch:28},{wch:28},{wch:20},{wch:20},{wch:18},{wch:18},{wch:16},{wch:14},{wch:14},{wch:34},{wch:34},{wch:42}];
+ XLSX.utils.book_append_sheet(wb,ws,'Mahsulot importi');
+ const info=XLSX.utils.aoa_to_sheet([
+  ['ZARBULOQ.UZ — Excel import yo‘riqnomasi'],
+  ['1','Har bir mahsulot alohida qator bo‘lsin.'],
+  ['2','Nomi UZ majburiy. Mahsulot kodi (SKU) dublikatni aniqlash uchun tavsiya etiladi.'],
+  ['3','Mavjud SKU yoki aynan bir xil Nomi UZ topilsa, mahsulot yangilanadi va Omborga miqdor joriy zaxiraga qo‘shiladi.'],
+  ['4','Yangi mahsulot bo‘lsa kartochka avtomatik yaratiladi. Kategoriya bo‘lmasa avtomatik yaratiladi.'],
+  ['5','Rasm URL ixtiyoriy.']
+ ]);
+ info['!cols']=[{wch:10},{wch:95}];XLSX.utils.book_append_sheet(wb,info,"Yo'riqnoma");
+ const out=XLSX.write(wb,{type:'buffer',bookType:'xlsx'});
+ res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+ res.setHeader('Content-Disposition','attachment; filename="Zarbuloq_Mahsulot_Import_Shablon_UZ_RU.xlsx"');
+ res.send(out);
+});
+app.post('/api/admin/products-import-preview',requireAdmin,requireRole('stock'),excelRaw,(req,res)=>{
+ try{if(!Buffer.isBuffer(req.body)||req.body.length<100)return res.status(400).json({error:'Excel fayl topilmadi'});const rows=previewProductExcel(readDb(),req.body);res.json({ok:true,rows,count:rows.length,create:rows.filter(x=>x.mode==='create'&&!x.errors.length).length,update:rows.filter(x=>x.mode==='update'&&!x.errors.length).length,errors:rows.filter(x=>x.errors.length).length})}
+ catch(e){console.error('Excel preview:',e);res.status(400).json({error:e.message||'Excel faylni o‘qib bo‘lmadi'})}
+});
+app.post('/api/admin/products-import-excel',requireAdmin,requireRole('stock'),excelRaw,async(req,res)=>{
+ try{
+  if(!Buffer.isBuffer(req.body)||req.body.length<100)return res.status(400).json({error:'Excel fayl topilmadi'});
+  const db=readDb(),rows=previewProductExcel(db,req.body),now=new Date().toISOString(),result={created:0,updated:0,received:0,skipped:0,errors:[]};
+  for(const r of rows){
+   if(r.errors.length){result.skipped++;result.errors.push({row:r.rowNo,message:r.errors.join(', ')});continue}
+   let p=importMatch(db,r),isNew=!p;
+   const cat=ensureImportCategory(db,r);
+   if(isNew){
+    p={id:Date.now()+crypto.randomInt(10,999999),sku:r.sku,cat:cat.id,emoji:'',name:{uz:r.nameUz,ru:r.nameRu||r.nameUz},description:{uz:r.descriptionUz,ru:r.descriptionRu||r.descriptionUz},seo:{title:{uz:'',ru:''},description:{uz:'',ru:''},keywords:''},unit:{uz:r.unitUz,ru:r.unitRu},price:r.price,cost:r.cost,oldPrice:0,stock:0,receivedQty:0,legacyOpeningQty:0,createdAt:now,updatedAt:now,lastReceivedAt:'',image:r.image,badge:'YANGI',featured:false};
+    db.products.push(p);result.created++;
+   }else{
+    if(r.sku)p.sku=r.sku;p.cat=cat.id;p.name=p.name||{};p.name.uz=r.nameUz||p.name.uz;p.name.ru=r.nameRu||p.name.ru||p.name.uz;
+    p.description=p.description||{};if(r.descriptionUz)p.description.uz=r.descriptionUz;if(r.descriptionRu)p.description.ru=r.descriptionRu;
+    p.unit={uz:r.unitUz||p.unit?.uz||'dona',ru:r.unitRu||p.unit?.ru||'шт'};
+    if(r.price>0)p.price=r.price;if(r.cost>0)p.cost=r.cost;if(r.image)p.image=r.image;p.updatedAt=now;result.updated++;
+   }
+   if(r.qty>0){
+    p.stock=Math.max(0,Number(p.stock||0))+r.qty;p.receivedQty=Math.max(0,Number(p.receivedQty||0))+r.qty;p.lastReceivedAt=now;
+    const receipt={receiptId:`XLS-${Date.now()}-${crypto.randomInt(100,999)}`,productId:p.id,qty:r.qty,createdAt:now,actor:req.adminUser,source:'excel'};
+    db.inventoryReceipts=db.inventoryReceipts||[];db.inventoryReceipts.push(receipt);result.received+=r.qty;
+   }
+  }
+  db.inventoryReceipts=(db.inventoryReceipts||[]).slice(-20000);
+  audit(db,req.adminUser,'Excel orqali mahsulot importi',`Yangi: ${result.created}; yangilandi: ${result.updated}; omborga: ${result.received}`);
+  await writeDb(db);res.json({ok:true,...result,total:rows.length});
+ }catch(e){console.error('Excel import:',e);res.status(400).json({error:e.message||'Excel importda xatolik'})}
+});
+
+app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),sku:clean(p.sku,60),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120)},description:{uz:clean(p.description?.uz,1200),ru:clean(p.description?.ru,1200)},seo:{title:{uz:clean(p.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru,180)},description:{uz:clean(p.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru,400)},keywords:clean(p.seo?.keywords,500)},unit:{uz:clean(p.unit?.uz,30),ru:clean(p.unit?.ru,30)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Number(p.stock)||0),receivedQty:Math.max(0,Number(p.receivedQty)||0),legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty)||0),createdAt:clean(p.createdAt,40),updatedAt:clean(p.updatedAt,40)||new Date().toISOString(),lastReceivedAt:clean(p.lastReceivedAt,40),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
 
 app.delete('/api/admin/products/:id',requireAdmin,requireRole('stock'),async(req,res)=>{try{const db=readDb(),id=Number(req.params.id),idx=(db.products||[]).findIndex(p=>Number(p.id)===id);if(idx<0)return res.status(404).json({error:'Mahsulot topilmadi'});const p=db.products[idx];db.products.splice(idx,1);audit(db,req.adminUser,'Mahsulot o‘chirildi',`${p.name?.uz||''} (#${id})`);await writeDb(db);res.json({ok:true,id})}catch(e){res.status(400).json({error:e.message||'Mahsulotni o‘chirishda xatolik'})}});
 app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(req,res)=>{
@@ -720,8 +851,8 @@ app.delete('/api/admin/app-apk',requireAdmin,async(req,res)=>{
 app.post('/api/admin/app-notifications',requireAdmin,async(req,res)=>{
  try{
   const db=readDb(),b=req.body||{};
-  const title={uz:clean(b.titleUz||b.title,160),ru:clean(b.titleRu,160),en:clean(b.titleEn,160)};
-  const body={uz:clean(b.bodyUz||b.body,1200),ru:clean(b.bodyRu,1200),en:clean(b.bodyEn,1200)};
+  const title={uz:clean(b.titleUz||b.title,160),ru:clean(b.titleRu,160)};
+  const body={uz:clean(b.bodyUz||b.body,1200),ru:clean(b.bodyRu,1200)};
   if(!title.uz||!body.uz)return res.status(400).json({error:'Xabar sarlavhasi va matni majburiy'});
   if(!title.ru)title.ru=title.uz;if(!title.en)title.en=title.uz;if(!body.ru)body.ru=body.uz;if(!body.en)body.en=body.uz;
   const row={id:'NTF-'+Date.now()+'-'+crypto.randomInt(10,99),createdAt:new Date().toISOString(),title,body,kind:['info','sale','delivery','news'].includes(String(b.kind))?String(b.kind):'info',actionUrl:clean(b.actionUrl,500),important:Boolean(b.important),active:true,sentBy:req.adminUser};

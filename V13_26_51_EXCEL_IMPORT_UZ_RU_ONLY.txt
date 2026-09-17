@@ -1,0 +1,21 @@
+ZARBULOQ.UZ v13.26.51 — EXCEL IMPORT + UZ/RU ONLY
+
+Yangi:
+- Admin → Mahsulotlar ichida “Excel shablon” va “Excel orqali import” tugmalari.
+- .xlsx/.xls preview: yangi/yangilanadigan/xato qatorlar ko‘rsatiladi.
+- Mavjud mahsulot SKU yoki aynan bir xil Nomi UZ bo‘yicha topiladi.
+- Omborga miqdor joriy qoldiqqa qo‘shiladi va inventoryReceipts tarixiga yoziladi.
+- Yangi kategoriya Excelda bo‘lsa avtomatik yaratiladi.
+- Mahsulot kodi / SKU mahsulot kartochkasiga qo‘shildi.
+- Sayt va admin panel UZ/RU-only qilindi; EN tanlovi va EN admin maydonlari olib tashlandi.
+- Server eski EN maydonlarni saqlangan bazadan avtomatik tozalaydi.
+- SEO sitemap faqat UZ/RU mahsulot URLlarini chiqaradi.
+
+Saqlangan:
+- Google SEO avtomatizatsiyasi
+- APK manager
+- Telegram telefon tasdiqlash
+- lokatsiya
+- 100 000 so‘m minimal buyurtma
+- 1 kun yetkazish
+- boshqa mavjud funksiyalar

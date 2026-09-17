@@ -1,0 +1,6 @@
+ZARBULOQ.UZ v13.26.52
+- Mobile header is no longer sticky/fixed.
+- Horizontal page overflow is blocked.
+- Category filter scroll is contained and cannot drag the whole page sideways.
+- Category click no longer performs smooth page movement.
+- Existing backend/admin/Excel/SEO features preserved.
