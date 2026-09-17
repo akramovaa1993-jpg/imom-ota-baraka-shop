@@ -1,0 +1,13 @@
+ZARBULOQ.UZ v13.26.46 — APP DOWNLOAD BLOCK
+
+Qo'shildi:
+- Biz haqimizda / Aloqa yoniga Android ilovani yuklab olish kartasi.
+- Foydalanuvchi tanlagan final ilova ikonka rasmi.
+- APK yuklab olish tugmasi: /downloads/Zarbuloq.apk
+- QR kod: https://zarbuloq.uz/downloads/Zarbuloq.apk
+- APK serverda mavjud bo'lmasa foydalanuvchiga tushunarli xabar chiqadi.
+- Play Market tugmasi hozircha “tez orada”.
+- Boshqa sayt/admin/server funksiyalari o'zgartirilmadi.
+
+APK ni ishlatish:
+GitHub Actions'dan APK ni olib, Zarbuloq.apk deb nomlang va saytning downloads/ papkasiga joylang, so'ng deploy qiling.

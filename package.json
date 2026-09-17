@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.39",
+  "version": "13.26.47",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.39 — persistent admin session, app media manager, shared website/Android product ratings and reviews",
+  "description": "ZARBULOQ.UZ v13.26.47 — persistent admin session, app media manager, shared website/Android product ratings and reviews",
   "scripts": {
     "start": "node server.js"
   },

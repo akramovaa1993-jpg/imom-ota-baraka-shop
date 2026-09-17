@@ -194,6 +194,31 @@ app.get('/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'uz'));
 app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
+// V13.26.47 — APK faylini persistent DATA_DIR dan tarqatish.
+const APK_DIR = path.join(DATA_DIR,'downloads');
+const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
+app.get('/downloads/Zarbuloq.apk',(req,res)=>{
+ try{
+  if(!fs.existsSync(APK_FILE))return res.status(404).send('APK hali yuklanmagan');
+  res.setHeader('Content-Type','application/vnd.android.package-archive');
+  res.setHeader('Content-Disposition','attachment; filename="Zarbuloq.apk"');
+  res.setHeader('Cache-Control','no-store');
+  return res.sendFile(APK_FILE);
+ }catch(e){console.error('APK download:',e);return res.status(500).send('APK faylini ochib bo‘lmadi')}
+});
+app.head('/downloads/Zarbuloq.apk',(req,res)=>{
+ try{
+  if(!fs.existsSync(APK_FILE))return res.sendStatus(404);
+  const st=fs.statSync(APK_FILE);res.setHeader('Content-Type','application/vnd.android.package-archive');res.setHeader('Content-Length',String(st.size));res.setHeader('Cache-Control','no-store');return res.sendStatus(200);
+ }catch{return res.sendStatus(404)}
+});
+app.get('/api/app-apk-info',(req,res)=>{
+ const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};
+ const exists=fs.existsSync(APK_FILE);let size=0;try{if(exists)size=fs.statSync(APK_FILE).size}catch{}
+ res.setHeader('Cache-Control','no-store');
+ res.json({ok:true,available:exists,version:c.apkVersion||c.currentVersion||'',versionCode:Number(c.apkVersionCode||c.latestVersionCode||0),notes:c.apkNotes||'',updatedAt:c.apkUpdatedAt||'',size:size||Number(c.apkSize||0),sha256:c.apkSha256||'',url:'/downloads/Zarbuloq.apk'});
+});
+
 app.use(express.static(__dirname));
 
 const defaultCategories=[
@@ -232,7 +257,7 @@ const defaultSettings={
  ],
  heroSlides:[{id:'slide-1',image:'parkent-slide-1.webp',active:true}],
  phone:'+998901361211',telegram:'https://t.me/imomotabaraka',email:'info@imomotamarket.uz',
- appControl:{currentVersion:'4.9.4',latestVersionCode:74,minVersionCode:68,forceUpdate:false,maintenance:false,maintenanceMessage:'Ilovada texnik ishlar olib borilmoqda. Iltimos, birozdan so‘ng qayta urinib ko‘ring.',updateTitle:'Yangi versiya mavjud',updateMessage:'ZARBULOQ.UZ ilovasining yangi versiyasini o‘rnating.',updateUrl:'https://zarbuloq.uz',noticeEnabled:false,noticeText:'',productRequestEnabled:true,liveChatEnabled:true,reviewsEnabled:true,trackingEnabled:true,supportPhone:'+998901361211',supportTelegram:'https://t.me/imomotabaraka',homeHeroImage:'',homeHeroTitle:'Tabiatning ezgu ne’matlari sizning uyingizda!',homeHeroBadge:'100% TABIIY',homeHeroButton:'Mahsulotga so‘rov qoldirish',appBanners:[]},
+ appControl:{currentVersion:'4.9.4',latestVersionCode:74,minVersionCode:68,forceUpdate:false,maintenance:false,maintenanceMessage:'Ilovada texnik ishlar olib borilmoqda. Iltimos, birozdan so‘ng qayta urinib ko‘ring.',updateTitle:'Yangi versiya mavjud',updateMessage:'ZARBULOQ.UZ ilovasining yangi versiyasini o‘rnating.',updateUrl:'https://zarbuloq.uz/downloads/Zarbuloq.apk',noticeEnabled:false,noticeText:'',productRequestEnabled:true,liveChatEnabled:true,reviewsEnabled:true,trackingEnabled:true,supportPhone:'+998901361211',supportTelegram:'https://t.me/imomotabaraka',homeHeroImage:'',homeHeroTitle:'Tabiatning ezgu ne’matlari sizning uyingizda!',homeHeroBadge:'100% TABIIY',homeHeroButton:'Mahsulotga so‘rov qoldirish',appBanners:[],apkAvailable:false,apkFileName:'Zarbuloq.apk',apkVersion:'',apkVersionCode:0,apkNotes:'',apkUpdatedAt:'',apkSize:0,apkSha256:'',apkUrl:'/downloads/Zarbuloq.apk'},
  delivery:{free:true,district:'Parkent tumani',areas:['Parkent shahri','Chinor','Zarkent','So‘qoq','Kumushkon','Nevich','Boshqizilsoy','Changi','Qoraqalpoq','Nomdanak'],slots:['09:00–12:00','12:00–15:00','15:00–18:00','18:00–21:00']},
  seo:{title:'IMOM OTA BARAKA — ZARBULOQ.UZ',description:'ZARBULOQ.UZ — Parkent tumani bo‘ylab bepul yetkazib beruvchi IMOM OTA BARAKA internet do‘koni.',keywords:'zarbuloq, imom ota baraka, parkent, internet do‘kon, bepul yetkazib berish'}
 };
@@ -425,7 +450,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.45',adminFix:'telegram-phone-verification'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.46',adminFix:'telegram-phone-verification'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -447,7 +472,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.45',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.46',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -460,7 +485,7 @@ app.get('/api/events',(req,res)=>{
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.45'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.47'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -598,6 +623,27 @@ app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(
 app.patch('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),r=(db.productRequests||[]).find(x=>x.requestId===req.params.id);if(!r)return res.status(404).json({error:'So‘rov topilmadi'});const st=clean(req.body?.status,30);if(!['new','working','found','closed'].includes(st))return res.status(400).json({error:'Status noto‘g‘ri'});r.status=st;r.updatedAt=new Date().toISOString();audit(db,req.adminUser,'Mahsulot so‘rovi statusi',`${r.requestId}: ${st}`);await writeDb(db);res.json({ok:true});});
 app.delete('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),id=String(req.params.id||''),before=(db.productRequests||[]).length;db.productRequests=(db.productRequests||[]).filter(x=>String(x.requestId)!==id);if(db.productRequests.length===before)return res.status(404).json({error:'So‘rov topilmadi'});audit(db,req.adminUser,'Mahsulot so‘rovi o‘chirildi',id);await writeDb(db);res.json({ok:true,deleted:id});});
 app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);for(const k of ['homeHeroTitle','homeHeroBadge','homeHeroButton'])if(b[k]!==undefined)c[k]=clean(b[k],180);if(b.homeHeroImage!==undefined){const img=String(b.homeHeroImage||'');c.homeHeroImage=/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=2200000?img:'';}if(Array.isArray(b.appBanners))c.appBanners=b.appBanners.slice(0,24).map((x,i)=>({id:clean(x?.id,80)||`app-banner-${Date.now()}-${i}`,title:clean(x?.title,160),kind:['reklama','aksiya','yangilik','boshqa'].includes(String(x?.kind))?String(x.kind):'reklama',active:x?.active!==false,image:(()=>{const img=String(x?.image||'');return /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=1800000?img:''})()})).filter(x=>x.image);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);res.json({ok:true,app:c});});
+// Admin paneldan APK yuklash / almashtirish.
+app.put('/api/admin/app-apk',requireAdmin,express.raw({type:['application/vnd.android.package-archive','application/octet-stream'],limit:'250mb'}),async(req,res)=>{
+ try{
+  if(!Buffer.isBuffer(req.body)||req.body.length<1024)return res.status(400).json({error:'APK fayl topilmadi yoki juda kichik'});
+  const sig=req.body.subarray(0,2).toString('hex');
+  if(sig!=='504b')return res.status(400).json({error:'Bu APK fayliga o‘xshamaydi'});
+  const version=clean(req.headers['x-app-version'],30),versionCode=Math.max(0,Math.floor(Number(req.headers['x-app-version-code']||0)||0)),notes=clean(decodeURIComponent(String(req.headers['x-app-notes']||'')),1200);
+  fs.mkdirSync(APK_DIR,{recursive:true});
+  const tmp=APK_FILE+'.uploading';fs.writeFileSync(tmp,req.body);fs.renameSync(tmp,APK_FILE);
+  const sha256=crypto.createHash('sha256').update(req.body).digest('hex');
+  const db=readDb();db.settings=db.settings||{};const c={...defaultSettings.appControl,...(db.settings.appControl||{})};
+  c.apkAvailable=true;c.apkFileName='Zarbuloq.apk';c.apkVersion=version||c.currentVersion||'';c.apkVersionCode=versionCode||Number(c.latestVersionCode||0);c.apkNotes=notes;c.apkUpdatedAt=new Date().toISOString();c.apkSize=req.body.length;c.apkSha256=sha256;c.apkUrl='/downloads/Zarbuloq.apk';c.updateUrl='https://zarbuloq.uz/downloads/Zarbuloq.apk';
+  if(version)c.currentVersion=version;if(versionCode)c.latestVersionCode=versionCode;
+  db.settings.appControl=c;audit(db,req.adminUser,'Android APK yangilandi',`v${c.apkVersion||'-'} / ${req.body.length} bytes`);await writeDb(db);broadcastRealtime('app-apk');
+  res.json({ok:true,app:c,apk:{available:true,url:c.apkUrl,size:c.apkSize,sha256:c.apkSha256,updatedAt:c.apkUpdatedAt,version:c.apkVersion,versionCode:c.apkVersionCode}});
+ }catch(e){console.error('APK upload:',e);res.status(500).json({error:'APK yuklab bo‘lmadi'})}
+});
+app.delete('/api/admin/app-apk',requireAdmin,async(req,res)=>{
+ try{if(fs.existsSync(APK_FILE))fs.unlinkSync(APK_FILE);const db=readDb();db.settings=db.settings||{};const c={...defaultSettings.appControl,...(db.settings.appControl||{})};c.apkAvailable=false;c.apkSize=0;c.apkSha256='';c.apkUpdatedAt=new Date().toISOString();db.settings.appControl=c;audit(db,req.adminUser,'Android APK o‘chirildi');await writeDb(db);broadcastRealtime('app-apk');res.json({ok:true,app:c})}catch(e){res.status(500).json({error:'APKni o‘chirib bo‘lmadi'})}
+});
+
 app.post('/api/admin/app-notifications',requireAdmin,async(req,res)=>{
  try{
   const db=readDb(),b=req.body||{};

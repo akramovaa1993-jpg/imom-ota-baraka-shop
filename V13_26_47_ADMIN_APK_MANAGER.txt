@@ -1,0 +1,9 @@
+ZARBULOQ.UZ v13.26.47 — ADMIN APK MANAGER
+
+- Admin panel → Ilova boshqaruvi ichiga Android APK manager qo‘shildi.
+- Yangi APK faylni admin paneldan tanlab/yuklab saytga chiqarish mumkin.
+- Versiya, versionCode va yangilanish matni saqlanadi.
+- Saytdagi /downloads/Zarbuloq.apk avtomatik eng oxirgi yuklangan APKni beradi.
+- QR va “APK yuklab olish” tugmasi o‘sha manzilga ulangan.
+- APK DATA_DIR/downloads ichida saqlanadi, Render persistent disk tavsiya qilinadi.
+- Boshqa sayt/admin funksiyalari o‘zgartirilmadi.

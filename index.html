@@ -46,7 +46,25 @@
 <div class="req-row req-company"><small id="companyNameLabel">Firma nomi</small><b id="companyName">“GANIYEV IMOM” OILAVIY KORXONA</b></div>
 <div class="req-row req-pair"><div><small id="taxIdLabel">STIR (INN)</small><b id="companyTaxId">312669814</b></div><div><small id="mfoLabel">Bank kodi (MFO)</small><b id="companyMfo">00482</b></div></div>
 <div class="req-row req-account"><small id="accountLabel">Hisob raqami</small><b id="companyAccount">20208000807368873001</b></div>
-</div></div><aside class="about-contact-card reveal" id="contact"><span class="eyebrow" id="contactEyebrow">ALOQA</span><h2 id="contactTitle">Biz bilan bog‘laning</h2><p id="contactText">Savol, taklif va buyurtmalar uchun Telegram yoki telefon orqali murojaat qiling.</p><div class="contact-actions"><a id="contactPhoneBtn" class="btn primary" href="tel:+998901361211">Qo‘ng‘iroq</a><a id="contactTelegramBtn" class="btn telegram" href="https://t.me/imomotabaraka" target="_blank">Telegram</a><button class="btn ghost" id="contactChatBtn" type="button" onclick="openSiteChat()">Chat</button></div></aside></div></section>
+</div></div><div class="about-side-stack">
+<section class="app-download-card reveal" aria-label="ZARBULOQ.UZ ilovasini yuklab olish">
+  <img class="app-download-icon" src="app-download-icon.png" alt="ZARBULOQ.UZ Android ilovasi">
+  <div class="app-download-copy">
+    <span class="eyebrow">ANDROID ILOVA</span>
+    <h3>ZARBULOQ.UZ ilovasini yuklab oling</h3>
+    <p>Buyurtmani tezroq bering, lokatsiyani qulay belgilang va buyurtma holatini kuzating.</p>
+    <div class="app-download-actions">
+      <a class="btn primary app-apk-btn" href="/downloads/Zarbuloq.apk" download onclick="return checkApkDownload(event,this)">↓ APK yuklab olish</a>
+      <button class="btn ghost play-store-coming-soon" type="button" onclick="alert('Play Market versiyasi tez orada chiqadi.')">▶ Play Market — tez orada</button>
+    </div>
+  </div>
+  <div class="app-download-qr-wrap">
+    <img class="app-download-qr" src="app-download-qr.png" alt="ZARBULOQ.UZ APK QR kod">
+    <small>QR kodni skaner qiling</small>
+  </div>
+</section>
+<aside class="about-contact-card reveal" id="contact"><span class="eyebrow" id="contactEyebrow">ALOQA</span><h2 id="contactTitle">Biz bilan bog‘laning</h2><p id="contactText">Savol, taklif va buyurtmalar uchun Telegram yoki telefon orqali murojaat qiling.</p><div class="contact-actions"><a id="contactPhoneBtn" class="btn primary" href="tel:+998901361211">Qo‘ng‘iroq</a><a id="contactTelegramBtn" class="btn telegram" href="https://t.me/imomotabaraka" target="_blank">Telegram</a><button class="btn ghost" id="contactChatBtn" type="button" onclick="openSiteChat()">Chat</button></div></aside>
+</div></div></section>
 
 <section class="parkent-map-section parkent-promo-section parkent-compact-section" aria-label="Parkent tumani bepul yetkazib berish hududi"><div class="container parkent-footer-layout"><div class="parkent-promo-visual"><img id="parkentPromoImage" src="parkent-free-delivery.webp" alt="Parkent tumani — bepul yetkazib berish hududi" loading="lazy"><button class="parkent-track-hotspot" type="button" onclick="openTracking()" aria-label="Buyurtmani kuzatish">Buyurtmani kuzatish</button><a class="parkent-map-hotspot" id="parkentMapLink" href="https://www.openstreetmap.org/relation/5745823" target="_blank" rel="noopener" aria-label="Parkent tumani xaritasini katta ochish"></a></div><div class="parkent-info-panels footer-grid"><div class="parkent-info-card"><span class="parkent-info-icon" aria-hidden="true">↗</span><h4 id="footerQuickTitle">Tezkor havolalar</h4><a id="footerHome" href="#home">Bosh sahifa</a><a id="footerProducts" href="#products">Mahsulotlar</a><a id="footerAbout" href="#about">Biz haqimizda</a><a id="footerContact" href="#contact">Aloqa</a></div><div class="parkent-info-card"><span class="parkent-info-icon" aria-hidden="true">☎</span><h4 id="footerContactTitle">Aloqa</h4><a id="contactPhone" href="tel:+998901361211">+998 90 136 12 11</a><a id="contactTelegram" href="https://t.me/imomotabaraka" target="_blank">Telegram</a><a id="contactEmail" href="mailto:info@imomotamarket.uz">info@imomotamarket.uz</a></div><div class="parkent-info-card"><span class="parkent-info-icon" aria-hidden="true">⚙</span><h4 id="footerServiceTitle">Xizmat</h4><a href="#" id="footerTrack">Buyurtmani kuzatish</a><span id="footerService1">Parkent tumani — bepul</span><span id="footerService2">Naqd / karta / o‘tkazma</span></div></div></div></section>
 </main>
@@ -57,4 +75,21 @@
 <div class="tracking-panel" id="trackingPanel"><div class="cart-header"><div><h3 id="trackingTitle">Buyurtmani kuzatish</h3><small id="trackingSub">Buyurtma raqami va telefon orqali statusni tekshiring</small></div><button id="closeTracking" type="button">×</button></div><div class="tracking-body"><div class="tracking-hero"><span class="eyebrow" id="trackingEyebrow">BUYURTMA KUZATUVI</span><h2 id="trackingHeroTitle">Statusni tez tekshiring</h2><p id="trackingHeroText">Buyurtma berilganda olingan raqamni va telefon raqamingizni kiriting.</p></div><form class="tracking-form-large" onsubmit="trackOrder(event)"><label><span id="trackOrderIdLabel">Buyurtma raqami</span><input name="id" placeholder="Masalan: IOB-12345678-10" required></label><label><span id="trackPhoneLabel">Telefon raqami</span><input name="phone" type="tel" placeholder="+998 90 123 45 67" required></label><button class="btn primary tracking-submit" id="trackSubmitBtn" type="submit">Buyurtmani tekshirish</button></form><div id="trackResult" class="tracking-result-area"><div class="tracking-placeholder"><b id="trackPlaceholderTitle">Status shu yerda chiqadi</b><span id="trackPlaceholderText">Buyurtma raqami va telefonni kiriting.</span></div></div></div></div>
 <div class="overlay" id="overlay"></div><div id="modal" class="modal"></div><div id="reviewModal" class="modal"></div><div id="checkoutModal" class="modal"></div><div id="receiptModal" class="modal receipt-modal"></div>
 <button id="backToTop" class="back-to-top" type="button" aria-label="Tepaga qaytish">↑</button><div id="siteToast" class="site-toast" aria-live="polite"></div><button class="mobile-sticky-cart" id="mobileStickyCart"><span id="mobileCartText">Savat • 0 so‘m</span></button><a class="floating-telegram" id="floatingTelegram" href="https://t.me/imomotabaraka" target="_blank">TG</a>
-<script src="script.js?v=13.26.39"></script></body></html>
+<script src="script.js?v=13.26.47"></script>
+<script>
+async function checkApkDownload(event, link){
+  event.preventDefault();
+  const url = link.getAttribute('href');
+  try{
+    const response = await fetch(url, {method:'HEAD', cache:'no-store'});
+    if(response.ok){
+      window.location.href = url;
+      return false;
+    }
+  }catch(e){}
+  alert('Android APK hali sayt serveriga yuklanmagan. APK tayyor bo‘lgach shu tugma avtomatik ishlaydi.');
+  return false;
+}
+</script>
+
+</body></html>

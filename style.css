@@ -394,3 +394,34 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .manual-location-btn{background:#eef8f2!important;color:#087544!important;border:1px solid #b9dfc9!important}
 .delivery-one-day{margin:10px 0;padding:12px 14px;border-radius:14px;background:#eef9f2;border:1px solid #c7e9d2;color:#075d38;font-weight:800}
 @media(max-width:640px){.location-choice{grid-template-columns:1fr}}
+
+
+/* V13.26.46 — Android ilovasini sayt orqali yuklab olish bloki */
+.story .about-side-stack{display:grid;gap:18px;align-content:end}
+.story .app-download-card{
+  background:linear-gradient(135deg,#effbf6,#fff9e9);
+  border:1px solid var(--line);border-radius:24px;padding:18px 20px;
+  box-shadow:0 12px 32px rgba(7,88,76,.08);
+  display:grid;grid-template-columns:86px minmax(0,1fr) 92px;gap:16px;align-items:center;
+  color:var(--ink)
+}
+.story .app-download-icon{width:82px;height:82px;border-radius:22px;object-fit:cover;box-shadow:0 10px 24px rgba(7,88,76,.18)}
+.story .app-download-copy h3{margin:4px 0 6px;font-size:20px;color:var(--green);letter-spacing:-.3px}
+.story .app-download-copy p{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--muted)}
+.story .app-download-actions{display:flex;gap:8px;flex-wrap:wrap}
+.story .app-download-actions .btn{min-height:40px;padding:10px 13px;font-size:12px}
+.story .app-download-qr-wrap{display:grid;justify-items:center;gap:5px;text-align:center}
+.story .app-download-qr{width:78px;height:78px;border-radius:8px;background:#fff;padding:4px;border:1px solid var(--line)}
+.story .app-download-qr-wrap small{font-size:9px;color:var(--muted);line-height:1.2}
+@media(max-width:1100px){
+  .story .app-download-card{grid-template-columns:72px minmax(0,1fr)}
+  .story .app-download-icon{width:68px;height:68px;border-radius:18px}
+  .story .app-download-qr-wrap{display:none}
+}
+@media(max-width:620px){
+  .story .app-download-card{grid-template-columns:58px minmax(0,1fr);padding:16px}
+  .story .app-download-icon{width:56px;height:56px;border-radius:15px}
+  .story .app-download-copy h3{font-size:17px}
+  .story .app-download-actions{display:grid;grid-template-columns:1fr}
+  .story .app-download-actions .btn{width:100%}
+}
