@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.56 FULL INTEGRATION
+
+Base: v13.26.55. No optimization/removal performed.
+Checked integration surfaces: catalog/products/categories, orders/status/realtime, warehouse/inventory Excel, finance, reviews, product requests, chat, notifications, app control/APK, promo, geo/location, Telegram phone verification, admin backup/restore, SEO/status.
+Android API base: https://zarbuloq.uz
+Android paired source: v5.0.11.
+Version identifiers synchronized.
+Existing data storage contract preserved (PostgreSQL when DATABASE_URL is configured; local JSON fallback otherwise).
