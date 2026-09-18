@@ -1,0 +1,7 @@
+ZARBULOQ v13.26.57
+BASE: v13.26.50 original full package (visual/site structure preserved)
+ADDED: latest Operatsion nazorat, Hisob fakturasi, compact Products/Categories admin, full page editor, app control, latest integration/server endpoints.
+LANGUAGES: UZ/RU only in UI. English removed from selectors/admin visible fields.
+SLIDER: legacy center title/text overlay hidden; uploaded image remains clean.
+DATA SAFETY: no database reset/delete/migration command added. Legacy multilingual DB fields are preserved internally to avoid destructive data loss.
+OPTIMIZATION: none; original base files retained.

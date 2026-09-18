@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.56",
+  "version": "13.26.47",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.56 — FULL site/admin/app integration, UZ/RU only",
+  "description": "ZARBULOQ.UZ v13.26.47 — persistent admin session, app media manager, shared website/Android product ratings and reviews",
   "scripts": {
     "start": "node server.js"
   },
@@ -12,7 +12,6 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "pg": "^8.13.1",
-    "xlsx": "^0.18.5"
+    "pg": "^8.13.1"
   }
 }
