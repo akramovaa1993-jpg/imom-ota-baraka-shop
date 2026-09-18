@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.47",
+  "version": "13.26.58",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.47 — persistent admin session, app media manager, shared website/Android product ratings and reviews",
+  "description": "ZARBULOQ.UZ v13.26.58 — v13.26.57 with required xlsx dependency for Render deployment",
   "scripts": {
     "start": "node server.js"
   },
@@ -12,6 +12,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "xlsx": "^0.18.5"
   }
 }
