@@ -443,3 +443,10 @@ html,body{max-width:100%;overflow-x:clip!important}
   .container{width:100%!important;max-width:100%!important;padding-left:14px!important;padding-right:14px!important;box-sizing:border-box}
   .header{box-shadow:0 4px 14px rgba(7,88,76,.06)!important}
 }
+
+/* v13.26.53 — GPS + xaritada qo'lda nuqta belgilash */
+.manual-map-modal{position:fixed;inset:0;z-index:140;background:rgba(5,24,20,.66);display:none;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(6px)}
+.manual-map-modal.show{display:flex}.manual-map-card{width:min(760px,100%);background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 28px 90px rgba(0,0,0,.28)}
+.manual-map-head{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:16px 18px}.manual-map-head>div{display:grid;gap:3px}.manual-map-head small{color:var(--muted)}.manual-map-head button{border:0;background:none;font-size:30px;cursor:pointer}
+#manualMapCanvas{height:min(58vh,480px);width:100%;background:#eef5f1}.manual-map-note{padding:10px 18px;color:var(--muted);font-size:12px}.manual-map-actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px}
+@media(max-width:640px){.manual-map-modal{padding:8px}.manual-map-card{border-radius:18px}#manualMapCanvas{height:55vh}.manual-map-actions .btn{flex:1}}

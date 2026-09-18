@@ -1,0 +1,6 @@
+v13.26.54 — INVENTORY REPORT FIX
+- Ombor Excel: № va SKU ustunlari qo‘shildi.
+- Qabul miqdorini 2 marta hisoblash (receivedQty + inventoryReceipts) bartaraf etildi.
+- Receipt ledger takroriy yozuvlardan himoyalandi.
+- Firma prixod tafsilotiga SKU qo‘shildi.
+- Sayt dizayni va boshqa funksiyalar o‘zgartirilmadi.
