@@ -1,0 +1,9 @@
+ZARBULOQ v13.26.60
+
+1) Yon promo rasmlari tiniq ko‘rinadi. Oqartiruvchi overlay olib tashlandi.
+2) Yon promo kartalaridagi yozuv va tugmalar yashirildi.
+3) Admin /api/admin/catalog mahsulotlarni endi replace qilmaydi, ID bo‘yicha safe-merge qiladi.
+4) Sozlamalarni saqlash mahsulotlar ro‘yxatini yubormaydi.
+5) Mahsulotlarni saqlash faqat mahsulot payloadini yuboradi.
+6) Mahsulot o‘chirish faqat maxsus DELETE endpoint orqali amalga oshadi.
+Natija: boshqa oynadagi/yangi qo‘shilgan mahsulot (masalan, tst) eski admin holati bilan tasodifan yo‘qolib ketmaydi.

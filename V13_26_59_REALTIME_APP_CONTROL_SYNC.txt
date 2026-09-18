@@ -1,0 +1,12 @@
+ZARBULOQ.UZ v13.26.59 — REAL-TIME APP CONTROL SYNC
+
+1. Admin → Ilova boshqaruvi saqlanganda broadcastAppRealtime("app-control") yuboriladi.
+2. Yangi public SSE kanal: GET /api/app-events
+3. Health: GET /api/app-realtime/health
+4. Android SSE event kelishi bilan /api/app-config ni qayta oladi.
+5. SSE uzilsa Android 15 soniyalik fallback sync bilan holatni tekshiradi.
+6. APK upload qilinsa currentVersion va latestVersionCode ham markaziy appControl bilan avtomatik sinxronlanadi.
+7. APK upload/delete ham real-time signal yuboradi.
+8. Banner, notice, maintenance, feature toggles, support contacts va update metadata ilova qayta build qilinmasdan yangilanadi.
+9. Mavjud sayt/admin funksiyalari va xlsx dependency saqlandi.
+10. APK binary PostgreSQL app_binary jadvalida persistent saqlanadi; local DATA_DIR faqat cache sifatida ishlaydi.

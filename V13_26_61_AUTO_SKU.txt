@@ -1,0 +1,11 @@
+ZARBULOQ v13.26.61 — AUTO SKU
+
+- Yangi mahsulot ochilganda SKU avtomatik beriladi.
+- Format: IM-DDMMYYYYNN (masalan IM-1809202601).
+- Shu kundagi eng katta raqamdan keyingisi olinadi, dublikat berilmaydi.
+- Yangi mahsulot formasida SKU avtomatik va readonly ko‘rinadi.
+- SKU bo‘sh qolsa server ham avtomatik to‘ldiradi.
+- Excel importda SKU bo‘sh bo‘lgan yangi mahsulotga ham avtomatik SKU beriladi.
+- Mahsulot nusxalanganda yangi SKU beriladi.
+- Oldingi v13.26.60 xavfsiz merge va promo rasm tuzatishlari saqlangan.
+- Oldingi v13.26.59 real-time ilova boshqaruvi saqlangan.

@@ -47,6 +47,19 @@ function visitorStats(db){
 // Only a tiny change signal is broadcast. Clients fetch fresh data through normal APIs.
 const realtimeClients = new Set();
 let realtimeRevision = 0;
+// V13.26.59 — Android ilova boshqaruvi uchun alohida real-time SSE kanal.
+// Katta banner/base64 ma'lumotlar SSE orqali yuborilmaydi; faqat revision/reason yuboriladi,
+// ilova esa /api/app-config dan yangi holatni oladi.
+const appRealtimeClients = new Set();
+let appRealtimeRevision = 0;
+function broadcastAppRealtime(reason='app-control'){
+  appRealtimeRevision += 1;
+  const payload = `event: app-update\ndata: ${JSON.stringify({reason,revision:appRealtimeRevision,at:new Date().toISOString()})}\n\n`;
+  for(const res of [...appRealtimeClients]){
+    try{res.write(payload)}catch{appRealtimeClients.delete(res)}
+  }
+}
+
 function broadcastRealtime(reason='data'){
   realtimeRevision += 1;
   const payload = `event: update\ndata: ${JSON.stringify({reason,revision:realtimeRevision,at:new Date().toISOString()})}\n\n`;
@@ -254,7 +267,7 @@ function renderProductSeoPage(req,res,lang='uz'){
   ];
   const seoReviews=(db.productReviews||[]).filter(r=>String(r.productId)===String(p.id)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))),seoSummary=reviewSummary(seoReviews);
   const autoTitle=isRu?`${name} — цена | ZARBULOQ.UZ`:`${name} narxi | ZARBULOQ.UZ`,title=p.seo?.title?.[lang]||autoTitle,stockText=stock>0?(isRu?`В наличии: ${stock}${unit?' '+unit:''}`:`Omborda: ${stock}${unit?' '+unit:''}`):(isRu?'Нет в наличии':'Omborda yo‘q'),keywords=p.seo?.keywords||[p.name?.uz,p.name?.ru,catObj?.name?.uz,catObj?.name?.ru,'ZARBULOQ.UZ','Parkent'].filter(Boolean).join(', ');
-  const schema={'@context':'https://schema.org','@type':'Product',name,alternateName:[p.name?.uz,p.name?.ru].filter(Boolean),description:desc,image:[img],sku:String(p.id),category:cat,brand:{'@type':'Brand',name:'IMOM OTA BARAKA'},offers:{'@type':'Offer',url,priceCurrency:'UZS',price,availability:stock>0?'https://schema.org/InStock':'https://schema.org/OutOfStock',itemCondition:'https://schema.org/NewCondition',seller:{'@type':'Organization',name:'IMOM OTA BARAKA',url:'https://zarbuloq.uz/'}},...(seoSummary.count?{aggregateRating:{'@type':'AggregateRating',ratingValue:seoSummary.average,reviewCount:seoSummary.count}}:{})};
+  const schema={'@context':'https://schema.org','@type':'Product',name,alternateName:[p.name?.uz,p.name?.ru].filter(Boolean),description:desc,image:[img],sku:String(p.sku||p.id),category:cat,brand:{'@type':'Brand',name:'IMOM OTA BARAKA'},offers:{'@type':'Offer',url,priceCurrency:'UZS',price,availability:stock>0?'https://schema.org/InStock':'https://schema.org/OutOfStock',itemCondition:'https://schema.org/NewCondition',seller:{'@type':'Organization',name:'IMOM OTA BARAKA',url:'https://zarbuloq.uz/'}},...(seoSummary.count?{aggregateRating:{'@type':'AggregateRating',ratingValue:seoSummary.average,reviewCount:seoSummary.count}}:{})};
   const oldPrice=old>price?`<span class="old">${old.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</span>`:'';
   res.setHeader('X-Robots-Tag','index, follow, max-image-preview:large');
   res.send(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEsc(title)}</title><meta name="description" content="${htmlEsc(desc)}"><meta name="keywords" content="${htmlEsc(keywords)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${htmlEsc(url)}">${alternates.map(a=>`<link rel="alternate" hreflang="${a.lang}" href="${htmlEsc(a.url)}">`).join('')}<link rel="alternate" hreflang="x-default" href="${htmlEsc(alternates[0].url)}"><meta property="og:type" content="product"><meta property="og:title" content="${htmlEsc(title)}"><meta property="og:description" content="${htmlEsc(desc)}"><meta property="og:url" content="${htmlEsc(url)}"><meta property="og:image" content="${htmlEsc(img)}"><meta property="product:price:amount" content="${price}"><meta property="product:price:currency" content="UZS"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${htmlEsc(title)}"><meta name="twitter:description" content="${htmlEsc(desc)}"><meta name="twitter:image" content="${htmlEsc(img)}"><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script>
@@ -265,29 +278,51 @@ app.get('/uz/mahsulot/:slug',(req,res)=>res.redirect(301,`/mahsulot/${encodeURIC
 app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
-// V13.26.56 — APK faylini persistent DATA_DIR dan tarqatish.
+// V13.26.59 — APK local cache + PostgreSQL persistent binary storage.
+// Render Free restart qilganda local disk yo‘qolsa ham APK PostgreSQL'dan qayta tarqatiladi.
 const APK_DIR = path.join(DATA_DIR,'downloads');
 const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
-app.get('/downloads/Zarbuloq.apk',(req,res)=>{
+async function readApkBinary(){
+ try{if(fs.existsSync(APK_FILE))return fs.readFileSync(APK_FILE)}catch{}
+ if(pool){
+  const r=await pool.query('SELECT data FROM app_binary WHERE id=1');
+  const buf=r.rows?.[0]?.data;
+  if(Buffer.isBuffer(buf)&&buf.length){
+   try{fs.mkdirSync(APK_DIR,{recursive:true});fs.writeFileSync(APK_FILE,buf)}catch{}
+   return buf;
+  }
+ }
+ return null;
+}
+async function readApkStoredMeta(){
+ if(pool){
+  try{const r=await pool.query('SELECT size,sha256,updated_at FROM app_binary WHERE id=1');if(r.rows.length)return {available:true,size:Number(r.rows[0].size||0),sha256:r.rows[0].sha256||'',updatedAt:r.rows[0].updated_at||''};}catch{}
+ }
+ try{if(fs.existsSync(APK_FILE)){const st=fs.statSync(APK_FILE);return {available:true,size:st.size,sha256:'',updatedAt:st.mtime?.toISOString?.()||''}}}catch{}
+ return {available:false,size:0,sha256:'',updatedAt:''};
+}
+async function persistApkBinary(buf,sha256){
+ if(!pool)return;
+ await pool.query('INSERT INTO app_binary (id,data,size,sha256,updated_at) VALUES (1,$1,$2,$3,NOW()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data,size=EXCLUDED.size,sha256=EXCLUDED.sha256,updated_at=NOW()',[buf,buf.length,sha256||'']);
+}
+async function deleteApkBinary(){if(pool)await pool.query('DELETE FROM app_binary WHERE id=1');}
+app.get('/downloads/Zarbuloq.apk',async(req,res)=>{
  try{
-  if(!fs.existsSync(APK_FILE))return res.status(404).send('APK hali yuklanmagan');
+  const buf=await readApkBinary();if(!buf)return res.status(404).send('APK hali yuklanmagan');
   res.setHeader('Content-Type','application/vnd.android.package-archive');
   res.setHeader('Content-Disposition','attachment; filename="Zarbuloq.apk"');
+  res.setHeader('Content-Length',String(buf.length));
   res.setHeader('Cache-Control','no-store');
-  return res.sendFile(APK_FILE);
+  return res.end(buf);
  }catch(e){console.error('APK download:',e);return res.status(500).send('APK faylini ochib bo‘lmadi')}
 });
-app.head('/downloads/Zarbuloq.apk',(req,res)=>{
- try{
-  if(!fs.existsSync(APK_FILE))return res.sendStatus(404);
-  const st=fs.statSync(APK_FILE);res.setHeader('Content-Type','application/vnd.android.package-archive');res.setHeader('Content-Length',String(st.size));res.setHeader('Cache-Control','no-store');return res.sendStatus(200);
- }catch{return res.sendStatus(404)}
+app.head('/downloads/Zarbuloq.apk',async(req,res)=>{
+ try{const meta=await readApkStoredMeta();if(!meta.available)return res.sendStatus(404);res.setHeader('Content-Type','application/vnd.android.package-archive');res.setHeader('Content-Length',String(meta.size||0));res.setHeader('Cache-Control','no-store');return res.sendStatus(200)}catch{return res.sendStatus(404)}
 });
-app.get('/api/app-apk-info',(req,res)=>{
- const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};
- const exists=fs.existsSync(APK_FILE);let size=0;try{if(exists)size=fs.statSync(APK_FILE).size}catch{}
+app.get('/api/app-apk-info',async(req,res)=>{
+ const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})},meta=await readApkStoredMeta();
  res.setHeader('Cache-Control','no-store');
- res.json({ok:true,available:exists,version:c.apkVersion||c.currentVersion||'',versionCode:Number(c.apkVersionCode||c.latestVersionCode||0),notes:c.apkNotes||'',updatedAt:c.apkUpdatedAt||'',size:size||Number(c.apkSize||0),sha256:c.apkSha256||'',url:'/downloads/Zarbuloq.apk'});
+ res.json({ok:true,available:meta.available,version:c.apkVersion||c.currentVersion||'',versionCode:Number(c.apkVersionCode||c.latestVersionCode||0),notes:c.apkNotes||'',updatedAt:c.apkUpdatedAt||meta.updatedAt||'',size:meta.size||Number(c.apkSize||0),sha256:c.apkSha256||meta.sha256||'',url:'/downloads/Zarbuloq.apk',storage:pool?'postgresql+cache':'local'});
 });
 
 app.use(express.static(__dirname));
@@ -405,6 +440,7 @@ async function initStorage(){
  const local=readLocal();
  if(!pool){dbCache=local;writeLocal(dbCache);console.log('Storage: local JSON fallback');return;}
  await pool.query('CREATE TABLE IF NOT EXISTS shop_state (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
+ await pool.query("CREATE TABLE IF NOT EXISTS app_binary (id INTEGER PRIMARY KEY, data BYTEA NOT NULL, size BIGINT NOT NULL DEFAULT 0, sha256 TEXT NOT NULL DEFAULT '', updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
  const r=await pool.query('SELECT data FROM shop_state WHERE id=1');
  if(r.rows.length){dbCache=normalizeDb(r.rows[0].data);writeLocal(dbCache);console.log('Storage: PostgreSQL loaded');}
  else{dbCache=local;await persistRemote(JSON.stringify(dbCache));writeLocal(dbCache);console.log('Storage: PostgreSQL initialized from local data');}
@@ -540,7 +576,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.56',adminFix:'telegram-phone-verification'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.61',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -562,7 +598,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.56',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.61',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/events',(req,res)=>{
  res.setHeader('Content-Type','text/event-stream; charset=utf-8');
  res.setHeader('Cache-Control','no-cache, no-transform');
@@ -574,8 +610,21 @@ app.get('/api/events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: ping ${Date.now()}\n\n`)}catch{}},25000);
  req.on('close',()=>{clearInterval(ping);realtimeClients.delete(res)});
 });
+app.get('/api/app-events',(req,res)=>{
+ res.setHeader('Content-Type','text/event-stream; charset=utf-8');
+ res.setHeader('Cache-Control','no-cache, no-transform');
+ res.setHeader('Connection','keep-alive');
+ res.setHeader('X-Accel-Buffering','no');
+ res.flushHeaders?.();
+ appRealtimeClients.add(res);
+ res.write(`event: ready\ndata: ${JSON.stringify({revision:appRealtimeRevision,at:new Date().toISOString()})}\n\n`);
+ const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
+ req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
+});
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.61',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...p,ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.json({ok:true,app:c,serverVersion:'13.26.56'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.61',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -787,10 +836,10 @@ app.post('/api/admin/products-import-excel',requireAdmin,requireRole('stock'),ex
    let p=importMatch(db,r),isNew=!p;
    const cat=ensureImportCategory(db,r);
    if(isNew){
-    p={id:Date.now()+crypto.randomInt(10,999999),sku:r.sku,cat:cat.id,emoji:'',name:{uz:r.nameUz,ru:r.nameRu||r.nameUz},description:{uz:r.descriptionUz,ru:r.descriptionRu||r.descriptionUz},seo:{title:{uz:'',ru:''},description:{uz:'',ru:''},keywords:''},unit:{uz:r.unitUz,ru:r.unitRu},price:r.price,cost:r.cost,oldPrice:0,stock:0,receivedQty:0,legacyOpeningQty:0,createdAt:now,updatedAt:now,lastReceivedAt:'',image:r.image,badge:'YANGI',featured:false};
+    p={id:Date.now()+crypto.randomInt(10,999999),sku:r.sku||autoProductSku(db.products),cat:cat.id,emoji:'',name:{uz:r.nameUz,ru:r.nameRu||r.nameUz},description:{uz:r.descriptionUz,ru:r.descriptionRu||r.descriptionUz},seo:{title:{uz:'',ru:''},description:{uz:'',ru:''},keywords:''},unit:{uz:r.unitUz,ru:r.unitRu},price:r.price,cost:r.cost,oldPrice:0,stock:0,receivedQty:0,legacyOpeningQty:0,createdAt:now,updatedAt:now,lastReceivedAt:'',image:r.image,badge:'YANGI',featured:false};
     db.products.push(p);result.created++;
    }else{
-    if(r.sku)p.sku=r.sku;p.cat=cat.id;p.name=p.name||{};p.name.uz=r.nameUz||p.name.uz;p.name.ru=r.nameRu||p.name.ru||p.name.uz;
+    if(r.sku)p.sku=r.sku;else if(!String(p.sku||'').trim())p.sku=autoProductSku(db.products,p.id);p.cat=cat.id;p.name=p.name||{};p.name.uz=r.nameUz||p.name.uz;p.name.ru=r.nameRu||p.name.ru||p.name.uz;
     p.description=p.description||{};if(r.descriptionUz)p.description.uz=r.descriptionUz;if(r.descriptionRu)p.description.ru=r.descriptionRu;
     p.unit={uz:r.unitUz||p.unit?.uz||'dona',ru:r.unitRu||p.unit?.ru||'шт'};
     if(r.price>0)p.price=r.price;if(r.cost>0)p.cost=r.cost;if(r.image)p.image=r.image;p.updatedAt=now;result.updated++;
@@ -807,7 +856,68 @@ app.post('/api/admin/products-import-excel',requireAdmin,requireRole('stock'),ex
  }catch(e){console.error('Excel import:',e);res.status(400).json({error:e.message||'Excel importda xatolik'})}
 });
 
-app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{const db=readDb(),b=req.body||{};if(Array.isArray(b.products))db.products=b.products.slice(0,700).map(p=>({id:Number(p.id)||Date.now()+Math.floor(Math.random()*1000),sku:clean(p.sku,60),cat:clean(p.cat,50),emoji:clean(p.emoji,10)||'🛍️',name:{uz:clean(p.name?.uz,120),ru:clean(p.name?.ru,120)},description:{uz:clean(p.description?.uz,1200),ru:clean(p.description?.ru,1200)},seo:{title:{uz:clean(p.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru,180)},description:{uz:clean(p.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru,400)},keywords:clean(p.seo?.keywords,500)},unit:{uz:clean(p.unit?.uz,30),ru:clean(p.unit?.ru,30)},price:Math.max(0,Number(p.price)||0),cost:Math.max(0,Number(p.cost)||0),oldPrice:Math.max(0,Number(p.oldPrice)||0),stock:Math.max(0,Number(p.stock)||0),receivedQty:Math.max(0,Number(p.receivedQty)||0),legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty)||0),createdAt:clean(p.createdAt,40),updatedAt:clean(p.updatedAt,40)||new Date().toISOString(),lastReceivedAt:clean(p.lastReceivedAt,40),image:String(p.image||'').slice(0,6_000_000),badge:clean(p.badge,30),featured:Boolean(p.featured)}));if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));if(b.settings&&typeof b.settings==='object')db.settings=b.settings;if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);audit(db,req.adminUser,'Katalog/sozlamalar yangilandi');await writeDb(db);res.json({ok:true});});
+function autoProductSku(products=[],excludeId=null){
+ const local=new Date(Date.now()+5*60*60*1000),pad=n=>String(n).padStart(2,'0');
+ const prefix=`IM-${pad(local.getUTCDate())}${pad(local.getUTCMonth()+1)}${local.getUTCFullYear()}`;
+ const used=new Set((products||[]).filter(p=>excludeId===null||Number(p.id)!==Number(excludeId)).map(p=>String(p.sku||'').trim().toUpperCase()).filter(Boolean));
+ let max=0;
+ for(const sku of used){if(!sku.startsWith(prefix))continue;const tail=sku.slice(prefix.length);if(/^\d+$/.test(tail))max=Math.max(max,Number(tail)||0)}
+ let n=max+1,c='';do{c=prefix+String(n++).padStart(2,'0')}while(used.has(c));return c;
+}
+
+function sanitizeCatalogProduct(raw,current=null){
+ const p=raw||{},old=current||{},now=new Date().toISOString();
+ const id=Number(p.id)||Number(old.id)||Date.now()+crypto.randomInt(10,999999);
+ return {
+  id,
+  sku:clean(p.sku!==undefined?p.sku:old.sku,60),
+  cat:clean(p.cat!==undefined?p.cat:old.cat,50),
+  emoji:clean(p.emoji!==undefined?p.emoji:old.emoji,10)||'',
+  name:{uz:clean(p.name?.uz!==undefined?p.name.uz:old.name?.uz,120),ru:clean(p.name?.ru!==undefined?p.name.ru:old.name?.ru,120)},
+  description:{uz:clean(p.description?.uz!==undefined?p.description.uz:old.description?.uz,1200),ru:clean(p.description?.ru!==undefined?p.description.ru:old.description?.ru,1200)},
+  seo:{title:{uz:clean(p.seo?.title?.uz!==undefined?p.seo.title.uz:old.seo?.title?.uz,180),ru:clean(p.seo?.title?.ru!==undefined?p.seo.title.ru:old.seo?.title?.ru,180)},description:{uz:clean(p.seo?.description?.uz!==undefined?p.seo.description.uz:old.seo?.description?.uz,400),ru:clean(p.seo?.description?.ru!==undefined?p.seo.description.ru:old.seo?.description?.ru,400)},keywords:clean(p.seo?.keywords!==undefined?p.seo.keywords:old.seo?.keywords,500)},
+  unit:{uz:clean(p.unit?.uz!==undefined?p.unit.uz:old.unit?.uz,30)||'dona',ru:clean(p.unit?.ru!==undefined?p.unit.ru:old.unit?.ru,30)||'шт'},
+  price:Math.max(0,Number(p.price!==undefined?p.price:old.price)||0),
+  cost:Math.max(0,Number(p.cost!==undefined?p.cost:old.cost)||0),
+  oldPrice:Math.max(0,Number(p.oldPrice!==undefined?p.oldPrice:old.oldPrice)||0),
+  stock:Math.max(0,Number(p.stock!==undefined?p.stock:old.stock)||0),
+  receivedQty:Math.max(0,Number(p.receivedQty!==undefined?p.receivedQty:old.receivedQty)||0),
+  legacyOpeningQty:Math.max(0,Number(p.legacyOpeningQty!==undefined?p.legacyOpeningQty:old.legacyOpeningQty)||0),
+  createdAt:clean(p.createdAt!==undefined?p.createdAt:old.createdAt,40)||now,
+  updatedAt:now,
+  lastReceivedAt:clean(p.lastReceivedAt!==undefined?p.lastReceivedAt:old.lastReceivedAt,40),
+  image:String(p.image!==undefined?p.image:(old.image||'')).slice(0,6_000_000),
+  badge:clean(p.badge!==undefined?p.badge:old.badge,30),
+  featured:p.featured!==undefined?Boolean(p.featured):Boolean(old.featured)
+ };
+}
+
+// V13.26.60 — catalog safe merge.
+// Adminning eskirgan brauzer holati endi serverdagi yangi mahsulotlarni tasodifan o‘chirib yubormaydi.
+// Mahsulot o‘chirish faqat DELETE /api/admin/products/:id orqali bajariladi.
+app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{
+ try{
+  const db=readDb(),b=req.body||{};
+  if(Array.isArray(b.products)){
+   db.products=Array.isArray(db.products)?db.products:[];
+   const pos=new Map(db.products.map((p,i)=>[String(Number(p.id)),i]));
+   for(const raw of b.products.slice(0,700)){
+    const requestedId=Number(raw?.id)||Date.now()+crypto.randomInt(10,999999);
+    const key=String(requestedId),idx=pos.get(key),old=idx!==undefined?db.products[idx]:null;
+    const resolvedSku=clean(raw?.sku,60)||clean(old?.sku,60)||autoProductSku(db.products,requestedId);
+    const safe=sanitizeCatalogProduct({...raw,id:requestedId,sku:resolvedSku},old);
+    if(idx!==undefined)db.products[idx]=safe;
+    else{db.products.push(safe);pos.set(String(safe.id),db.products.length-1);}
+   }
+  }
+  if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));
+  if(b.settings&&typeof b.settings==='object')db.settings={...(db.settings||{}),...b.settings};
+  if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);
+  audit(db,req.adminUser,'Katalog/sozlamalar xavfsiz yangilandi',`products payload: ${Array.isArray(b.products)?b.products.length:'yo‘q'}`);
+  await writeDb(db);
+  res.json({ok:true,productCount:(db.products||[]).length});
+ }catch(e){console.error('Catalog safe merge:',e);res.status(400).json({error:e.message||'Katalogni saqlashda xatolik'})}
+});
 
 app.delete('/api/admin/products/:id',requireAdmin,requireRole('stock'),async(req,res)=>{try{const db=readDb(),id=Number(req.params.id),idx=(db.products||[]).findIndex(p=>Number(p.id)===id);if(idx<0)return res.status(404).json({error:'Mahsulot topilmadi'});const p=db.products[idx];db.products.splice(idx,1);audit(db,req.adminUser,'Mahsulot o‘chirildi',`${p.name?.uz||''} (#${id})`);await writeDb(db);res.json({ok:true,id})}catch(e){res.status(400).json({error:e.message||'Mahsulotni o‘chirishda xatolik'})}});
 app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(req,res)=>{
@@ -826,7 +936,7 @@ app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(
 });
 app.patch('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),r=(db.productRequests||[]).find(x=>x.requestId===req.params.id);if(!r)return res.status(404).json({error:'So‘rov topilmadi'});const st=clean(req.body?.status,30);if(!['new','working','found','closed'].includes(st))return res.status(400).json({error:'Status noto‘g‘ri'});r.status=st;r.updatedAt=new Date().toISOString();audit(db,req.adminUser,'Mahsulot so‘rovi statusi',`${r.requestId}: ${st}`);await writeDb(db);res.json({ok:true});});
 app.delete('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),id=String(req.params.id||''),before=(db.productRequests||[]).length;db.productRequests=(db.productRequests||[]).filter(x=>String(x.requestId)!==id);if(db.productRequests.length===before)return res.status(404).json({error:'So‘rov topilmadi'});audit(db,req.adminUser,'Mahsulot so‘rovi o‘chirildi',id);await writeDb(db);res.json({ok:true,deleted:id});});
-app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);for(const k of ['homeHeroTitle','homeHeroBadge','homeHeroButton'])if(b[k]!==undefined)c[k]=clean(b[k],180);if(b.homeHeroImage!==undefined){const img=String(b.homeHeroImage||'');c.homeHeroImage=/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=2200000?img:'';}if(Array.isArray(b.appBanners))c.appBanners=b.appBanners.slice(0,24).map((x,i)=>({id:clean(x?.id,80)||`app-banner-${Date.now()}-${i}`,title:clean(x?.title,160),kind:['reklama','aksiya','yangilik','boshqa'].includes(String(x?.kind))?String(x.kind):'reklama',active:x?.active!==false,image:(()=>{const img=String(x?.image||'');return /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=1800000?img:''})()})).filter(x=>x.image);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);res.json({ok:true,app:c});});
+app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);for(const k of ['homeHeroTitle','homeHeroBadge','homeHeroButton'])if(b[k]!==undefined)c[k]=clean(b[k],180);if(b.homeHeroImage!==undefined){const img=String(b.homeHeroImage||'');c.homeHeroImage=/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=2200000?img:'';}if(Array.isArray(b.appBanners))c.appBanners=b.appBanners.slice(0,24).map((x,i)=>({id:clean(x?.id,80)||`app-banner-${Date.now()}-${i}`,title:clean(x?.title,160),kind:['reklama','aksiya','yangilik','boshqa'].includes(String(x?.kind))?String(x.kind):'reklama',active:x?.active!==false,image:(()=>{const img=String(x?.image||'');return /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=1800000?img:''})()})).filter(x=>x.image);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);broadcastRealtime('app-control');broadcastAppRealtime('app-control');res.json({ok:true,app:c,revision:appRealtimeRevision});});
 // Admin paneldan APK yuklash / almashtirish.
 app.put('/api/admin/app-apk',requireAdmin,express.raw({type:['application/vnd.android.package-archive','application/octet-stream'],limit:'250mb'}),async(req,res)=>{
  try{
@@ -837,15 +947,16 @@ app.put('/api/admin/app-apk',requireAdmin,express.raw({type:['application/vnd.an
   fs.mkdirSync(APK_DIR,{recursive:true});
   const tmp=APK_FILE+'.uploading';fs.writeFileSync(tmp,req.body);fs.renameSync(tmp,APK_FILE);
   const sha256=crypto.createHash('sha256').update(req.body).digest('hex');
+  await persistApkBinary(req.body,sha256);
   const db=readDb();db.settings=db.settings||{};const c={...defaultSettings.appControl,...(db.settings.appControl||{})};
-  c.apkAvailable=true;c.apkFileName='Zarbuloq.apk';c.apkVersion=version||c.currentVersion||'';c.apkVersionCode=versionCode||Number(c.latestVersionCode||0);c.apkNotes=notes;c.apkUpdatedAt=new Date().toISOString();c.apkSize=req.body.length;c.apkSha256=sha256;c.apkUrl='/downloads/Zarbuloq.apk';c.updateUrl='https://zarbuloq.uz/downloads/Zarbuloq.apk';
+  c.apkAvailable=true;c.apkFileName='Zarbuloq.apk';c.apkVersion=version||c.currentVersion||'';c.apkVersionCode=versionCode||Number(c.latestVersionCode||0);c.apkNotes=notes;c.apkUpdatedAt=new Date().toISOString();c.apkSize=req.body.length;c.apkSha256=sha256;c.apkUrl='/downloads/Zarbuloq.apk';c.updateUrl='https://zarbuloq.uz/downloads/Zarbuloq.apk';if(version)c.currentVersion=version;if(versionCode>0)c.latestVersionCode=versionCode;
   if(version)c.currentVersion=version;if(versionCode)c.latestVersionCode=versionCode;
-  db.settings.appControl=c;audit(db,req.adminUser,'Android APK yangilandi',`v${c.apkVersion||'-'} / ${req.body.length} bytes`);await writeDb(db);broadcastRealtime('app-apk');
-  res.json({ok:true,app:c,apk:{available:true,url:c.apkUrl,size:c.apkSize,sha256:c.apkSha256,updatedAt:c.apkUpdatedAt,version:c.apkVersion,versionCode:c.apkVersionCode}});
+  db.settings.appControl=c;audit(db,req.adminUser,'Android APK yangilandi',`v${c.apkVersion||'-'} / ${req.body.length} bytes`);await writeDb(db);broadcastRealtime('app-apk');broadcastAppRealtime('app-apk');
+  res.json({ok:true,app:c,revision:appRealtimeRevision,apk:{available:true,url:c.apkUrl,size:c.apkSize,sha256:c.apkSha256,updatedAt:c.apkUpdatedAt,version:c.apkVersion,versionCode:c.apkVersionCode}});
  }catch(e){console.error('APK upload:',e);res.status(500).json({error:'APK yuklab bo‘lmadi'})}
 });
 app.delete('/api/admin/app-apk',requireAdmin,async(req,res)=>{
- try{if(fs.existsSync(APK_FILE))fs.unlinkSync(APK_FILE);const db=readDb();db.settings=db.settings||{};const c={...defaultSettings.appControl,...(db.settings.appControl||{})};c.apkAvailable=false;c.apkSize=0;c.apkSha256='';c.apkUpdatedAt=new Date().toISOString();db.settings.appControl=c;audit(db,req.adminUser,'Android APK o‘chirildi');await writeDb(db);broadcastRealtime('app-apk');res.json({ok:true,app:c})}catch(e){res.status(500).json({error:'APKni o‘chirib bo‘lmadi'})}
+ try{if(fs.existsSync(APK_FILE))fs.unlinkSync(APK_FILE);await deleteApkBinary();const db=readDb();db.settings=db.settings||{};const c={...defaultSettings.appControl,...(db.settings.appControl||{})};c.apkAvailable=false;c.apkSize=0;c.apkSha256='';c.apkUpdatedAt=new Date().toISOString();db.settings.appControl=c;audit(db,req.adminUser,'Android APK o‘chirildi');await writeDb(db);broadcastRealtime('app-apk');broadcastAppRealtime('app-apk-delete');res.json({ok:true,app:c,revision:appRealtimeRevision})}catch(e){res.status(500).json({error:'APKni o‘chirib bo‘lmadi'})}
 });
 
 app.post('/api/admin/app-notifications',requireAdmin,async(req,res)=>{

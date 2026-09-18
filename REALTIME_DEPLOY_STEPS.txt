@@ -1,0 +1,15 @@
+ZARBULOQ v13.26.59 + Android v5.0.13 — DEPLOY TARTIBI
+
+1) Avval sayt/admin ZIP ichidagi fayllarni GitHub sayt repoga yuklang va Render deploy Live bo‘lishini kuting.
+2) Tekshirish:
+   /api/status
+   /api/app-realtime/health
+   /api/app-config
+3) Admin panel → Ilova boshqaruvi → biror xabarnoma matnini o‘zgartirib Saqlash bosing.
+4) Android v5.0.13 source'ni Android GitHub repoga yuklang va Actions orqali APK build qiling.
+5) Yangi APKni Admin panel → Ilova boshqaruvi orqali yuklang:
+   version = 5.0.13
+   versionCode = 5013
+6) APK yuklanganda currentVersion/latestVersionCode avtomatik sinxronlanadi.
+7) Ilova ochiq turganda admin o‘zgarishi SSE orqali darhol keladi; SSE uzilsa 15 soniyalik fallback sync ishlaydi.
+8) APK PostgreSQL app_binary jadvalida saqlanadi, local DATA_DIR cache sifatida ishlaydi.
