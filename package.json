@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.68",
+  "version": "13.26.69",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.68 — Android home: new products, product sales, 5x3 linked ads; product-specific discounts from admin; finance discount tracking; v13.26.65 PDF fixes preserved.",
+  "description": "ZARBULOQ.UZ v13.26.69 — Android modern UI v5.0.17 support, category icon manager, PRO price 6 products per A4 page; durable DB product guard preserved.",
   "scripts": {
     "start": "node server.js"
   },

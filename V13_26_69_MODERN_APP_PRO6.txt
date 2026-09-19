@@ -1,0 +1,8 @@
+ZARBULOQ.UZ v13.26.69 — MODERN APP + CATEGORY ICONS + PRO 6/PAGE
+
+- Admin → Mahsulotlar → Kategoriyalar: 6 ta tayyor ikonka uslubi.
+- Har kategoriya uchun alohida PNG/JPG/WEBP ikonka yuklash ham mumkin; 256x256 WebP qilib ixchamlanadi.
+- Android v5.0.17 iconKey/iconImage maydonlarini real-time katalogdan oladi.
+- PRO prays: yangi 6 ta / varoq varianti qo‘shildi va default qilindi.
+- 6 ta mahsulot A4 landscape sahifada 3 ustun × 2 qator ko‘rinishida.
+- v13.26.67 DB PRODUCT GUARD va oldingi barcha funksiyalar saqlangan.

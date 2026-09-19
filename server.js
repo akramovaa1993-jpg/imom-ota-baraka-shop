@@ -23,7 +23,7 @@ const pool = DATABASE_URL ? new Pool({connectionString:DATABASE_URL,ssl:DATABASE
 if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.message));
 let dbCache = null;
 let persistChain = Promise.resolve();
-// V13.26.67 — durable product guard.
+// V13.26.69 — modern app category icons + PRO price 6/page; durable product guard preserved.
 // Keeps the last successfully committed product snapshots separately from dbCache so an
 // accidental full-state overwrite can never silently remove products.
 let committedProducts = new Map();
@@ -413,7 +413,7 @@ const defaultSettings={
  ],
  heroSlides:[{id:'slide-1',image:'parkent-slide-1.webp',active:true}],
  phone:'+998901361211',telegram:'https://t.me/imomotabaraka',email:'info@imomotamarket.uz',
- appControl:{currentVersion:'4.9.4',latestVersionCode:74,minVersionCode:68,forceUpdate:false,maintenance:false,maintenanceMessage:'Ilovada texnik ishlar olib borilmoqda. Iltimos, birozdan so‘ng qayta urinib ko‘ring.',updateTitle:'Yangi versiya mavjud',updateMessage:'ZARBULOQ.UZ ilovasining yangi versiyasini o‘rnating.',updateUrl:'https://zarbuloq.uz/downloads/Zarbuloq.apk',noticeEnabled:false,noticeText:'',productRequestEnabled:true,liveChatEnabled:true,reviewsEnabled:true,trackingEnabled:true,supportPhone:'+998901361211',supportTelegram:'https://t.me/imomotabaraka',homeHeroImage:'',homeHeroTitle:'Tabiatning ezgu ne’matlari sizning uyingizda!',homeHeroBadge:'100% TABIIY',homeHeroButton:'Mahsulotga so‘rov qoldirish',appBanners:[],apkAvailable:false,apkFileName:'Zarbuloq.apk',apkVersion:'',apkVersionCode:0,apkNotes:'',apkUpdatedAt:'',apkSize:0,apkSha256:'',apkUrl:'/downloads/Zarbuloq.apk'},
+ appControl:{currentVersion:'4.9.4',latestVersionCode:74,minVersionCode:68,forceUpdate:false,maintenance:false,maintenanceMessage:'Ilovada texnik ishlar olib borilmoqda. Iltimos, birozdan so‘ng qayta urinib ko‘ring.',updateTitle:'Yangi versiya mavjud',updateMessage:'ZARBULOQ.UZ ilovasining yangi versiyasini o‘rnating.',updateUrl:'https://zarbuloq.uz/downloads/Zarbuloq.apk',noticeEnabled:false,noticeText:'',productRequestEnabled:true,liveChatEnabled:true,reviewsEnabled:true,trackingEnabled:true,supportPhone:'+998901361211',supportTelegram:'https://t.me/imomotabaraka',homeHeroImage:'',homeHeroTitle:'Tabiatning ezgu ne’matlari sizning uyingizda!',homeHeroBadge:'100% TABIIY',homeHeroButton:'Mahsulotga so‘rov qoldirish',homeNewsTitleUz:'Yangiliklar',homeNewsTitleRu:'Новинки',homeSalesTitleUz:'Aksiyalar',homeSalesTitleRu:'Акции',homeAdsTitleUz:'Reklamalar',homeAdsTitleRu:'Реклама',homeProductsTitleUz:'Mahsulotlar',homeProductsTitleRu:'Товары',homeSeeAllUz:'Barchasini ko‘rish',homeSeeAllRu:'Смотреть все',appBanners:[],apkAvailable:false,apkFileName:'Zarbuloq.apk',apkVersion:'',apkVersionCode:0,apkNotes:'',apkUpdatedAt:'',apkSize:0,apkSha256:'',apkUrl:'/downloads/Zarbuloq.apk'},
  delivery:{free:true,district:'Parkent tumani',areas:['Parkent shahri','Chinor','Zarkent','So‘qoq','Kumushkon','Nevich','Boshqizilsoy','Changi','Qoraqalpoq','Nomdanak'],slots:['09:00–12:00','12:00–15:00','15:00–18:00','18:00–21:00']},
  seo:{title:'IMOM OTA BARAKA — ZARBULOQ.UZ',description:'ZARBULOQ.UZ — Parkent tumani bo‘ylab bepul yetkazib beruvchi IMOM OTA BARAKA internet do‘koni.',keywords:'zarbuloq, imom ota baraka, parkent, internet do‘kon, bepul yetkazib berish'}
 };
@@ -669,7 +669,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.67',adminFix:'realtime-app-control-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.69',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -691,7 +691,7 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.67',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.69',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/admin/storage-diagnostics',requireAdmin,async(req,res)=>{
  try{
   const cacheCount=Array.isArray(dbCache?.products)?dbCache.products.length:0;
@@ -727,10 +727,10 @@ app.get('/api/app-events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
-app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.67',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.69',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
 
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.67',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.69',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -1016,7 +1016,7 @@ app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{
     else{db.products.push(safe);pos.set(String(safe.id),db.products.length-1);}
    }
   }
-  if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));
+  if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,iconKey:clean(c.iconKey||c.icon,40),iconImage:String(c.iconImage||'').slice(0,1_500_000),name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));
   if(b.settings&&typeof b.settings==='object')db.settings={...(db.settings||{}),...b.settings};
   if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);
   audit(db,req.adminUser,'Katalog/sozlamalar xavfsiz yangilandi',`products payload: ${Array.isArray(b.products)?b.products.length:'yo‘q'}`);
@@ -1042,7 +1042,7 @@ app.post('/api/admin/inventory-receive',requireAdmin,requireRole('stock'),async(
 });
 app.patch('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),r=(db.productRequests||[]).find(x=>x.requestId===req.params.id);if(!r)return res.status(404).json({error:'So‘rov topilmadi'});const st=clean(req.body?.status,30);if(!['new','working','found','closed'].includes(st))return res.status(400).json({error:'Status noto‘g‘ri'});r.status=st;r.updatedAt=new Date().toISOString();audit(db,req.adminUser,'Mahsulot so‘rovi statusi',`${r.requestId}: ${st}`);await writeDb(db);res.json({ok:true});});
 app.delete('/api/admin/product-requests/:id',requireAdmin,async(req,res)=>{const db=readDb(),id=String(req.params.id||''),before=(db.productRequests||[]).length;db.productRequests=(db.productRequests||[]).filter(x=>String(x.requestId)!==id);if(db.productRequests.length===before)return res.status(404).json({error:'So‘rov topilmadi'});audit(db,req.adminUser,'Mahsulot so‘rovi o‘chirildi',id);await writeDb(db);res.json({ok:true,deleted:id});});
-app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);for(const k of ['homeHeroTitle','homeHeroBadge','homeHeroButton'])if(b[k]!==undefined)c[k]=clean(b[k],180);if(b.homeHeroImage!==undefined){const img=String(b.homeHeroImage||'');c.homeHeroImage=/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=2200000?img:'';}if(Array.isArray(b.appBanners))c.appBanners=b.appBanners.slice(0,15).map((x,i)=>({id:clean(x?.id,80)||`app-banner-${Date.now()}-${i}`,title:clean(x?.title,160),kind:['reklama','aksiya','yangilik','boshqa'].includes(String(x?.kind))?String(x.kind):'reklama',link:clean(x?.link||x?.url,1000),active:x?.active!==false,image:(()=>{const img=String(x?.image||'');return /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=1800000?img:''})()})).filter(x=>x.image);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);broadcastRealtime('app-control');broadcastAppRealtime('app-control');res.json({ok:true,app:c,revision:appRealtimeRevision});});
+app.put('/api/admin/app-config',requireAdmin,async(req,res)=>{const db=readDb(),b=req.body||{},prev={...defaultSettings.appControl,...(db.settings?.appControl||{})};const c={...prev};if(b.currentVersion!==undefined)c.currentVersion=clean(b.currentVersion,30)||prev.currentVersion;for(const k of ['latestVersionCode','minVersionCode'])if(b[k]!==undefined)c[k]=Math.max(1,Math.floor(Number(b[k])||1));for(const k of ['forceUpdate','maintenance','noticeEnabled','productRequestEnabled','liveChatEnabled','reviewsEnabled','trackingEnabled'])if(b[k]!==undefined)c[k]=Boolean(b[k]);for(const k of ['maintenanceMessage','updateTitle','updateMessage','noticeText'])if(b[k]!==undefined)c[k]=clean(b[k],700);for(const k of ['updateUrl','supportPhone','supportTelegram'])if(b[k]!==undefined)c[k]=clean(b[k],500);for(const k of ['homeHeroTitle','homeHeroBadge','homeHeroButton'])if(b[k]!==undefined)c[k]=clean(b[k],180);for(const k of ['homeNewsTitleUz','homeNewsTitleRu','homeSalesTitleUz','homeSalesTitleRu','homeAdsTitleUz','homeAdsTitleRu','homeProductsTitleUz','homeProductsTitleRu','homeSeeAllUz','homeSeeAllRu'])if(b[k]!==undefined)c[k]=clean(b[k],120);if(b.homeHeroImage!==undefined){const img=String(b.homeHeroImage||'');c.homeHeroImage=/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=2200000?img:'';}if(Array.isArray(b.appBanners))c.appBanners=b.appBanners.slice(0,15).map((x,i)=>({id:clean(x?.id,80)||`app-banner-${Date.now()}-${i}`,title:clean(x?.title,160),description:clean(x?.description,240),kind:['reklama','aksiya','yangilik','boshqa'].includes(String(x?.kind))?String(x.kind):'reklama',link:clean(x?.link||x?.url,1000),active:x?.active!==false,image:(()=>{const img=String(x?.image||'');return /^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(img)&&img.length<=1800000?img:''})()})).filter(x=>x.image);db.settings=db.settings||{};db.settings.appControl=c;audit(db,req.adminUser,'Ilova boshqaruvi yangilandi',`v${c.currentVersion} / code ${c.latestVersionCode}`);await writeDb(db);broadcastRealtime('app-control');broadcastAppRealtime('app-control');res.json({ok:true,app:c,revision:appRealtimeRevision});});
 // Admin paneldan APK yuklash / almashtirish.
 app.put('/api/admin/app-apk',requireAdmin,express.raw({type:['application/vnd.android.package-archive','application/octet-stream'],limit:'250mb'}),async(req,res)=>{
  try{
@@ -1596,7 +1596,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.67 HOME SALES FINANCE / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.69 MODERN APP + CATEGORY ICONS + PRO6 / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

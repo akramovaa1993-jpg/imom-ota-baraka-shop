@@ -1,0 +1,21 @@
+ZARBULOQ.UZ SITE + ADMIN v13.26.69 — MODERN APP + PRO6
+
+ASOSIY QO‘SHILGANLAR:
+- Admin kategoriya ikonkalari:
+  home / perfume / liquid / leaf / clean / personal
+- Har kategoriya uchun custom rasm yuklash mumkin.
+- Android v5.0.17 kategoriya ikonkalari bilan mos.
+- PRO praysda “6 ta / varoq” qo‘shildi va default qilindi.
+- 6 ta mahsulot uchun A4 landscape: 3 ustun x 2 qator.
+- v13.26.67 PostgreSQL PRODUCT GUARD saqlangan.
+- v13.26.68 app text control saqlangan.
+- Real-time app-config saqlangan.
+
+DEPLOY:
+1. Ushbu papkani Render/GitHub server repo sifatida deploy qiling.
+2. DATABASE_URL va oldingi Environment qiymatlarini o‘zgartirmang.
+3. Deploy logida PostgreSQL persistent holatini tekshiring.
+4. Admin -> kategoriyalar orqali ikonka tanlang yoki custom rasm yuklang.
+5. PRO Prays -> 6 ta / varoq variantini tanlang (default 6).
+
+Version: 13.26.69
