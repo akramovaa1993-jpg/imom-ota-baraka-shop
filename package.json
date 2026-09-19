@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.61",
+  "version": "13.26.64",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.61 — automatic unique product SKU + prior real-time app-control and safe catalog merge fixes",
+  "description": "ZARBULOQ.UZ v13.26.64 — Android home banner + promo realtime sync, promo link/O‘tish support, products moved to Products tab; prior fixes preserved",
   "scripts": {
     "start": "node server.js"
   },

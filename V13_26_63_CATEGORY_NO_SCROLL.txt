@@ -1,0 +1,6 @@
+ZARBULOQ v13.26.63 — CATEGORY NO AUTO SCROLL
+
+- Kategoriya tugmasini bosganda sahifa #products ga avtomatik pastga sakramaydi.
+- Foydalanuvchining joriy scroll pozitsiyasi saqlanadi.
+- Mahsulot filtri va kategoriya active holati odatdagidek ishlaydi.
+- v13.26.62 dagi PRO prays Excel URL rasm fix, Auto-SKU, safe merge va real-time app control saqlangan.

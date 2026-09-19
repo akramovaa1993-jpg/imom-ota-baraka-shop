@@ -1,0 +1,7 @@
+ZARBULOQ v13.26.62 — PRO PRAYS EXCEL IMAGE FIX
+
+- Excel orqali Rasm URL bilan import qilingan mahsulot rasmlari PRO prays preview/PDFda chiqadi.
+- Tashqi rasm URLlari /api/image-proxy orqali same-origin qilib olinadi (html2canvas CORS muammosi bartaraf etildi).
+- PDF generatsiyasidan oldin barcha rasmlar yuklanishini 15 soniyagacha kutadi.
+- Avval import qilingan URL rasmlarini qayta import qilish shart emas.
+- Auto SKU, PostgreSQL, mahsulot safe-merge va Android real-time app-control saqlangan.
