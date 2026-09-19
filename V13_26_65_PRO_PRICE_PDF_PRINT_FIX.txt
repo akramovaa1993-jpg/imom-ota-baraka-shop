@@ -1,0 +1,12 @@
+ZARBULOQ.UZ v13.26.65 — PRO PRICE PDF PRINT FIX
+
+Tuzatildi:
+- PRO prays preview: 1 dizayn sahifa = 1 A4 landscape PDF sahifa.
+- 9 mantiqiy sahifa 10 ta fizik sahifaga bo‘linib ketishi bartaraf etildi.
+- @page margin 0 va qat’iy 297x210 mm o‘lcham qo‘llandi.
+- Har .pro-price-page break-inside: avoid va page-break-after bilan ajratildi.
+- Kartalar balandligi barqarorlashtirildi, footer sahifa pastiga mahkamlandi.
+- Preview toolbar print/PDF ichiga tushmaydi.
+- Previewga “Toza PDF yuklab olish” tugmasi qo‘shildi; u jsPDF orqali brauzer header/footerlarisiz PDF yaratadi.
+- Oddiy “Chop etish” ham saqlandi.
+- v13.26.64 dagi Android home promo/link, real-time, category no-scroll, PRO price external image proxy va boshqa barcha oldingi tuzatishlar saqlandi.

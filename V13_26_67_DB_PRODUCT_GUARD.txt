@@ -1,0 +1,9 @@
+ZARBULOQ.UZ v13.26.67 — DATABASE PRODUCT GUARD
+
+- PostgreSQL-first durable writes: server updates RAM/local copy only after PostgreSQL commit succeeds.
+- Last successfully committed products are tracked separately.
+- Any accidental write that removes products is automatically healed before commit.
+- Product deletion remains possible only through the explicit DELETE endpoint.
+- Backup restore may intentionally replace the product set.
+- Admin-only /api/admin/storage-diagnostics compares RAM/committed/PostgreSQL product counts.
+- All v13.26.66 Home/Sales/Finance, app sync and PRO price fixes preserved.

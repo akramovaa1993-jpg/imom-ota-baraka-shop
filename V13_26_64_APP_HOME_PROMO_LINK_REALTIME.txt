@@ -1,0 +1,10 @@
+ZARBULOQ v13.26.64 — APP HOME PROMO LINK + REALTIME
+
+1. Admin -> Ilova boshqaruvi -> reklama/aksiya kartasiga Ssylka / havola maydoni qo‘shildi.
+2. Promo banner linki app-config orqali Android ilovaga uzatiladi.
+3. Android bosh sahifada admin qo‘shgan faol promo rasmlar real-time ko‘rinadi.
+4. Banner sarlavhasi/badge adminda bo‘sh bo‘lsa Android eski standart matnni qayta qo‘ymaydi.
+5. Android Bosh sahifa: asosiy banner + promo/aksiya rasmlari.
+6. Mahsulot kartalari faqat Mahsulotlar bo‘limida.
+7. Promo bannerga link berilsa, rasm tagida “O‘tish →” chiqadi va bosilganda link ochiladi.
+8. v13.26.63 va undan oldingi barcha tuzatishlar saqlangan.

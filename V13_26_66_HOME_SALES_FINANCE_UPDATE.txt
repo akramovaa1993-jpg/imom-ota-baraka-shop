@@ -1,0 +1,25 @@
+ZARBULOQ.UZ v13.26.66 — HOME + SALES + FINANCE
+
+ASOSIY YANGILIKLAR
+1. Admin > Promo / Aksiyalar ichida mahsulotga alohida aksiya qo‘yish:
+   - SKU yoki mahsulot nomi orqali tanlash
+   - foiz (%) yoki qat’iy summa chegirma
+   - boshlanish/tugash sanasi
+   - faol/o‘chiq holati
+2. Faol aksiya sayt va Android katalogiga avtomatik qo‘llanadi.
+3. Katalog API aksiya narxini, eski narxni va chegirma foizini beradi.
+4. Buyurtmada mahsulot aksiyasi alohida hisoblanadi:
+   - originalSubtotal
+   - productDiscount
+   - subtotal
+   - promoCode discount
+   - final total
+5. Finansda aksiya chegirmasi va promo-kod chegirmasi alohida ko‘rinadi.
+6. Chek va hisob-fakturada mahsulot aksiyasi va promo-kod chegirmasi alohida ko‘rsatiladi.
+7. Ilova reklama bannerlari limiti 15 ta (5 qator x 3 ta), har birida link bo‘lishi mumkin.
+8. Katalog/aksiya o‘zgarishlarida Androidga real-time signal yuboriladi.
+9. v13.26.65 PRO prays PDF tuzatishlari va oldingi barcha muhim fixlar saqlangan.
+
+DEPLOY
+- Sayt/admin repoga ushbu papka ichidagi fayllarni yuklang.
+- Render Live bo‘lgach /api/catalog va admin Promo / Aksiyalar bo‘limini tekshiring.
