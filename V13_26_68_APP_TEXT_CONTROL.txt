@@ -1,0 +1,6 @@
+ZARBULOQ.UZ v13.26.68 — APP TEXT CONTROL
+
+- Admin > Ilova boshqaruvi: Yangiliklar, Aksiyalar, Reklamalar, Mahsulotlar va Barchasini ko‘rish matnlari UZ/RU tahrirlanadi.
+- Har bir ilova reklamasiga sarlavha + osti yozuvi (description) beriladi.
+- O‘zgarishlar /api/app-config orqali Androidga real-time yuboriladi.
+- v13.26.67 PostgreSQL PRODUCT GUARD saqlangan.
