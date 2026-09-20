@@ -1,0 +1,8 @@
+V13.26.70 — CATEGORY PROGRESS + PRODUCT BACK SCROLL FIX
+
+- Admin kategoriya rasm yuklashda 0–100% progress ko‘rinadi.
+- Kategoriya uchun badge/ustidagi yozuv qo‘lda kiritiladi.
+- Qo‘shimcha matn va qo‘shimcha ma’lumot qo‘lda kiritiladi.
+- Barcha maydonlar katalog API orqali saqlanadi.
+- Saytda mahsulot sahifasini ochib orqaga qaytganda ekran aynan oldingi katalog joyiga qaytadi.
+- Mahsulot SEO sahifasidagi “Mahsulotlarga qaytish” tugmasi brauzer tarixidan foydalanadi.
