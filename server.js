@@ -34,7 +34,7 @@ const pool = DATABASE_URL ? new Pool({
  keepAlive:true,
  keepAliveInitialDelayMillis:10000,
  allowExitOnIdle:false,
- application_name:'zarbuloq-v13.26.74'
+ application_name:'zarbuloq-v13.26.75'
 }) : null;
 if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.code||'',err.message));
 
@@ -64,7 +64,7 @@ async function dbQuery(text,params=[],opts={}){
 }
 let dbCache = null;
 let persistChain = Promise.resolve();
-// V13.26.74 — SECURITY HARDENED + server stability; durable product guard preserved.
+// V13.26.75 — ADMIN PRODUCT SYNC FIX + SECURITY HARDENED; durable product guard preserved.
 // Keeps the last successfully committed product snapshots separately from dbCache so an
 // accidental full-state overwrite can never silently remove products.
 let committedProducts = new Map();
@@ -613,6 +613,23 @@ function readLocal(){
  try{return normalizeDb(JSON.parse(fs.readFileSync(DB_FILE,'utf8')))}catch{return normalizeDb(initialDb())}
 }
 function readDb(){return dbCache || readLocal();}
+function adminProductImageUrl(p){
+ const raw=String(p?.image||'').trim();
+ if(!raw)return '';
+ // Large data: images stay in PostgreSQL; admin JSON only receives a lightweight URL.
+ if(/^data:image\//i.test(raw))return `/api/admin/products/${encodeURIComponent(String(p.id))}/image?v=${encodeURIComponent(String(p.updatedAt||p.createdAt||''))}`;
+ return raw;
+}
+function adminProductPayload(p){
+ const out=cloneProductSafe(p||{});
+ out.image=adminProductImageUrl(p);
+ return out;
+}
+function isAdminImageProxy(raw,id){
+ const v=String(raw||'');
+ const n=String(Number(id));
+ return v.includes(`/api/admin/products/${n}/image`);
+}
 async function persistRemote(snapshot){
  if(!pool)return;
  await dbQuery('INSERT INTO shop_state (id,data,updated_at) VALUES (1,$1::jsonb,NOW()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=NOW()',[snapshot]);
@@ -824,7 +841,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.74',adminFix:'realtime-app-control-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.75',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -846,14 +863,14 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.74',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.75',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/healthz',async(req,res)=>{
  try{
   if(pool)await dbQuery('SELECT 1',[],{retries:1});
   res.setHeader('Cache-Control','no-store');
-  res.json({ok:true,version:'13.26.74',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
+  res.json({ok:true,version:'13.26.75',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
  }catch(e){
-  res.status(503).json({ok:false,version:'13.26.74',error:e.message||'database_unavailable',at:new Date().toISOString()});
+  res.status(503).json({ok:false,version:'13.26.75',error:e.message||'database_unavailable',at:new Date().toISOString()});
  }
 });
 app.get('/api/admin/storage-diagnostics',requireAdmin,async(req,res)=>{
@@ -891,7 +908,7 @@ app.get('/api/app-events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
-app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.74',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.75',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
 
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
 app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.74',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
@@ -1004,7 +1021,37 @@ app.post('/api/admin/logout',(req,res)=>{
 });
 app.get('/api/admin/me',requireAdmin,(req,res)=>res.json({ok:true,user:req.adminUser,role:req.adminRole}));
 
+// V13.26.75 — admin product list is loaded independently from the heavy dashboard payload.
+app.get('/api/admin/products',requireAdmin,(req,res)=>{
+ const db=normalizeDb(readDb()||initialDb());
+ res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+ res.setHeader('Pragma','no-cache');
+ res.setHeader('Expires','0');
+ const products=(db.products||[]).map(adminProductPayload);
+ res.json({ok:true,products,categories:db.categories||[],productCount:products.length,storage:pool?'postgresql':'local-json',revision:realtimeRevision,updatedAt:new Date().toISOString()});
+});
+app.get('/api/admin/products/:id/image',requireAdmin,(req,res)=>{
+ try{
+  const db=readDb(),id=Number(req.params.id),p=(db.products||[]).find(x=>Number(x.id)===id);
+  if(!p||!p.image)return res.status(404).end();
+  const raw=String(p.image||'').trim();
+  const m=raw.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,(.+)$/i);
+  if(m){
+   const mime=m[1].toLowerCase()==='image/jpg'?'image/jpeg':m[1].toLowerCase();
+   const buf=Buffer.from(m[2],'base64');
+   res.setHeader('Content-Type',mime);
+   res.setHeader('Cache-Control','private, max-age=3600');
+   return res.end(buf);
+  }
+  if(/^https?:\/\//i.test(raw)||raw.startsWith('/'))return res.redirect(raw);
+  return res.redirect('/'+raw.replace(/^\/+/,''));
+ }catch(e){return res.status(404).end()}
+});
+
 app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
+ res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+ res.setHeader('Pragma','no-cache');
+ res.setHeader('Expires','0');
  const db=normalizeDb(readDb()||initialDb()),orders=db.orders||[],products=db.products||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[];const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);const done=orders.filter(o=>['completed','done'].includes(o.status));
  const costFor=o=>(o.items||[]).reduce((s,i)=>{const p=products.find(x=>Number(x.id)===Number(i.id));return s+(Number(p?.cost||0)*Number(i.qty||1));},0);
  const revenue=done.reduce((s,o)=>s+Number(o.total||0),0),profit=done.reduce((s,o)=>s+Number(o.total||0)-costFor(o),0);const avg=done.length?Math.round(revenue/done.length):0;
@@ -1027,7 +1074,7 @@ app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
  const perf=[...perfMap.values()].map(r=>{if(r.lastSaleAt){const t=new Date(r.lastSaleAt).getTime();r.daysSinceLastSale=Number.isFinite(t)?Math.max(0,Math.floor((nowMs-t)/86400000)):null}r.turnoverRate=(r.soldQty+r.stock)>0?Math.round((r.soldQty/(r.soldQty+r.stock))*1000)/10:0;r.risk=r.stock<=5?'low-stock':(r.stock>0&&(r.soldQty===0||(r.daysSinceLastSale!==null&&r.daysSinceLastSale>=30)))?'stagnant':r.soldQty>0?'normal':'no-sales';return r});
  const bySold=[...perf].sort((a,b)=>b.soldQty-a.soldQty||b.soldAmount-a.soldAmount), lowSold=[...perf].filter(x=>x.stock>0).sort((a,b)=>a.soldQty-b.soldQty||b.stock-a.stock), stagnant=[...perf].filter(x=>x.risk==='stagnant').sort((a,b)=>(b.daysSinceLastSale??9999)-(a.daysSinceLastSale??9999)||b.stockValue-a.stockValue), lowStock=[...perf].filter(x=>x.stock<=5).sort((a,b)=>a.stock-b.stock);
  const salesIntelligence={sources:sourceBase,topProducts:bySold.slice(0,20),lowProducts:lowSold.slice(0,20),stagnant:stagnant.slice(0,50),lowStock:lowStock.slice(0,50),inventoryValue:perf.reduce((a,x)=>a+x.stockValue,0),soldQty:perf.reduce((a,x)=>a+x.soldQty,0),soldAmount:perf.reduce((a,x)=>a+x.soldAmount,0),activeProducts:perf.filter(x=>x.soldQty>0).length,noSaleProducts:perf.filter(x=>x.soldQty===0&&x.stock>0).length};
- res.json({salesIntelligence,visitorStats:visitorStats(db),visits:(db.visits||[]).slice().reverse().slice(0,1000),role:req.adminRole,financeQuick:{summary:financeSummary(db,{period:'monthly',value:month}),balance:financeCurrentBalance(db)},warehousePurchases:(db.financePurchases||[]).slice().reverse().slice(0,1500).map(x=>{const c=(db.financeCompanies||[]).find(z=>String(z.id)===String(x.companyId)),p=(db.products||[]).find(z=>Number(z.id)===Number(x.productId));return {id:x.id,productId:Number(x.productId),productName:p?.name?.uz||x.productName||'',unit:p?.unit?.uz||x.unit||'',companyId:x.companyId,companyName:c?.name||'',companyInn:c?.inn||'',date:x.date||'',invoice:x.invoice||'',qty:finNum(x.qty),unitCost:finNum(x.unitCost),salePrice:finNum(x.salePrice||x.suggestedSalePrice),total:finNum(x.total)}}),productReviews:(db.productReviews||[]).slice(0,2000).map(r=>{const p=products.find(x=>String(x.id)===String(r.productId));return {...r,reviewerKey:undefined,productName:p?.name?.uz||p?.name?.ru||('Mahsulot #'+r.productId)}}),productRequests:(db.productRequests||[]).slice(0,500),orderComplaints:(db.orderComplaints||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),appNotifications:(db.appNotifications||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','preparing','delivery','delivered'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],productPromotions:db.productPromotions||[],audit:(db.audit||[]).slice(0,500),analytics,charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
+ res.json({salesIntelligence,visitorStats:visitorStats(db),visits:(db.visits||[]).slice().reverse().slice(0,1000),role:req.adminRole,financeQuick:{summary:financeSummary(db,{period:'monthly',value:month}),balance:financeCurrentBalance(db)},warehousePurchases:(db.financePurchases||[]).slice().reverse().slice(0,1500).map(x=>{const c=(db.financeCompanies||[]).find(z=>String(z.id)===String(x.companyId)),p=(db.products||[]).find(z=>Number(z.id)===Number(x.productId));return {id:x.id,productId:Number(x.productId),productName:p?.name?.uz||x.productName||'',unit:p?.unit?.uz||x.unit||'',companyId:x.companyId,companyName:c?.name||'',companyInn:c?.inn||'',date:x.date||'',invoice:x.invoice||'',qty:finNum(x.qty),unitCost:finNum(x.unitCost),salePrice:finNum(x.salePrice||x.suggestedSalePrice),total:finNum(x.total)}}),productReviews:(db.productReviews||[]).slice(0,2000).map(r=>{const p=products.find(x=>String(x.id)===String(r.productId));return {...r,reviewerKey:undefined,productName:p?.name?.uz||p?.name?.ru||('Mahsulot #'+r.productId)}}),productRequests:(db.productRequests||[]).slice(0,500),orderComplaints:(db.orderComplaints||[]).slice(0,500),chats:(db.chats||[]).slice(0,500),appNotifications:(db.appNotifications||[]).slice(0,500),stats:{orders:orders.length,today:orders.filter(o=>String(o.createdAt||'').slice(0,10)===today).length,month:orders.filter(o=>String(o.createdAt||'').slice(0,7)===month).length,year:orders.filter(o=>String(o.createdAt||'').slice(0,4)===year).length,revenue,profit,avg,pending:orders.filter(o=>['new','accepted','preparing','delivery','delivered'].includes(o.status)).length,cancelled:orders.filter(o=>o.status==='cancelled').length,lowStock:products.filter(p=>Number(p.stock||0)<=5).length,customers:getCustomers(orders).length},orders:orders.slice().reverse().slice(0,300),products:products.map(adminProductPayload),categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',customers:getCustomers(orders),promos:db.promos||[],productPromotions:db.productPromotions||[],audit:(db.audit||[]).slice(0,500),analytics,charts:{last7,topProducts:Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,qty])=>({name,qty})),areas:Object.entries(areaMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))}});
 });
 
 // V13.26.56 — Excel orqali omborga mahsulot importi.
@@ -1173,7 +1220,7 @@ function sanitizeCatalogProduct(raw,current=null){
   createdAt:clean(p.createdAt!==undefined?p.createdAt:old.createdAt,40)||now,
   updatedAt:now,
   lastReceivedAt:clean(p.lastReceivedAt!==undefined?p.lastReceivedAt:old.lastReceivedAt,40),
-  image:String(p.image!==undefined?p.image:(old.image||'')).slice(0,6_000_000),
+  image:(()=>{const incoming=String(p.image!==undefined?p.image:(old.image||''));return isAdminImageProxy(incoming,id)?String(old.image||''):incoming.slice(0,6_000_000)})(),
   badge:clean(p.badge!==undefined?p.badge:old.badge,30),
   featured:p.featured!==undefined?Boolean(p.featured):Boolean(old.featured)
  };

@@ -1,0 +1,20 @@
+ZARBULOQ.UZ v13.26.75 — ADMIN PRODUCT SYNC FIX
+
+Muammo:
+- PostgreSQL ichida mahsulotlar saqlanib turgan bo‘lsa ham admin panel mahsulotlar ro‘yxati ba'zan yo‘qolib/bo‘sh ko‘rinishi mumkin edi.
+- Admin dashboard har real-time signalda katta mahsulot rasmlari bilan birga to‘liq JSONni qayta yuklardi.
+
+Tuzatildi:
+1. /api/admin/products — alohida no-cache mahsulotlar endpointi qo‘shildi.
+2. Mahsulotlar bo‘limi real-time signalda aynan mahsulotlar endpointidan qayta sinxronlanadi.
+3. Admin dashboard va mahsulot API uchun Cache-Control: no-store qo‘shildi.
+4. Katta base64 mahsulot rasmlari dashboard JSON ichida yuborilmaydi; rasm alohida /api/admin/products/:id/image orqali olinadi. PostgreSQLdagi original rasm o‘zgarmaydi.
+5. Mahsulotni tahrirlashda proxy rasm URL original bazadagi rasmni ustidan yozib yubormasligi uchun server himoyasi qo‘shildi.
+6. Excel importdan keyin to‘g‘ridan-to‘g‘ri bazadagi mahsulotlar ro‘yxati qayta olinadi.
+7. “↻ Bazadan yangilash” tugmasi qo‘shildi.
+8. Mahsulot rasmlari admin ro‘yxatida lazy-load qilinadi.
+9. v13.26.74 dagi PostgreSQL PRODUCT GUARD va barcha ma'lumotlar saqlash himoyasi o‘zgarishsiz saqlandi.
+
+Muhim:
+- Bu versiya bazadagi mahsulotlarni o‘chirmaydi yoki qayta yaratmaydi.
+- Mavjud DATABASE_URL bilan deploy qilinadi.
