@@ -1,0 +1,31 @@
+ZARBULOQ.UZ v13.26.71 — FULL BACKEND / DATA RESTORE
+
+Nima uchun:
+- v13.26.69/v13.26.70 oldingi paketlarda frontend fayllari bor edi, lekin to‘liq server fayllari yo‘q edi.
+- Natijada admin panel ochilishi mumkin, lekin API ma’lumotlari 0/bo‘sh ko‘rinishi mumkin.
+
+Bu paket:
+- server.js
+- package.json
+- render.yaml
+- script.js
+- style.css
+- barcha sayt/admin assetlari
+- PostgreSQL saqlash
+- PRODUCT GUARD
+- v13.26.70 kategoriya rasm progressi / badge / qo‘shimcha matn
+- mahsulot kartasidan orqaga qaytganda scroll joyini saqlash
+hammasini birga saqlaydi.
+
+DEPLOY:
+1) GitHub/Render repo rootiga ushbu papka ICHIDAGI barcha fayllarni to‘liq yuklang.
+2) Render Environment dagi DATABASE_URL ni O‘ZGARTIRMANG.
+3) REQUIRE_DATABASE ishlatilsa true holatini saqlang.
+4) Deploy logida:
+   Storage: PostgreSQL loaded
+   yozuvi chiqishi kerak.
+5) Keyin /admin.html ni yangilang.
+
+MUHIM:
+- Mahsulotlarni qaytadan qo‘lda kiritmang.
+- Agar DATABASE_URL avvalgidek qolgan bo‘lsa, mavjud PostgreSQL ma’lumotlari qayta yuklanadi.

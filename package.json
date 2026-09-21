@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.69",
+  "version": "13.26.74",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.69 — Android modern UI v5.0.17 support, category icon manager, PRO price 6 products per A4 page; durable DB product guard preserved.",
+  "description": "ZARBULOQ.UZ v13.26.74 — security hardened: login rate limit, secure cookie-only admin session, origin guard, security headers, static-file blocking, SSRF hardening; full PostgreSQL backend preserved.",
   "scripts": {
     "start": "node server.js"
   },

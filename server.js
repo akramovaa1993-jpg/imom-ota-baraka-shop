@@ -2,16 +2,22 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const dns = require('dns').promises;
+const net = require('net');
 const XLSX = require('xlsx');
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || '');
 const TG = BOT_TOKEN ? `https://api.telegram.org/bot${BOT_TOKEN}` : '';
-const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-session-secret';
+const SESSION_SECRET = String(process.env.SESSION_SECRET || '').trim() ||
+  crypto.createHash('sha256')
+    .update([process.env.DATABASE_URL||'',process.env.ADMIN_PASSWORD||'',process.env.TELEGRAM_BOT_TOKEN||'',__dirname].join('|'))
+    .digest('hex');
 const TELEGRAM_WEBHOOK_URL = String(process.env.TELEGRAM_WEBHOOK_URL || 'https://zarbuloq.uz/api/telegram/webhook').trim();
 const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || crypto.createHash('sha256').update(SESSION_SECRET).digest('hex').slice(0,48));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname,'data');
@@ -19,11 +25,46 @@ const DB_FILE = path.join(DATA_DIR,'shop.json');
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const DATABASE_SSL = String(process.env.DATABASE_SSL || 'true').toLowerCase() !== 'false';
 const REQUIRE_DATABASE = String(process.env.REQUIRE_DATABASE || 'false').toLowerCase() === 'true';
-const pool = DATABASE_URL ? new Pool({connectionString:DATABASE_URL,ssl:DATABASE_SSL?{rejectUnauthorized:false}:false,max:5,idleTimeoutMillis:30000,connectionTimeoutMillis:10000,keepAlive:true}) : null;
-if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.message));
+const pool = DATABASE_URL ? new Pool({
+ connectionString:DATABASE_URL,
+ ssl:DATABASE_SSL?{rejectUnauthorized:false}:false,
+ max:8,
+ idleTimeoutMillis:120000,
+ connectionTimeoutMillis:20000,
+ keepAlive:true,
+ keepAliveInitialDelayMillis:10000,
+ allowExitOnIdle:false,
+ application_name:'zarbuloq-v13.26.74'
+}) : null;
+if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.code||'',err.message));
+
+const DB_RETRY_CODES=new Set(['57P01','57P02','57P03','08000','08001','08003','08004','08006','08007','08P01','53300']);
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function transientDbError(err){
+ const code=String(err?.code||'');
+ const msg=String(err?.message||'').toLowerCase();
+ return DB_RETRY_CODES.has(code) ||
+   /econnreset|econnrefused|etimedout|connection terminated|connection timeout|server closed the connection|terminating connection|socket hang up|network/.test(msg);
+}
+async function dbQuery(text,params=[],opts={}){
+ if(!pool)throw new Error('PostgreSQL configured emas');
+ const retries=Number.isFinite(Number(opts.retries))?Number(opts.retries):3;
+ let lastErr;
+ for(let attempt=0;attempt<=retries;attempt++){
+  try{return await pool.query(text,params)}
+  catch(err){
+   lastErr=err;
+   if(attempt>=retries || !transientDbError(err))throw err;
+   const wait=Math.min(5000,500*(2**attempt));
+   console.warn(`PostgreSQL transient error (${err.code||err.message}); retry ${attempt+1}/${retries} in ${wait}ms`);
+   await sleep(wait);
+  }
+ }
+ throw lastErr;
+}
 let dbCache = null;
 let persistChain = Promise.resolve();
-// V13.26.69 — modern app category icons + PRO price 6/page; durable product guard preserved.
+// V13.26.74 — SECURITY HARDENED + server stability; durable product guard preserved.
 // Keeps the last successfully committed product snapshots separately from dbCache so an
 // accidental full-state overwrite can never silently remove products.
 let committedProducts = new Map();
@@ -83,6 +124,24 @@ const USERS = [
   ...(process.env.STOCK_USERNAME && process.env.STOCK_PASSWORD ? [{username:process.env.STOCK_USERNAME,password:process.env.STOCK_PASSWORD,role:'stock'}] : [])
 ];
 
+if(process.env.NODE_ENV==='production'){
+  if(!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD==='change-me'){
+    console.warn('SECURITY WARNING: ADMIN_PASSWORD hali kuchli qiymatga almashtirilmagan.');
+  }
+  if(!process.env.SESSION_SECRET){
+    console.warn('SECURITY NOTICE: SESSION_SECRET yo‘q; server kuchli deterministic fallback secret ishlatmoqda. Alohida SESSION_SECRET tavsiya etiladi.');
+  }
+}
+
+// SECURITY v13.26.74 — request size guard before JSON parsing.
+// Public endpoints do not need giant bodies; admin image/app-control payloads keep the larger limit.
+app.use((req,res,next)=>{
+  const len=Number(req.headers['content-length']||0);
+  const adminPath=req.path.startsWith('/api/admin/');
+  const limit=adminPath?60*1024*1024:5*1024*1024;
+  if(len && len>limit)return res.status(413).json({error:'So‘rov hajmi juda katta'});
+  next();
+});
 app.use(express.json({limit:'55mb'}));
 
 // V13.26.63 — Excel URL rasmlarini PRO prays/PDF uchun same-origin proxy orqali yuklash.
@@ -91,28 +150,58 @@ function isPrivateIpv4(host=''){
   const m=String(host||'').match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if(!m)return false;
   const a=m.slice(1).map(Number);if(a.some(n=>n<0||n>255))return true;
-  return a[0]===10 || a[0]===127 || a[0]===0 || (a[0]===169&&a[1]===254) || (a[0]===172&&a[1]>=16&&a[1]<=31) || (a[0]===192&&a[1]===168);
+  return a[0]===10 || a[0]===127 || a[0]===0 || (a[0]===100&&a[1]>=64&&a[1]<=127) ||
+    (a[0]===169&&a[1]===254) || (a[0]===172&&a[1]>=16&&a[1]<=31) ||
+    (a[0]===192&&a[1]===168) || a[0]>=224;
+}
+function isPrivateIpAddress(addr=''){
+  const ip=String(addr||'').toLowerCase();
+  if(net.isIPv4(ip))return isPrivateIpv4(ip);
+  if(net.isIPv6(ip)){
+    return ip==='::1'||ip==='::'||ip.startsWith('fc')||ip.startsWith('fd')||ip.startsWith('fe8')||
+      ip.startsWith('fe9')||ip.startsWith('fea')||ip.startsWith('feb')||ip.startsWith('::ffff:127.')||
+      ip.startsWith('::ffff:10.')||ip.startsWith('::ffff:192.168.');
+  }
+  return true;
 }
 function safeRemoteImageUrl(raw=''){
   try{
     const u=new URL(String(raw||'').trim());
     if(!['http:','https:'].includes(u.protocol))return null;
+    if(u.username||u.password)return null;
     const h=String(u.hostname||'').toLowerCase();
-    if(!h || h==='localhost' || h==='::1' || h.endsWith('.local') || isPrivateIpv4(h))return null;
+    if(!h || h==='localhost' || h.endsWith('.local') || isPrivateIpAddress(h))return null;
     return u.href;
   }catch{return null}
 }
+async function assertPublicRemoteUrl(raw){
+  const safe=safeRemoteImageUrl(raw);if(!safe)throw new Error('Rasm URL xavfsiz yoki to‘g‘ri emas');
+  const u=new URL(safe);
+  const rows=await dns.lookup(u.hostname,{all:true,verbatim:true});
+  if(!rows.length || rows.some(x=>isPrivateIpAddress(x.address)))throw new Error('Rasm manzili ichki tarmoqqa olib boradi');
+  return u;
+}
 async function fetchRemoteImage(raw,{maxBytes=6_000_000,timeoutMs=12_000}={}){
-  const url=safeRemoteImageUrl(raw);if(!url)throw new Error('Rasm URL xavfsiz yoki to‘g‘ri emas');
+  let current=(await assertPublicRemoteUrl(raw)).href;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    const r=await fetch(url,{redirect:'follow',signal:controller.signal,headers:{'User-Agent':'Mozilla/5.0 ZARBULOQ-ImageProxy/1.0','Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'}});
-    if(!r.ok)throw new Error(`Rasm serveri HTTP ${r.status}`);
+    let r;
+    for(let redirects=0;redirects<=3;redirects++){
+      r=await fetch(current,{redirect:'manual',signal:controller.signal,headers:{'User-Agent':'Mozilla/5.0 ZARBULOQ-ImageProxy/1.1','Accept':'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'}});
+      if([301,302,303,307,308].includes(r.status)){
+        const loc=r.headers.get('location');if(!loc)throw new Error('Rasm redirect noto‘g‘ri');
+        current=new URL(loc,current).href;
+        current=(await assertPublicRemoteUrl(current)).href;
+        continue;
+      }
+      break;
+    }
+    if(!r||!r.ok)throw new Error(`Rasm serveri HTTP ${r?.status||0}`);
     const type=String(r.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
     if(!/^image\/(?:jpeg|jpg|png|webp|gif|avif)$/i.test(type))throw new Error('URL rasm fayliga olib bormadi');
     const len=Number(r.headers.get('content-length')||0);if(len&&len>maxBytes)throw new Error('Rasm juda katta');
     const ab=await r.arrayBuffer();if(ab.byteLength>maxBytes)throw new Error('Rasm juda katta');
-    return {buffer:Buffer.from(ab),type:type==='image/jpg'?'image/jpeg':type,url:r.url||url};
+    return {buffer:Buffer.from(ab),type:type==='image/jpg'?'image/jpeg':type,url:current};
   }finally{clearTimeout(timer)}
 }
 app.get('/api/image-proxy',async(req,res)=>{
@@ -321,11 +410,40 @@ function renderProductSeoPage(req,res,lang='uz'){
   const oldPrice=old>price?`<span class="old">${old.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</span>`:'';
   res.setHeader('X-Robots-Tag','index, follow, max-image-preview:large');
   res.send(`<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlEsc(title)}</title><meta name="description" content="${htmlEsc(desc)}"><meta name="keywords" content="${htmlEsc(keywords)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="${htmlEsc(url)}">${alternates.map(a=>`<link rel="alternate" hreflang="${a.lang}" href="${htmlEsc(a.url)}">`).join('')}<link rel="alternate" hreflang="x-default" href="${htmlEsc(alternates[0].url)}"><meta property="og:type" content="product"><meta property="og:title" content="${htmlEsc(title)}"><meta property="og:description" content="${htmlEsc(desc)}"><meta property="og:url" content="${htmlEsc(url)}"><meta property="og:image" content="${htmlEsc(img)}"><meta property="product:price:amount" content="${price}"><meta property="product:price:currency" content="UZS"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${htmlEsc(title)}"><meta name="twitter:description" content="${htmlEsc(desc)}"><meta name="twitter:image" content="${htmlEsc(img)}"><script type="application/ld+json">${JSON.stringify(schema).replace(/</g,'\\u003c')}</script>
-<style>body{margin:0;font-family:Arial,sans-serif;background:#f5faf5;color:#17351f}.wrap{max-width:1100px;margin:auto;padding:22px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.top img{width:58px;height:58px;object-fit:contain}.top a{text-decoration:none;color:#17351f}.card{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1fr);gap:34px;background:#fff;border-radius:24px;padding:28px;box-shadow:0 12px 40px #17351f12}.media{min-height:420px;display:flex;align-items:center;justify-content:center;background:#f3f7f3;border-radius:18px;overflow:hidden}.media img{max-width:100%;max-height:480px;object-fit:contain}.cat{color:#2a7b3f;font-weight:700}.price{font-size:32px;font-weight:800;margin:16px 0}.old{text-decoration:line-through;color:#888;font-size:16px;margin-right:10px}.stock{display:inline-block;padding:8px 12px;border-radius:999px;background:#eaf6ec}.desc{line-height:1.65;color:#48604e}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:12px;padding:14px 20px;font-weight:700;cursor:pointer;text-decoration:none}.primary{background:#1f6b35;color:white}.secondary{background:#edf5ee;color:#17351f}.ratingline{display:flex;align-items:center;gap:10px;margin:8px 0 12px}.stars{color:#f4b400;letter-spacing:2px;font-size:20px}.reviews{margin-top:22px;background:#fff;border-radius:24px;padding:26px;box-shadow:0 12px 40px #17351f12}.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.summary-box,.review-form{border:1px solid #e2ece5;border-radius:18px;padding:18px}.avg{font-size:48px;font-weight:900;color:#166d3a}.review-form input,.review-form textarea{width:100%;box-sizing:border-box;border:1px solid #d8e5dc;border-radius:12px;padding:12px;margin:6px 0;font:inherit}.review-form textarea{min-height:95px;resize:vertical}.pickstars button{border:0;background:transparent;color:#c7d0ca;font-size:28px;cursor:pointer;padding:2px}.pickstars button.on{color:#f4b400}.review-row{padding:16px 0;border-top:1px solid #e8efea}.review-row:first-child{border-top:0}.review-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.admin-reply{margin:10px 0 0 28px;padding:12px 14px;background:#eaf7ef;border-radius:12px;border-left:4px solid #1b8a4b}.admin-reply b{display:block;color:#176837;margin-bottom:4px}@media(max-width:760px){.card{grid-template-columns:1fr;padding:18px}.media{min-height:300px}.price{font-size:27px}.review-grid{grid-template-columns:1fr}.reviews{padding:18px}.avg{font-size:40px}}</style></head><body><main class="wrap"><header class="top"><a href="/"><img src="/logo.png" alt="IMOM OTA BARAKA"></a><div><a href="/"><b>ZARBULOQ.UZ</b></a><div>${isRu?'Интернет-магазин IMOM OTA BARAKA':'IMOM OTA BARAKA internet do‘koni'}</div></div></header><section class="card"><div class="media"><img src="${htmlEsc(img)}" alt="${htmlEsc(name)}" loading="eager"></div><div><div class="cat">${htmlEsc(cat)}</div><h1>${htmlEsc(name)}</h1><div class="ratingline"><span class="stars">${seoSummary.count?'★'.repeat(Math.round(seoSummary.average))+'☆'.repeat(5-Math.round(seoSummary.average)):'☆☆☆☆☆'}</span><b>${seoSummary.count?seoSummary.average.toFixed(1):'—'}</b><span>(${seoSummary.count} ${isRu?'отзывов':'ta baho'})</span></div><p class="desc">${htmlEsc(desc)}</p><div class="price">${oldPrice}${price.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</div><div class="stock">${htmlEsc(stockText)}</div><div class="actions">${stock>0?`<button class="btn primary" onclick="addToCartAndOpen()">${isRu?'В корзину':'Savatga qo‘shish'}</button>`:''}<button class="btn secondary" type="button" onclick="backToCatalog()">${isRu?'Назад к товарам':'Mahsulotlarga qaytish'}</button></div></div></section><section class="reviews"><h2>${isRu?'Оценки и отзывы':'Baholar va izohlar'} (${seoSummary.count})</h2><div class="review-grid"><div class="summary-box"><div>${isRu?'Общая оценка':'Umumiy baho'}</div><div class="avg">${seoSummary.count?seoSummary.average.toFixed(1):'—'}</div><div class="stars">${seoSummary.count?'★'.repeat(Math.round(seoSummary.average))+'☆'.repeat(5-Math.round(seoSummary.average)):'☆☆☆☆☆'}</div><p>${seoSummary.count} ${isRu?'оценок':'ta baho asosida'}</p></div><form class="review-form" onsubmit="submitReview(event)"><h3>${isRu?'Оставьте свой отзыв':'O‘z fikringizni qoldiring'}</h3><div class="pickstars" id="pickStars">${[1,2,3,4,5].map(n=>`<button type="button" onclick="pickRating(${n})">★</button>`).join('')}</div><input type="hidden" id="ratingValue" value="0"><input id="reviewName" placeholder="${isRu?'Ваше имя':'Ismingiz'}" required><input id="reviewPhone" placeholder="+998 90 123 45 67" required><textarea id="reviewComment" maxlength="500" placeholder="${isRu?'Ваш отзыв':'Mahsulot haqida fikringizni yozing...'}" required></textarea><button class="btn primary" type="submit">${isRu?'Отправить отзыв':'Izoh qoldirish'}</button><div id="reviewStatus"></div></form></div><div id="reviewRows">${seoReviews.slice(0,50).map(r=>`<article class="review-row"><div class="review-meta"><b>${htmlEsc(r.name||'Foydalanuvchi')}</b><span class="stars">${'★'.repeat(Math.max(1,Math.min(5,Number(r.rating)||1)))+'☆'.repeat(5-Math.max(1,Math.min(5,Number(r.rating)||1)))}</span><small>${htmlEsc(String(r.updatedAt||r.createdAt||'').slice(0,10))}</small></div><p>${htmlEsc(r.comment||'')}</p>${r.adminReply?`<div class="admin-reply"><b>${isRu?'Ответ администратора':'Admin javobi'}</b>${htmlEsc(r.adminReply)}</div>`:''}</article>`).join('')||`<p>${isRu?'Отзывов пока нет.':'Hali izoh yo‘q.'}</p>`}</div></section></main><script>let chosenRating=0;function pickRating(n){chosenRating=n;document.getElementById('ratingValue').value=n;[...document.querySelectorAll('#pickStars button')].forEach((b,i)=>b.classList.toggle('on',i<n))}async function submitReview(e){e.preventDefault();const st=document.getElementById('reviewStatus');if(chosenRating<1){st.textContent='${isRu?'Выберите оценку':'Baho tanlang'}';return}const body={name:document.getElementById('reviewName').value.trim(),phone:document.getElementById('reviewPhone').value.trim(),rating:chosenRating,comment:document.getElementById('reviewComment').value.trim()};st.textContent='${isRu?'Отправляем...':'Yuborilmoqda...'}';try{const r=await fetch('/api/products/${encodeURIComponent(String(p.id))}/reviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');location.reload()}catch(err){st.textContent=err.message}}function backToCatalog(){if(history.length>1){history.back()}else{location.href='/#products'}}function addToCartAndOpen(){try{const id=${JSON.stringify(Number(p.id))},stock=${JSON.stringify(stock)};let cart=JSON.parse(localStorage.getItem('iob_cart_v13')||'[]');let x=cart.find(a=>Number(a.id)===id);if(x){if(Number(x.qty)>=stock){alert('${isRu?'Максимальное количество уже в корзине.':'Ombordagi maksimal miqdor savatda.'}');return}x.qty=Number(x.qty||0)+1}else cart.push({id:id,qty:1});localStorage.setItem('iob_cart_v13',JSON.stringify(cart));window.location.href='/#products'}catch(e){window.location.href='/#products'}}</script></body></html>`);
+<style>body{margin:0;font-family:Arial,sans-serif;background:#f5faf5;color:#17351f}.wrap{max-width:1100px;margin:auto;padding:22px}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.top img{width:58px;height:58px;object-fit:contain}.top a{text-decoration:none;color:#17351f}.card{display:grid;grid-template-columns:minmax(280px,1fr) minmax(300px,1fr);gap:34px;background:#fff;border-radius:24px;padding:28px;box-shadow:0 12px 40px #17351f12}.media{min-height:420px;display:flex;align-items:center;justify-content:center;background:#f3f7f3;border-radius:18px;overflow:hidden}.media img{max-width:100%;max-height:480px;object-fit:contain}.cat{color:#2a7b3f;font-weight:700}.price{font-size:32px;font-weight:800;margin:16px 0}.old{text-decoration:line-through;color:#888;font-size:16px;margin-right:10px}.stock{display:inline-block;padding:8px 12px;border-radius:999px;background:#eaf6ec}.desc{line-height:1.65;color:#48604e}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:12px;padding:14px 20px;font-weight:700;cursor:pointer;text-decoration:none}.primary{background:#1f6b35;color:white}.secondary{background:#edf5ee;color:#17351f}.ratingline{display:flex;align-items:center;gap:10px;margin:8px 0 12px}.stars{color:#f4b400;letter-spacing:2px;font-size:20px}.reviews{margin-top:22px;background:#fff;border-radius:24px;padding:26px;box-shadow:0 12px 40px #17351f12}.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.summary-box,.review-form{border:1px solid #e2ece5;border-radius:18px;padding:18px}.avg{font-size:48px;font-weight:900;color:#166d3a}.review-form input,.review-form textarea{width:100%;box-sizing:border-box;border:1px solid #d8e5dc;border-radius:12px;padding:12px;margin:6px 0;font:inherit}.review-form textarea{min-height:95px;resize:vertical}.pickstars button{border:0;background:transparent;color:#c7d0ca;font-size:28px;cursor:pointer;padding:2px}.pickstars button.on{color:#f4b400}.review-row{padding:16px 0;border-top:1px solid #e8efea}.review-row:first-child{border-top:0}.review-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.admin-reply{margin:10px 0 0 28px;padding:12px 14px;background:#eaf7ef;border-radius:12px;border-left:4px solid #1b8a4b}.admin-reply b{display:block;color:#176837;margin-bottom:4px}@media(max-width:760px){.card{grid-template-columns:1fr;padding:18px}.media{min-height:300px}.price{font-size:27px}.review-grid{grid-template-columns:1fr}.reviews{padding:18px}.avg{font-size:40px}}</style></head><body><main class="wrap"><header class="top"><a href="/"><img src="/logo.png" alt="IMOM OTA BARAKA"></a><div><a href="/"><b>ZARBULOQ.UZ</b></a><div>${isRu?'Интернет-магазин IMOM OTA BARAKA':'IMOM OTA BARAKA internet do‘koni'}</div></div></header><section class="card"><div class="media"><img src="${htmlEsc(img)}" alt="${htmlEsc(name)}" loading="eager"></div><div><div class="cat">${htmlEsc(cat)}</div><h1>${htmlEsc(name)}</h1><div class="ratingline"><span class="stars">${seoSummary.count?'★'.repeat(Math.round(seoSummary.average))+'☆'.repeat(5-Math.round(seoSummary.average)):'☆☆☆☆☆'}</span><b>${seoSummary.count?seoSummary.average.toFixed(1):'—'}</b><span>(${seoSummary.count} ${isRu?'отзывов':'ta baho'})</span></div><p class="desc">${htmlEsc(desc)}</p><div class="price">${oldPrice}${price.toLocaleString('ru-RU')} ${isRu?'сум':'so‘m'}</div><div class="stock">${htmlEsc(stockText)}</div><div class="actions">${stock>0?`<button class="btn primary" onclick="addToCartAndOpen()">${isRu?'В корзину':'Savatga qo‘shish'}</button>`:''}<a class="btn secondary" href="/#products">${isRu?'Все товары':'Barcha mahsulotlar'}</a></div></div></section><section class="reviews"><h2>${isRu?'Оценки и отзывы':'Baholar va izohlar'} (${seoSummary.count})</h2><div class="review-grid"><div class="summary-box"><div>${isRu?'Общая оценка':'Umumiy baho'}</div><div class="avg">${seoSummary.count?seoSummary.average.toFixed(1):'—'}</div><div class="stars">${seoSummary.count?'★'.repeat(Math.round(seoSummary.average))+'☆'.repeat(5-Math.round(seoSummary.average)):'☆☆☆☆☆'}</div><p>${seoSummary.count} ${isRu?'оценок':'ta baho asosida'}</p></div><form class="review-form" onsubmit="submitReview(event)"><h3>${isRu?'Оставьте свой отзыв':'O‘z fikringizni qoldiring'}</h3><div class="pickstars" id="pickStars">${[1,2,3,4,5].map(n=>`<button type="button" onclick="pickRating(${n})">★</button>`).join('')}</div><input type="hidden" id="ratingValue" value="0"><input id="reviewName" placeholder="${isRu?'Ваше имя':'Ismingiz'}" required><input id="reviewPhone" placeholder="+998 90 123 45 67" required><textarea id="reviewComment" maxlength="500" placeholder="${isRu?'Ваш отзыв':'Mahsulot haqida fikringizni yozing...'}" required></textarea><button class="btn primary" type="submit">${isRu?'Отправить отзыв':'Izoh qoldirish'}</button><div id="reviewStatus"></div></form></div><div id="reviewRows">${seoReviews.slice(0,50).map(r=>`<article class="review-row"><div class="review-meta"><b>${htmlEsc(r.name||'Foydalanuvchi')}</b><span class="stars">${'★'.repeat(Math.max(1,Math.min(5,Number(r.rating)||1)))+'☆'.repeat(5-Math.max(1,Math.min(5,Number(r.rating)||1)))}</span><small>${htmlEsc(String(r.updatedAt||r.createdAt||'').slice(0,10))}</small></div><p>${htmlEsc(r.comment||'')}</p>${r.adminReply?`<div class="admin-reply"><b>${isRu?'Ответ администратора':'Admin javobi'}</b>${htmlEsc(r.adminReply)}</div>`:''}</article>`).join('')||`<p>${isRu?'Отзывов пока нет.':'Hali izoh yo‘q.'}</p>`}</div></section></main><script>let chosenRating=0;function pickRating(n){chosenRating=n;document.getElementById('ratingValue').value=n;[...document.querySelectorAll('#pickStars button')].forEach((b,i)=>b.classList.toggle('on',i<n))}async function submitReview(e){e.preventDefault();const st=document.getElementById('reviewStatus');if(chosenRating<1){st.textContent='${isRu?'Выберите оценку':'Baho tanlang'}';return}const body={name:document.getElementById('reviewName').value.trim(),phone:document.getElementById('reviewPhone').value.trim(),rating:chosenRating,comment:document.getElementById('reviewComment').value.trim()};st.textContent='${isRu?'Отправляем...':'Yuborilmoqda...'}';try{const r=await fetch('/api/products/${encodeURIComponent(String(p.id))}/reviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');location.reload()}catch(err){st.textContent=err.message}}function addToCartAndOpen(){try{const id=${JSON.stringify(Number(p.id))},stock=${JSON.stringify(stock)};let cart=JSON.parse(localStorage.getItem('iob_cart_v13')||'[]');let x=cart.find(a=>Number(a.id)===id);if(x){if(Number(x.qty)>=stock){alert('${isRu?'Максимальное количество уже в корзине.':'Ombordagi maksimal miqdor savatda.'}');return}x.qty=Number(x.qty||0)+1}else cart.push({id:id,qty:1});localStorage.setItem('iob_cart_v13',JSON.stringify(cart));window.location.href='/#products'}catch(e){window.location.href='/#products'}}</script></body></html>`);
 }
 app.get('/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'uz'));
 app.get('/uz/mahsulot/:slug',(req,res)=>res.redirect(301,`/mahsulot/${encodeURIComponent(req.params.slug)}`));
 app.get('/ru/mahsulot/:slug',(req,res)=>renderProductSeoPage(req,res,'ru'));
+
+// SECURITY v13.26.74 — browser hardening headers.
+app.use((req,res,next)=>{
+  res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy','camera=(), microphone=(), payment=(), usb=()');
+  res.setHeader('Cross-Origin-Opener-Policy','same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy','same-origin');
+  if(process.env.NODE_ENV==='production'){
+    res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// SECURITY v13.26.74 — sensitive server files can never be served by express.static.
+const BLOCKED_STATIC_EXACT=new Set([
+  '/server.js','/package.json','/package-lock.json','/render.yaml','/.env','/.env.local',
+  '/V13_26_71_FULL_BACKEND_DATA_RESTORE.txt','/V13_26_72_RENDER_DEPLOY_FIX.txt',
+  '/V13_26_73_SERVER_STABILITY.txt','/V13_26_74_SECURITY_HARDENED.txt'
+]);
+app.use((req,res,next)=>{
+  const p=decodeURIComponent(String(req.path||'')).replace(/\\/g,'/').toLowerCase();
+  if(BLOCKED_STATIC_EXACT.has(p) || p.startsWith('/data/') || p.startsWith('/.git/') ||
+     p.includes('/node_modules/') || /(^|\/)\.env(?:\.|$)/.test(p)){
+    return res.status(404).end();
+  }
+  next();
+});
 
 app.use((req,res,next)=>{if(req.path==='/admin.html'||req.path==='/'||req.path==='/index.html'){res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.setHeader('Pragma','no-cache');res.setHeader('Expires','0')}next()});
 // V13.26.59 — APK local cache + PostgreSQL persistent binary storage.
@@ -335,7 +453,7 @@ const APK_FILE = path.join(APK_DIR,'Zarbuloq.apk');
 async function readApkBinary(){
  try{if(fs.existsSync(APK_FILE))return fs.readFileSync(APK_FILE)}catch{}
  if(pool){
-  const r=await pool.query('SELECT data FROM app_binary WHERE id=1');
+  const r=await dbQuery('SELECT data FROM app_binary WHERE id=1');
   const buf=r.rows?.[0]?.data;
   if(Buffer.isBuffer(buf)&&buf.length){
    try{fs.mkdirSync(APK_DIR,{recursive:true});fs.writeFileSync(APK_FILE,buf)}catch{}
@@ -346,16 +464,16 @@ async function readApkBinary(){
 }
 async function readApkStoredMeta(){
  if(pool){
-  try{const r=await pool.query('SELECT size,sha256,updated_at FROM app_binary WHERE id=1');if(r.rows.length)return {available:true,size:Number(r.rows[0].size||0),sha256:r.rows[0].sha256||'',updatedAt:r.rows[0].updated_at||''};}catch{}
+  try{const r=await dbQuery('SELECT size,sha256,updated_at FROM app_binary WHERE id=1');if(r.rows.length)return {available:true,size:Number(r.rows[0].size||0),sha256:r.rows[0].sha256||'',updatedAt:r.rows[0].updated_at||''};}catch{}
  }
  try{if(fs.existsSync(APK_FILE)){const st=fs.statSync(APK_FILE);return {available:true,size:st.size,sha256:'',updatedAt:st.mtime?.toISOString?.()||''}}}catch{}
  return {available:false,size:0,sha256:'',updatedAt:''};
 }
 async function persistApkBinary(buf,sha256){
  if(!pool)return;
- await pool.query('INSERT INTO app_binary (id,data,size,sha256,updated_at) VALUES (1,$1,$2,$3,NOW()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data,size=EXCLUDED.size,sha256=EXCLUDED.sha256,updated_at=NOW()',[buf,buf.length,sha256||'']);
+ await dbQuery('INSERT INTO app_binary (id,data,size,sha256,updated_at) VALUES (1,$1,$2,$3,NOW()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data,size=EXCLUDED.size,sha256=EXCLUDED.sha256,updated_at=NOW()',[buf,buf.length,sha256||'']);
 }
-async function deleteApkBinary(){if(pool)await pool.query('DELETE FROM app_binary WHERE id=1');}
+async function deleteApkBinary(){if(pool)await dbQuery('DELETE FROM app_binary WHERE id=1');}
 app.get('/downloads/Zarbuloq.apk',async(req,res)=>{
  try{
   const buf=await readApkBinary();if(!buf)return res.status(404).send('APK hali yuklanmagan');
@@ -497,7 +615,7 @@ function readLocal(){
 function readDb(){return dbCache || readLocal();}
 async function persistRemote(snapshot){
  if(!pool)return;
- await pool.query('INSERT INTO shop_state (id,data,updated_at) VALUES (1,$1::jsonb,NOW()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=NOW()',[snapshot]);
+ await dbQuery('INSERT INTO shop_state (id,data,updated_at) VALUES (1,$1::jsonb,NOW()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=NOW()',[snapshot]);
 }
 async function writeDb(db,opts={}){
  let normalized=normalizeDb(db);
@@ -529,9 +647,9 @@ async function initStorage(){
  if(REQUIRE_DATABASE && !DATABASE_URL) throw new Error('DATABASE_URL is required in production (REQUIRE_DATABASE=true)');
  const local=readLocal();
  if(!pool){dbCache=local;writeLocal(dbCache);rememberCommittedProducts(dbCache);console.log('Storage: local JSON fallback');return;}
- await pool.query('CREATE TABLE IF NOT EXISTS shop_state (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
- await pool.query("CREATE TABLE IF NOT EXISTS app_binary (id INTEGER PRIMARY KEY, data BYTEA NOT NULL, size BIGINT NOT NULL DEFAULT 0, sha256 TEXT NOT NULL DEFAULT '', updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
- const r=await pool.query('SELECT data FROM shop_state WHERE id=1');
+ await dbQuery('CREATE TABLE IF NOT EXISTS shop_state (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
+ await dbQuery("CREATE TABLE IF NOT EXISTS app_binary (id INTEGER PRIMARY KEY, data BYTEA NOT NULL, size BIGINT NOT NULL DEFAULT 0, sha256 TEXT NOT NULL DEFAULT '', updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+ const r=await dbQuery('SELECT data FROM shop_state WHERE id=1');
  if(r.rows.length){dbCache=normalizeDb(r.rows[0].data);writeLocal(dbCache);rememberCommittedProducts(dbCache);console.log('Storage: PostgreSQL loaded');}
  else{dbCache=local;await persistRemote(JSON.stringify(dbCache));writeLocal(dbCache);rememberCommittedProducts(dbCache);console.log('Storage: PostgreSQL initialized from local data');}
 }
@@ -567,6 +685,43 @@ function pushOrderHistory(order,status,source='system'){
 }
 async function tgCall(method,payload){const r=await fetch(`${TG}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json().catch(()=>({ok:false,description:'Invalid Telegram response'}));if(!r.ok||!data.ok)throw new Error(data.description||`Telegram ${method} failed`);return data.result}
 function parseCookies(req){return Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim()).filter(Boolean).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),decodeURIComponent(x.slice(i+1))]}));}
+// SECURITY v13.26.74 — in-memory rate limits (single Render instance).
+const securityBuckets=new Map();
+function clientIp(req){return String(req.ip||req.socket?.remoteAddress||'unknown').slice(0,120)}
+function rateLimit(name,{windowMs,max,blockMs=windowMs}){
+ return (req,res,next)=>{
+  const now=Date.now(),key=`${name}|${clientIp(req)}`,row=securityBuckets.get(key)||{start:now,count:0,blockedUntil:0};
+  if(row.blockedUntil>now){
+   res.setHeader('Retry-After',String(Math.ceil((row.blockedUntil-now)/1000)));
+   return res.status(429).json({error:'Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring.'});
+  }
+  if(now-row.start>windowMs){row.start=now;row.count=0}
+  row.count++;
+  if(row.count>max){row.blockedUntil=now+blockMs;securityBuckets.set(key,row);res.setHeader('Retry-After',String(Math.ceil(blockMs/1000)));return res.status(429).json({error:'Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring.'})}
+  securityBuckets.set(key,row);next();
+ };
+}
+setInterval(()=>{const now=Date.now();for(const [k,v] of securityBuckets){if(now-Math.max(v.start||0,v.blockedUntil||0)>2*60*60*1000)securityBuckets.delete(k)}},30*60*1000).unref();
+
+const loginLimiter=rateLimit('admin-login',{windowMs:15*60*1000,max:8,blockMs:15*60*1000});
+const publicWriteLimiter=rateLimit('public-write',{windowMs:60*1000,max:35,blockMs:2*60*1000});
+
+function sameOriginAdminMutation(req,res,next){
+ if(!req.path.startsWith('/api/admin/'))return next();
+ if(!['POST','PUT','PATCH','DELETE'].includes(req.method))return next();
+ const host=String(req.get('host')||'').toLowerCase();
+ const origin=String(req.get('origin')||'').trim();
+ const referer=String(req.get('referer')||'').trim();
+ const fetchSite=String(req.get('sec-fetch-site')||'').toLowerCase();
+ let ok=false;
+ try{if(origin){const u=new URL(origin);ok=String(u.host||'').toLowerCase()===host}}catch{}
+ if(!ok&&referer){try{const u=new URL(referer);ok=String(u.host||'').toLowerCase()===host}catch{}}
+ if(!ok&&['same-origin','same-site'].includes(fetchSite))ok=true;
+ if(!ok)return res.status(403).json({error:'Xavfsizlik tekshiruvi: so‘rov manbasi tasdiqlanmadi'});
+ next();
+}
+app.use(sameOriginAdminMutation);
+
 function signSession(user,role,exp){const raw=`${user}|${role}|${exp}`;const sig=crypto.createHmac('sha256',SESSION_SECRET).update(raw).digest('hex');return Buffer.from(`${raw}|${sig}`).toString('base64url');}
 function verifySession(token){try{const [user,role,exp,sig]=Buffer.from(token,'base64url').toString().split('|');if(!user||!role||!exp||!sig||Date.now()>Number(exp))return null;const raw=`${user}|${role}|${exp}`;const good=crypto.createHmac('sha256',SESSION_SECRET).update(raw).digest('hex');if(sig.length!==good.length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(good)))return null;return {user,role};}catch{return null}}
 function requireAdmin(req,res,next){const bearer=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'').trim(),fallback=String(req.headers['x-admin-session']||'').trim();const token=parseCookies(req).iob_admin||bearer||fallback||'';const s=verifySession(token);if(!s)return res.status(401).json({error:'Kirish talab qilinadi'});req.adminUser=s.user;req.adminRole=s.role;next();}
@@ -669,11 +824,11 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.70',adminFix:'realtime-app-control-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.74',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
-  if(pool) await pool.query('SELECT 1');
+  if(pool) await dbQuery('SELECT 1');
   res.status(200).json({ok:true,storage:pool?'postgresql':'local'});
  }catch(e){res.status(503).json({ok:false,storage:'postgresql',error:'database_unavailable'});}
 });
@@ -691,13 +846,22 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.70',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.74',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/healthz',async(req,res)=>{
+ try{
+  if(pool)await dbQuery('SELECT 1',[],{retries:1});
+  res.setHeader('Cache-Control','no-store');
+  res.json({ok:true,version:'13.26.74',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
+ }catch(e){
+  res.status(503).json({ok:false,version:'13.26.74',error:e.message||'database_unavailable',at:new Date().toISOString()});
+ }
+});
 app.get('/api/admin/storage-diagnostics',requireAdmin,async(req,res)=>{
  try{
   const cacheCount=Array.isArray(dbCache?.products)?dbCache.products.length:0;
   const out={ok:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),cacheProductCount:cacheCount,committedProductCount:committedProducts.size,dataFile:DB_FILE};
   if(pool){
-   const r=await pool.query("SELECT updated_at, jsonb_array_length(COALESCE(data->'products','[]'::jsonb)) AS product_count FROM shop_state WHERE id=1");
+   const r=await dbQuery("SELECT updated_at, jsonb_array_length(COALESCE(data->'products','[]'::jsonb)) AS product_count FROM shop_state WHERE id=1");
    out.postgresProductCount=r.rows.length?Number(r.rows[0].product_count||0):0;
    out.postgresUpdatedAt=r.rows.length?r.rows[0].updated_at:null;
    out.countsMatch=out.postgresProductCount===cacheCount && cacheCount===committedProducts.size;
@@ -727,10 +891,10 @@ app.get('/api/app-events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
-app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.70',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.74',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
 
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.70',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.74',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -792,7 +956,7 @@ app.delete('/api/admin/reviews/:id',requireAdmin,async(req,res)=>{
  try{const db=readDb(),i=(db.productReviews||[]).findIndex(x=>String(x.id)===String(req.params.id));if(i<0)return res.status(404).json({error:'Izoh topilmadi'});const [row]=db.productReviews.splice(i,1);audit(db,req.adminUser,'Izoh o‘chirildi',`${row.productId} • ${row.name}`);await writeDb(db);res.json({ok:true,deleted:row.id});}catch(e){res.status(500).json({error:'Izohni o‘chirib bo‘lmadi'})}
 });
 
-app.post('/api/product-requests',async(req,res)=>{
+app.post('/api/product-requests',publicWriteLimiter,async(req,res)=>{
  try{
   const db=readDb(), b=req.body||{};
   const name=clean(b.productName,160), phone=clean(b.phone,40), customer=clean(b.customerName,100), size=clean(b.size,80), comment=clean(b.comment,500), qty=Math.max(1,Math.min(999,Math.floor(Number(b.qty)||1)));
@@ -813,14 +977,31 @@ app.post('/api/product-requests',async(req,res)=>{
 function chatId(v=''){return clean(v,90).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,90)}
 function publicChatView(c){return {sessionId:c.sessionId,name:c.name||'',phone:c.phone||'',updatedAt:c.updatedAt||c.createdAt,messages:(c.messages||[]).slice(-200).map(m=>({id:m.id,from:m.from,text:m.text,createdAt:m.createdAt}))}}
 app.get('/api/chat/:sessionId',(req,res)=>{const id=chatId(req.params.sessionId);if(!id)return res.status(400).json({error:'Chat ID noto‘g‘ri'});const db=readDb(),c=(db.chats||[]).find(x=>x.sessionId===id);res.json(c?publicChatView(c):{sessionId:id,messages:[]})});
-app.post('/api/chat/send',async(req,res)=>{const id=chatId(req.body?.sessionId),text=clean(req.body?.message,1200),name=clean(req.body?.name,80),phone=clean(req.body?.phone,30),phoneDigits=phone.replace(/\D/g,'');if(!id||!text)return res.status(400).json({error:'Xabar yozing'});if(name.length<2)return res.status(400).json({error:'Chat uchun ismingiz majburiy'});if(!/^(998)?\d{9}$/.test(phoneDigits))return res.status(400).json({error:'Telefon raqamini +998 formatida to‘g‘ri kiriting'});const db=readDb();db.chats=db.chats||[];let c=db.chats.find(x=>x.sessionId===id);if(!c){c={sessionId:id,name,phone,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),unreadAdmin:0,messages:[]};db.chats.unshift(c)}if(name)c.name=name;if(phone)c.phone=phone;c.updatedAt=new Date().toISOString();c.unreadAdmin=Number(c.unreadAdmin||0)+1;c.messages=c.messages||[];c.messages.push({id:'m-'+Date.now()+'-'+crypto.randomInt(100,999),from:'customer',text,createdAt:new Date().toISOString()});c.messages=c.messages.slice(-300);db.chats=db.chats.slice(0,500);audit(db,'customer','Chat xabari',id);await writeDb(db);res.json({ok:true,chat:publicChatView(c)})});
+app.post('/api/chat/send',publicWriteLimiter,async(req,res)=>{const id=chatId(req.body?.sessionId),text=clean(req.body?.message,1200),name=clean(req.body?.name,80),phone=clean(req.body?.phone,30),phoneDigits=phone.replace(/\D/g,'');if(!id||!text)return res.status(400).json({error:'Xabar yozing'});if(name.length<2)return res.status(400).json({error:'Chat uchun ismingiz majburiy'});if(!/^(998)?\d{9}$/.test(phoneDigits))return res.status(400).json({error:'Telefon raqamini +998 formatida to‘g‘ri kiriting'});const db=readDb();db.chats=db.chats||[];let c=db.chats.find(x=>x.sessionId===id);if(!c){c={sessionId:id,name,phone,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),unreadAdmin:0,messages:[]};db.chats.unshift(c)}if(name)c.name=name;if(phone)c.phone=phone;c.updatedAt=new Date().toISOString();c.unreadAdmin=Number(c.unreadAdmin||0)+1;c.messages=c.messages||[];c.messages.push({id:'m-'+Date.now()+'-'+crypto.randomInt(100,999),from:'customer',text,createdAt:new Date().toISOString()});c.messages=c.messages.slice(-300);db.chats=db.chats.slice(0,500);audit(db,'customer','Chat xabari',id);await writeDb(db);res.json({ok:true,chat:publicChatView(c)})});
 app.post('/api/admin/chats/:sessionId/send',requireAdmin,async(req,res)=>{const id=chatId(req.params.sessionId),text=clean(req.body?.message,1200);if(!id||!text)return res.status(400).json({error:'Xabar yozing'});const db=readDb(),c=(db.chats||[]).find(x=>x.sessionId===id);if(!c)return res.status(404).json({error:'Chat topilmadi'});c.messages=c.messages||[];c.messages.push({id:'m-'+Date.now()+'-'+crypto.randomInt(100,999),from:'admin',text,createdAt:new Date().toISOString(),actor:req.adminUser});c.messages=c.messages.slice(-300);c.updatedAt=new Date().toISOString();c.unreadAdmin=0;audit(db,req.adminUser,'Chat javobi',id);await writeDb(db);res.json({ok:true})});
 app.patch('/api/admin/chats/:sessionId/read',requireAdmin,async(req,res)=>{const id=chatId(req.params.sessionId),db=readDb(),c=(db.chats||[]).find(x=>x.sessionId===id);if(c){c.unreadAdmin=0;await writeDb(db)}res.json({ok:true})});
 app.delete('/api/admin/chats/:sessionId',requireAdmin,async(req,res)=>{const id=chatId(req.params.sessionId);if(!id)return res.status(400).json({error:'Chat ID noto‘g‘ri'});const db=readDb();const before=(db.chats||[]).length;db.chats=(db.chats||[]).filter(x=>x.sessionId!==id);if(db.chats.length===before)return res.status(404).json({error:'Chat topilmadi'});audit(db,req.adminUser,'Chat o‘chirildi',id);await writeDb(db);res.json({ok:true})});
 app.delete('/api/admin/chats',requireAdmin,async(req,res)=>{const db=readDb();const count=(db.chats||[]).length;db.chats=[];audit(db,req.adminUser,'Barcha chatlar o‘chirildi',String(count));await writeDb(db);res.json({ok:true,count})});
 
-app.post('/api/admin/login',(req,res)=>{const u=clean(req.body?.username,80),p=String(req.body?.password||'');const found=USERS.find(x=>x.username===u&&x.password===p);if(!found)return res.status(401).json({error:'Login yoki parol noto‘g‘ri'});const exp=Date.now()+12*60*60*1000,sessionToken=signSession(found.username,found.role,exp);res.setHeader('Set-Cookie',`iob_admin=${sessionToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200; Expires=${new Date(exp).toUTCString()}${process.env.NODE_ENV==='production'?'; Secure':''}`);res.json({ok:true,user:found.username,role:found.role,sessionToken,expiresAt:exp});});
-app.post('/api/admin/logout',(req,res)=>{res.setHeader('Set-Cookie','iob_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');res.json({ok:true});});
+function safePasswordEqual(a,b){
+ const aa=Buffer.from(String(a||'')),bb=Buffer.from(String(b||''));
+ return aa.length===bb.length && aa.length>0 && crypto.timingSafeEqual(aa,bb);
+}
+app.post('/api/admin/login',loginLimiter,(req,res)=>{
+ const u=clean(req.body?.username,80),p=String(req.body?.password||'');
+ const user=USERS.find(x=>x.username===u);
+ const found=user&&safePasswordEqual(user.password,p)?user:null;
+ if(!found){console.warn('Admin login failed:',clientIp(req),u||'(empty)');return res.status(401).json({error:'Login yoki parol noto‘g‘ri'})}
+ const exp=Date.now()+12*60*60*1000,sessionToken=signSession(found.username,found.role,exp);
+ res.setHeader('Set-Cookie',`iob_admin=${sessionToken}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200; Expires=${new Date(exp).toUTCString()}${process.env.NODE_ENV==='production'?'; Secure':''}`);
+ res.setHeader('Cache-Control','no-store');
+ res.json({ok:true,user:found.username,role:found.role,expiresAt:exp});
+});
+app.post('/api/admin/logout',(req,res)=>{
+ res.setHeader('Set-Cookie',`iob_admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV==='production'?'; Secure':''}`);
+ res.setHeader('Cache-Control','no-store');
+ res.json({ok:true});
+});
 app.get('/api/admin/me',requireAdmin,(req,res)=>res.json({ok:true,user:req.adminUser,role:req.adminRole}));
 
 app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
@@ -1016,7 +1197,7 @@ app.put('/api/admin/catalog',requireAdmin,requireRole('stock'),async(req,res)=>{
     else{db.products.push(safe);pos.set(String(safe.id),db.products.length-1);}
    }
   }
-  if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,iconKey:clean(c.iconKey||c.icon,40),iconImage:String(c.iconImage||'').slice(0,1_500_000),name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));
+  if(Array.isArray(b.categories))db.categories=b.categories.slice(0,100).map(c=>({...c,name:{uz:clean(c.name?.uz,120),ru:clean(c.name?.ru,120)}}));
   if(b.settings&&typeof b.settings==='object')db.settings={...(db.settings||{}),...b.settings};
   if(typeof b.logo==='string')db.logo=b.logo.slice(0,6_000_000);
   audit(db,req.adminUser,'Katalog/sozlamalar xavfsiz yangilandi',`products payload: ${Array.isArray(b.products)?b.products.length:'yo‘q'}`);
@@ -1355,7 +1536,7 @@ function validAppPhoneVerification(db,token,deviceId,phone){
  return row;
 }
 
-app.post('/api/orders',async(req,res)=>{
+app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
  const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
  if(!(db.settings?.delivery?.areas||[]).includes(customer.area))return res.status(400).json({error:'Yetkazib berish hududini tanlang'});
@@ -1596,7 +1777,7 @@ async function start(){
  try{
   await initStorage();
   app.listen(PORT,()=>{
-   console.log(`IMOM OTA BARAKA v13.26.69 MODERN APP + CATEGORY ICONS + PRO6 / zarbuloq.uz: http://localhost:${PORT}`);
+   console.log(`IMOM OTA BARAKA v13.26.74 SECURITY HARDENED / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);

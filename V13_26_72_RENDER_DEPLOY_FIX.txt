@@ -1,0 +1,24 @@
+ZARBULOQ.UZ v13.26.72 — RENDER DEPLOY FIX
+
+Aniqlangan muammo:
+- render.yaml ichida buildCommand: npm ci edi.
+- Paket ichida package-lock.json yo‘q.
+- npm ci package-lock.json bo‘lmasa Render build vaqtida xato beradi.
+
+Tuzatildi:
+- buildCommand: npm install
+- To‘liq server.js / script.js / style.css / admin / sayt saqlandi.
+- PostgreSQL PRODUCT GUARD saqlandi.
+- v13.26.70 kategoriya progress/badge va sayt scroll fix saqlandi.
+
+DEPLOYDAN OLDIN:
+- Render Environment -> DATABASE_URL ni o‘zgartirmang.
+- REQUIRE_DATABASE = true
+- DATABASE_SSL = true
+
+DEPLOY LOGDA KUTILADI:
+1) npm install muvaffaqiyatli tugaydi
+2) Server ishga tushadi
+3) Storage: PostgreSQL persistent
+
+Agar "Startup/storage error" chiqsa, Render logning shu qatorlarini yuboring.

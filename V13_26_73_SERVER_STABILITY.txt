@@ -1,0 +1,22 @@
+ZARBULOQ.UZ v13.26.73 — SERVER STABILITY
+
+Qo‘shildi:
+- PostgreSQL vaqtinchalik uzilishlarda avtomatik 3 marta retry.
+- Pool connection timeout: 20 soniya.
+- Idle connection: 120 soniya.
+- TCP keep-alive va initial delay.
+- Admin GET API so‘rovlari network/5xx/timeout bo‘lsa avtomatik 3 marta qayta urinadi.
+- Admin timeout 10s -> 20s.
+- /api/healthz — server + DB holatini tekshirish.
+- SSE real-time mavjud va EventSource avtomatik reconnect qiladi.
+- PRODUCT GUARD, PostgreSQL ma’lumotlari, kategoriya progress/badge va scroll fix saqlangan.
+
+MUHIM:
+Render FREE web service 15 daqiqa inbound traffic bo‘lmasa spin down bo‘lishi mumkin.
+Bu platforma cheklovi. Kod reconnectni yaxshilaydi, lekin Free plan cold startni butunlay yo‘q qila olmaydi.
+
+DEPLOY:
+- DATABASE_URL o‘zgarmasin.
+- REQUIRE_DATABASE=true.
+- DATABASE_SSL=true.
+- Deploydan keyin /api/healthz va /api/status ni tekshiring.

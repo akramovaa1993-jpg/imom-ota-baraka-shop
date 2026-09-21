@@ -1,0 +1,31 @@
+ZARBULOQ.UZ v13.26.74 — SECURITY HARDENED
+
+Qo‘shilgan himoyalar:
+- Admin login: 15 daqiqada 8 urinish limiti; keyin vaqtincha blok.
+- Admin brauzer sessiyasi: token endi JS/sessionStorage ga berilmaydi; HttpOnly cookie ishlatiladi.
+- Cookie: SameSite=Strict, productionda Secure.
+- Admin POST/PUT/PATCH/DELETE: same-origin / same-site tekshiruvi.
+- X-Frame-Options: DENY (clickjackingdan himoya).
+- X-Content-Type-Options: nosniff.
+- HSTS productionda yoqiladi.
+- Referrer-Policy va Permissions-Policy.
+- server.js, package.json, render.yaml, .env, data/, .git/, node_modules tashqaridan ochilmaydi.
+- Public write endpointlar uchun anti-spam/rate limit.
+- Katta request uchun Content-Length himoyasi.
+- Image proxy: DNS/private-IP/redirect tekshiruvi kuchaytirildi (SSRF himoya).
+- PostgreSQL retry/reconnect v13.26.73 dan saqlandi.
+- PRODUCT GUARD va barcha ma’lumotlar saqlandi.
+
+RENDER ENVIRONMENTDA ALBATTA:
+ADMIN_PASSWORD=<kamida 16+ belgi, noyob kuchli parol>
+SESSION_SECRET=<kamida 32+ tasodifiy belgi>
+DATABASE_URL=<avvalgi qiymatni o‘zgartirmang>
+DATABASE_SSL=true
+REQUIRE_DATABASE=true
+NODE_ENV=production
+
+MUHIM:
+- ADMIN_PASSWORD ni chatga yubormang.
+- SESSION_SECRET ni chatga yubormang.
+- GitHub repo ichiga .env qo‘ymang.
+- Render Environment ichida saqlang.
