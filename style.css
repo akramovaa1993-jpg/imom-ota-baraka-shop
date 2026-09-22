@@ -432,3 +432,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 /* V13.26.60 — yon promo rasmlari tiniq, ustida matn/tugma yo‘q */
 .home-promo .promo-copy{display:none!important}
 .home-promo.has-image{background-color:#fff;background-size:cover;background-position:center;background-repeat:no-repeat}
+
+/* v13.26.76 SAFE UI FIX: hide legacy topbar without removing DOM */
+.topbar{display:none!important}

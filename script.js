@@ -33,6 +33,13 @@ async function loadCatalog(retry=0){
   const d=await r.json();
   products=Array.isArray(d.products)?d.products:[];categories=Array.isArray(d.categories)?d.categories:[];settings=d.settings||{};logo=d.logo||'';
   applySite();renderAll();initParkentBoundaryMap();
+  try{
+   const qs=new URLSearchParams(location.search);
+   if(qs.get('checkout')==='1'){
+    history.replaceState(null,'',location.pathname+location.hash);
+    setTimeout(()=>openCheckout(),80);
+   }
+  }catch(e){}
  }catch(e){
   console.error('Catalog load:',e);
   if(retry<4){setTimeout(()=>loadCatalog(retry+1),700*(retry+1));return}
