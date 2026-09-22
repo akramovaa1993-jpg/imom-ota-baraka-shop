@@ -149,16 +149,35 @@ body{background:#f4f8f6!important;color:#0f2d25}.admin-wrap{max-width:none!impor
 window.addEventListener('error',function(e){try{const app=document.getElementById('app');if(app&&!app.querySelector('.admin-layout')&&!app.querySelector('form')){app.innerHTML='<div class="panel login"><h1>Admin panelni yuklashda xatolik</h1><p>Sahifani Ctrl + F5 bilan yangilang. Muammo davom etsa, Render deploy logini tekshiring.</p><button class="btn primary" onclick="location.reload()">Qayta yuklash</button></div>'}}catch(_){} });
 const $=s=>document.querySelector(s), money=n=>new Intl.NumberFormat('ru-RU').format(Number(n)||0)+' so‘m', esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let D=null, me=null, currentTab='dashboard', reportAreas=[], financeMenuOpen=false;
+let adminProductsLoaded=false;
 let adminRealtimeSource=null,adminRealtimeTimer=null,adminRealtimeBusy=false,adminRealtimePending=false,adminRealtimeState='waiting';
 function setLiveState(state){adminRealtimeState=state;const el=document.getElementById('liveBadge');if(!el)return;el.className='live-badge '+(state==='live'?'':state);el.textContent=state==='live'?'LIVE • Online':state==='offline'?'Ulanish tiklanmoqda':'LIVE • Kutilmoqda'}
 function adminIsEditing(){const ae=document.activeElement,tag=ae?.tagName;return Boolean(document.querySelector('#productModalRoot .product-modal')||['INPUT','TEXTAREA','SELECT'].includes(tag))}
 async function realtimeAdminRefresh(){
  if(!me||adminRealtimeBusy)return;
- if(adminIsEditing()){adminRealtimePending=true;return}
- adminRealtimeBusy=true;adminRealtimePending=false;
- try{D=normalizeDashboardData(await api('/api/admin/dashboard'));renderApp();setLiveState('live')}catch(e){if(e.message?.includes('Kirish')){me=null;renderLogin()}else console.error('Realtime admin refresh',e)}finally{adminRealtimeBusy=false}
+ if(adminIsEditing()){
+  adminRealtimePending=true;
+  return;
+ }
+
+ adminRealtimeBusy=true;
+ adminRealtimePending=false;
+
+ try{
+  await refresh();
+  setLiveState('live');
+ }catch(e){
+  if(e.message?.includes('Kirish')){
+   me=null;
+   renderLogin();
+  }else{
+   console.error('Realtime admin refresh',e);
+  }
+ }finally{
+  adminRealtimeBusy=false;
+ }
 }
-function scheduleAdminRealtime(){clearTimeout(adminRealtimeTimer);adminRealtimeTimer=setTimeout(realtimeAdminRefresh,140)}
+function scheduleAdminRealtime(){clearTimeout(adminRealtimeTimer);adminRealtimeTimer=setTimeout(realtimeAdminRefresh,800)}
 function initAdminRealtime(){if(!window.EventSource||adminRealtimeSource)return;adminRealtimeSource=new EventSource('/api/events');adminRealtimeSource.addEventListener('ready',()=>setLiveState('live'));adminRealtimeSource.addEventListener('update',scheduleAdminRealtime);adminRealtimeSource.onopen=()=>setLiveState('live');adminRealtimeSource.onerror=()=>setLiveState('offline')}
 document.addEventListener('focusout',()=>{if(adminRealtimePending)setTimeout(()=>{if(!adminIsEditing())realtimeAdminRefresh()},80)});
 async function api(url,opt={}){
@@ -195,6 +214,7 @@ function renderLogin(){document.getElementById('app').innerHTML=`<div class="pan
 async function login(e){
  e.preventDefault();
  const f=new FormData(e.currentTarget);
+
  try{
   me=await api('/api/admin/login',{
    method:'POST',
@@ -207,10 +227,39 @@ async function login(e){
   alert(err.message);
   return;
  }
+
+ adminProductsLoaded=false;
  D=normalizeDashboardData({});
  currentTab='dashboard';
  renderApp();
- refresh().catch(err=>console.error('Dashboard after login:',err));
+
+ syncAdminProducts(false).catch(err=>
+  console.error('Products after login:',err)
+ );
+
+ refresh().catch(err=>
+  console.error('Dashboard after login:',err)
+ );
+}
+ async function refresh(){
+ let raw={};
+ try{
+  raw=await api('/api/admin/dashboard');
+ }catch(e){
+  console.error('Dashboard API:',e);
+  throw e;
+ }
+
+ const next=normalizeDashboardData(raw);
+
+ if(adminProductsLoaded && D){
+  next.products=Array.isArray(D.products)?D.products:[];
+  next.categories=Array.isArray(D.categories)?D.categories:[];
+ }
+
+ D=next;
+ renderApp();
+ return D;
 }
 async function logout(){try{await api('/api/admin/logout',{method:'POST'})}finally{me=null;renderLogin()}}
 function normalizeDashboardData(raw){
@@ -230,7 +279,26 @@ function normalizeDashboardData(raw){
  x.stats={...calc,...((x.stats&&typeof x.stats==='object')?x.stats:{})};
  return x;
 }
-async function refresh(){let raw={};try{raw=await api('/api/admin/dashboard')}catch(e){console.error('Dashboard API:',e);throw e}D=normalizeDashboardData(raw);renderApp()}
+async function refresh(){
+ let raw={};
+ try{
+  raw=await api('/api/admin/dashboard');
+ }catch(e){
+  console.error('Dashboard API:',e);
+  throw e;
+ }
+
+ const next=normalizeDashboardData(raw);
+
+ if(adminProductsLoaded && D){
+  next.products=Array.isArray(D.products)?D.products:[];
+  next.categories=Array.isArray(D.categories)?D.categories:[];
+ }
+
+ D=next;
+ renderApp();
+ return D;
+}
 let adminProductSyncBusy=false;
 async function syncAdminProducts(forceRender=true){
  if(!me||adminProductSyncBusy)return;
@@ -239,9 +307,10 @@ async function syncAdminProducts(forceRender=true){
   const d=await api('/api/admin/products?ts='+Date.now());
   if(!D)D=normalizeDashboardData({});
   D.products=Array.isArray(d.products)?d.products:[];
-  D.categories=Array.isArray(d.categories)?d.categories:(D.categories||[]);
-  if(currentTab==='products'&&forceRender)renderApp();
-  else if(currentTab==='products')renderPane();
+D.categories=Array.isArray(d.categories)?d.categories:(D.categories||[]);
+adminProductsLoaded=true;
+if(currentTab==='products'&&forceRender)renderApp();
+else if(currentTab==='products')renderPane();
   return d;
  }finally{
   adminProductSyncBusy=false;
@@ -364,7 +433,19 @@ function closeProductEditor(removeUnsaved=false,id=null){if(removeUnsaved&&id){c
 function openProductEditor(id,isNew=false){const p=D.products.find(x=>Number(x.id)===Number(id));if(!p)return;const r=$('#productModalRoot')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'productModalRoot'}));const units=[['dona','шт'],['kg','кг'],['gram','г'],['metr','м'],['litr','л'],['ml','мл'],['quti','коробка'],['paket','пакет']];r.innerHTML=`<div class="product-modal"><div class="product-modal-card"><div class="product-modal-head"><div><h3>${isNew?'Yangi mahsulot qo‘shish':'Mahsulotni tahrirlash'}</h3><div class="muted small">UZ + RU ma’lumotlari va SEO maydonlari Google uchun ishlatiladi.</div></div><button class="product-modal-close" onclick="closeProductEditor(${isNew?'true':'false'},${p.id})">×</button></div><div class="product-modal-grid"><div class="product-modal-photo">${p.image?`<img id="editorProductImage" class="inv-img" src="${p.image}" alt="Mahsulot rasmi">`:`<div id="editorProductImageEmpty" class="inv-img-empty">Rasm yo‘q</div>`}<label class="inv-upload">Rasm tanlash<input type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="setProductImage(${p.id},event)"></label>${p.image?`<button class="photo-remove" onclick="removeProductImageEditor(${p.id})" type="button">Rasmni olib tashlash</button>`:''}</div><label>Mahsulot kodi / SKU${isNew?' (avtomatik)':''}<input id="eSku" value="${esc(p.sku||'')}" placeholder="Avtomatik beriladi" ${isNew?'readonly':''} style="${isNew?'background:#f4f8f6;font-weight:800;color:#07584c':''}"></label><label>Mahsulot nomi (UZ)<input id="eName" value="${esc(p.name?.uz||'')}"></label><label>Название товара (RU)<input id="eNameRu" value="${esc(p.name?.ru||'')}"></label><label class="wide">Mahsulot ma’lumoti (UZ)<textarea id="eDescUz" placeholder="Mahsulot haqida ma’lumot...">${esc(p.description?.uz||'')}</textarea></label><label class="wide">Описание товара (RU)<textarea id="eDescRu" placeholder="Описание товара для русскоязычного поиска Google...">${esc(p.description?.ru||'')}</textarea></label><label>Kategoriya<select id="eCat">${D.categories.map(c=>`<option value="${c.id}" ${c.id===p.cat?'selected':''}>${esc(c.name?.uz||c.id)}</option>`).join('')}</select></label><label>Birlik / Ед. изм.<select id="eUnit">${units.map(u=>`<option value="${u[0]}" ${(p.unit?.uz||'dona')===u[0]?'selected':''}>${u[0]} / ${u[1]}</option>`).join('')}<option value="other">Boshqa / Другое</option></select></label><label>Birlik (UZ)<input id="eUnitUz" value="${esc(p.unit?.uz||'dona')}"></label><label>Единица (RU)<input id="eUnitRu" value="${esc(p.unit?.ru||'шт')}"></label><label>Sotuv narxi<input id="ePrice" type="number" min="0" value="${p.price||0}"></label><label>Tannarx<input id="eCost" type="number" min="0" value="${p.cost||0}"></label><label>Eski narx<input id="eOld" type="number" min="0" value="${p.oldPrice||0}"></label><label>${isNew?'Qabul qilingan miqdor / Boshlang‘ich zaxira':'Joriy zaxira (Ombordan boshqariladi)'}<input id="eStock" type="number" min="0" step="0.001" value="${p.stock||0}" ${isNew?'':'readonly'}></label><label>Holat<input id="eBadge" value="${esc(p.badge||'Faol')}" placeholder="Faol / YANGI / AKSIYA / TOP"></label><div class="wide seo-editor-block"><h4>Google SEO — ixtiyoriy</h4><p class="muted small">Bo‘sh qoldirilsa mahsulot nomi va tavsifidan avtomatik yaratiladi. Yangi mahsulot sitemap.xml ga avtomatik qo‘shiladi.</p><div class="product-modal-grid seo-grid"><label>SEO title (UZ)<input id="eSeoTitleUz" value="${esc(p.seo?.title?.uz||'')}"></label><label>SEO title (RU)<input id="eSeoTitleRu" value="${esc(p.seo?.title?.ru||'')}"></label><label class="wide">SEO description (UZ)<textarea id="eSeoDescUz">${esc(p.seo?.description?.uz||'')}</textarea></label><label class="wide">SEO description (RU)<textarea id="eSeoDescRu">${esc(p.seo?.description?.ru||'')}</textarea></label><label class="wide">SEO kalit so‘zlar<input id="eSeoKeywords" value="${esc(p.seo?.keywords||'')}" placeholder="masalan: guruch, parkent, zarbuloq"></label></div></div></div><div class="product-modal-actions"><button class="btn ghost sm" onclick="closeProductEditor(${isNew?'true':'false'},${p.id})">Bekor qilish</button><button class="btn primary sm" onclick="applyProductEdit(${p.id},${isNew?'true':'false'})">Saqlash</button></div></div></div>`;$('#eUnit').onchange=e=>{const m={dona:['dona','шт'],kg:['kg','кг'],gram:['gram','г'],metr:['metr','м'],litr:['litr','л'],ml:['ml','мл'],quti:['quti','коробка'],paket:['paket','пакет']}[e.target.value];if(m){$('#eUnitUz').value=m[0];$('#eUnitRu').value=m[1]}}}
 
 function applyProductEdit(id,isNew=false){const p=D.products.find(x=>Number(x.id)===Number(id));if(!p)return;p.sku=$('#eSku').value.trim()||nextProductSku(p.id);p.name=p.name||{};p.name.uz=$('#eName').value.trim()||'Mahsulot';p.name.ru=$('#eNameRu').value.trim()||p.name.uz;p.description=p.description||{};p.description.uz=$('#eDescUz').value.trim();p.description.ru=$('#eDescRu').value.trim()||p.description.uz;p.seo=p.seo||{};p.seo.title=p.seo.title||{};p.seo.description=p.seo.description||{};p.seo.title.uz=$('#eSeoTitleUz').value.trim();p.seo.title.ru=$('#eSeoTitleRu').value.trim();p.seo.description.uz=$('#eSeoDescUz').value.trim();p.seo.description.ru=$('#eSeoDescRu').value.trim();p.seo.keywords=$('#eSeoKeywords').value.trim();p.unit={uz:$('#eUnitUz').value.trim()||'dona',ru:$('#eUnitRu').value.trim()||'шт'};p.cat=$('#eCat').value;p.price=Number($('#ePrice').value);p.cost=Number($('#eCost').value);p.oldPrice=Number($('#eOld').value);p.stock=Number($('#eStock').value);if(isNew){p.receivedQty=p.stock;p.createdAt=p.createdAt||new Date().toISOString()}p.updatedAt=new Date().toISOString();p.badge=$('#eBadge').value.trim()||'Faol';saveProductsDirect()}
-async function saveProductsDirect(){try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({products:D.products})});closeProductEditor();alert('Saqlandi');await refresh()}catch(e){alert(e.message)}}
+async function saveProductsDirect(){
+ try{
+  await api('/api/admin/catalog',{
+   method:'PUT',
+   body:JSON.stringify({products:D.products})
+  });
+
+  await syncAdminProducts(true);
+ }catch(err){
+  console.error('Product save:',err);
+  alert(err.message);
+ }
+}
 function productRow(p){return `<div class="product-row" data-id="${p.id}"><div class="product-photo" id="photo-${p.id}">${p.image?`<img src="${p.image}" alt="Mahsulot rasmi">`:`<div class="ph">Rasm yo‘q</div>`}<div class="photo-actions"><label class="photo-btn">Rasm qo‘shish<input type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="setProductImage(${p.id},event)"></label>${p.image?`<button class="photo-remove" onclick="removeProductImage(${p.id})" type="button">×</button>`:''}</div></div><input class="pname" value="${esc(p.name?.uz||'')}" placeholder="Mahsulot nomi"><select class="pcat">${D.categories.map(c=>`<option value="${c.id}" ${c.id===p.cat?'selected':''}>${esc(c.name?.uz||c.id)}</option>`).join('')}</select><input class="pprice" type="number" value="${p.price}" placeholder="Narx"><input class="pcost" type="number" value="${p.cost||0}" placeholder="Tannarx"><input class="pold" type="number" value="${p.oldPrice||0}" placeholder="Eski narx"><input class="pstock" type="number" value="${p.stock}" placeholder="Qoldiq"><input class="pbadge" value="${esc(p.badge||'')}" placeholder="Badge"><button class="btn danger sm" onclick="removeProduct(${p.id})">×</button></div>`}
 function addProduct(){D.products.unshift({id:Date.now(),cat:D.categories[0]?.id||'food',emoji:'',name:{uz:'Yangi mahsulot',ru:'Новый товар'},description:{uz:'',ru:''},unit:{uz:'dona',ru:'шт'},price:0,cost:0,oldPrice:0,stock:0,receivedQty:0,createdAt:new Date().toISOString(),lastReceivedAt:'',image:'',badge:'YANGI',featured:false});renderPane()}
 function normalizeProductCanvas(img){
@@ -379,7 +460,34 @@ function productAdminSlug(p){if(!p)return'';const base=String(p.name?.uz||'mahsu
 function showAdminToast(text,type='ok'){document.querySelector('.toast-admin')?.remove();const el=document.createElement('div');el.className='toast-admin '+type;el.textContent=text;document.body.appendChild(el);setTimeout(()=>el.remove(),2800)}
 async function removeProduct(id,btn){if(btn)btn.disabled=true;try{await api('/api/admin/products/'+encodeURIComponent(id),{method:'DELETE'});D.products=D.products.filter(x=>Number(x.id)!==Number(id));showAdminToast('Mahsulot muvaffaqiyatli o‘chirildi');await refresh()}catch(e){showAdminToast(e.message||'Mahsulotni o‘chirishda xatolik','err');if(btn)btn.disabled=false}}
 function duplicateProduct(id){const p=D.products.find(x=>Number(x.id)===Number(id));if(!p)return;const q=JSON.parse(JSON.stringify(p));q.id=Date.now();q.sku=nextProductSku();q.name=q.name||{};q.name.uz=(q.name.uz||'Mahsulot')+' — nusxa';q.name.ru=(q.name.ru||q.name.uz||'Товар')+' — копия';q.stock=0;q.receivedQty=0;q.createdAt=new Date().toISOString();q.updatedAt=q.createdAt;D.products.unshift(q);openProductEditor(q.id,true)}
-async function saveProducts(){document.querySelectorAll('.product-row').forEach(r=>{const p=D.products.find(x=>Number(x.id)===Number(r.dataset.id));if(!p)return;p.name.uz=r.querySelector('.pname').value;p.name.ru=p.name.ru||p.name.uz;p.cat=r.querySelector('.pcat').value;p.price=Number(r.querySelector('.pprice').value);p.cost=Number(r.querySelector('.pcost').value);p.oldPrice=Number(r.querySelector('.pold').value);p.stock=Number(r.querySelector('.pstock').value);p.badge=r.querySelector('.pbadge').value});try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({products:D.products})});alert('Saqlandi');await refresh()}catch(e){alert(e.message)}}
+async function saveProducts(){
+ document.querySelectorAll('.product-row').forEach(r=>{
+  const p=D.products.find(x=>Number(x.id)===Number(r.dataset.id));
+  if(!p)return;
+
+  p.name.uz=r.querySelector('.pname').value;
+  p.name.ru=p.name.ru||p.name.uz;
+  p.cat=r.querySelector('.pcat').value;
+  p.price=Number(r.querySelector('.pprice').value);
+  p.cost=Number(r.querySelector('.pcost').value);
+  p.oldPrice=Number(r.querySelector('.pold').value);
+  p.stock=Number(r.querySelector('.pstock').value);
+  p.badge=r.querySelector('.pbadge').value;
+ });
+
+ try{
+  await api('/api/admin/catalog',{
+   method:'PUT',
+   body:JSON.stringify({products:D.products})
+  });
+
+  await syncAdminProducts(true);
+  alert('Saqlandi');
+ }catch(e){
+  console.error('Products save:',e);
+  alert(e.message);
+ }
+}
 function visitorsPane(){const st=D.visitorStats||{},rows=D.visits||[],series=st.series||[],max=Math.max(1,...series.map(x=>Number(x.visits||0)));return `<div class="panel"><div class="fin-section-title"><div><h2 style="margin:0">Tashriflar statistikasi</h2><p class="muted" style="margin:5px 0 0">Saytga kirganlar soni, noyob foydalanuvchilar va hozir online bo‘lganlar.</p></div><a class="btn primary" href="/api/admin/visitors.xls">Excel tarixini yuklash</a></div><div class="visitor-kpis"><div class="visitor-kpi"><span>Bugungi tashriflar</span><b>${st.today||0}</b></div><div class="visitor-kpi"><span>Bugungi noyob</span><b>${st.todayUnique||0}</b></div><div class="visitor-kpi"><span>Hozir online</span><b>${st.online||0}</b></div><div class="visitor-kpi"><span>7 kun</span><b>${st.last7||0}</b></div><div class="visitor-kpi"><span>30 kun</span><b>${st.last30||0}</b></div><div class="visitor-kpi"><span>Jami tashriflar</span><b>${st.total||0}</b></div></div><div class="visitor-grid"><div class="fin-card"><div class="fin-section-title"><h3>So‘nggi 7 kun</h3><span class="role-badge">LIVE</span></div><div class="visitor-legend"><span><i class="v"></i>Tashrif</span><span><i class="u"></i>Noyob</span></div><div class="visitor-chart">${series.map(x=>`<div class="visitor-col"><div class="visitor-bar" title="${x.visits} tashrif" style="height:${Math.max(3,Number(x.visits||0)/max*100)}%"></div><div class="visitor-bar unique" title="${x.unique} noyob" style="height:${Math.max(3,Number(x.unique||0)/max*100)}%"></div><small>${esc(String(x.date||'').slice(5))}</small></div>`).join('')}</div></div><div class="fin-card"><h3>Ko‘rsatkichlar</h3><div class="quick-metric-row"><div class="quick-metric"><span>Jami noyob</span><b>${st.uniqueTotal||0}</b></div><div class="quick-metric"><span>7 kun noyob</span><b>${st.last7Unique||0}</b></div><div class="quick-metric"><span>30 kun noyob</span><b>${st.last30Unique||0}</b></div></div><p class="fin-note" style="margin-top:14px">Bir foydalanuvchi sahifani qayta yuklasa ham noyob tashrif alohida hisoblanmaydi. “Hozir online” oxirgi 2 daqiqada faol bo‘lgan foydalanuvchilarni ko‘rsatadi.</p></div></div></div><div class="panel"><div class="fin-section-title"><h3>So‘nggi tashriflar</h3><span class="role-badge">${rows.length} ta yozuv</span></div><div class="table"><table><thead><tr><th>Sana / vaqt</th><th>Qurilma</th><th>Sahifa</th><th>Til</th><th>Manba</th></tr></thead><tbody>${rows.slice(0,300).map(x=>`<tr><td>${x.at?new Date(x.at).toLocaleString('uz-UZ'):''}</td><td>${esc(x.device||'')}</td><td>${esc(x.page||'/')}</td><td>${esc(x.lang||'')}</td><td>${esc(x.referrer||'To‘g‘ridan-to‘g‘ri')}</td></tr>`).join('')||'<tr><td colspan="5">Hozircha tashrif yozuvi yo‘q.</td></tr>'}</tbody></table></div></div>`}
 
 function customersPane(){return `<div class="panel"><div class="table"><table><thead><tr><th>Mijoz</th><th>Telefon</th><th>Buyurtmalar</th><th>Yakunlangan xarid</th><th>Oxirgi buyurtma</th><th>Asosiy hudud</th></tr></thead><tbody>${D.customers.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td><a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></td><td>${c.orders}</td><td><b>${money(c.total)}</b></td><td>${c.lastOrder?new Date(c.lastOrder).toLocaleString('uz-UZ'):''}</td><td>${esc(Object.entries(c.areas||{}).sort((a,b)=>b[1]-a[1])[0]?.[0]||'')}</td></tr>`).join('')}</tbody></table></div></div>`}
