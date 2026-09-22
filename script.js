@@ -33,15 +33,6 @@ async function loadCatalog(retry=0){
   const d=await r.json();
   products=Array.isArray(d.products)?d.products:[];categories=Array.isArray(d.categories)?d.categories:[];settings=d.settings||{};logo=d.logo||'';
   applySite();renderAll();initParkentBoundaryMap();
-  try{
-   const q=new URLSearchParams(location.search);
-   const handoff=q.get('checkout')==='1'||sessionStorage.getItem('zarbuloq_open_checkout')==='1';
-   if(handoff){
-    sessionStorage.removeItem('zarbuloq_open_checkout');
-    if(q.get('checkout')==='1')history.replaceState(null,'',location.pathname+location.hash);
-    setTimeout(openCheckout,80);
-   }
-  }catch(_){}
  }catch(e){
   console.error('Catalog load:',e);
   if(retry<4){setTimeout(()=>loadCatalog(retry+1),700*(retry+1));return}
@@ -270,7 +261,16 @@ if($('#clearCatalogFilters'))$('#clearCatalogFilters').onclick=()=>{filter='all'
 const backTop=$('#backToTop');window.addEventListener('scroll',()=>{if(backTop)backTop.classList.toggle('show',window.scrollY>650)},{passive:true});if(backTop)backTop.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
 document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){e.preventDefault();$('#searchInput')?.focus()}});
 initRealtime();
-loadCatalog();
+loadCatalog().then(()=>{
+  try{
+    const u=new URL(window.location.href);
+    if(u.searchParams.get('checkout')==='1'){
+      u.searchParams.delete('checkout');
+      history.replaceState(null,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+(u.hash||''));
+      openCheckout();
+    }
+  }catch(_){ }
+});
 loadSiteChat();
 // SSE uzilib qolsa ham sayt/chat 3 soniyada avtomatik sinxronlanadi.
 setInterval(()=>{if(Date.now()-realtimeLastEvent>8000){refreshRealtimeStore();loadSiteChat()}},3000);
