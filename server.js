@@ -181,27 +181,93 @@ async function assertPublicRemoteUrl(raw){
   if(!rows.length || rows.some(x=>isPrivateIpAddress(x.address)))throw new Error('Rasm manzili ichki tarmoqqa olib boradi');
   return u;
 }
+function detectImageMime(buffer,declared=''){
+  const b=Buffer.isBuffer(buffer)?buffer:Buffer.from(buffer||[]);
+  const d=String(declared||'').split(';')[0].trim().toLowerCase();
+  if(b.length>=3&&b[0]===0xff&&b[1]===0xd8&&b[2]===0xff)return 'image/jpeg';
+  if(b.length>=8&&b.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a])))return 'image/png';
+  if(b.length>=12&&b.toString('ascii',0,4)==='RIFF'&&b.toString('ascii',8,12)==='WEBP')return 'image/webp';
+  if(b.length>=6&&['GIF87a','GIF89a'].includes(b.toString('ascii',0,6)))return 'image/gif';
+  if(b.length>=12&&b.toString('ascii',4,8)==='ftyp'){
+    const brand=b.toString('ascii',8,12).toLowerCase();
+    if(brand.includes('avif')||brand.includes('avis'))return 'image/avif';
+  }
+  if(/^image\/(?:jpeg|jpg|png|webp|gif|avif)$/i.test(d))return d==='image/jpg'?'image/jpeg':d;
+  return '';
+}
+function htmlEntityDecode(s=''){
+  return String(s||'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+}
+function extractHtmlImageUrl(html,baseUrl){
+  const text=String(html||'');
+  const tags=text.match(/<meta\b[^>]*>/gi)||[];
+  const readAttr=(tag,name)=>{
+    const m=tag.match(new RegExp('\\\\b'+name+'\\\\s*=\\\\s*(["\\\'])((?:.(?!\\\\1))*.?)\\\\1','i'));
+    if(m)return htmlEntityDecode(m[2]).trim();
+    const u=tag.match(new RegExp('\\\\b'+name+'\\\\s*=\\\\s*([^\\\\s>]+)','i'));
+    return u?htmlEntityDecode(u[1]).trim():'';
+  };
+  for(const tag of tags){
+    const key=(readAttr(tag,'property')||readAttr(tag,'name')||readAttr(tag,'itemprop')).toLowerCase();
+    if(!['og:image','og:image:url','twitter:image','twitter:image:src','image'].includes(key))continue;
+    const value=readAttr(tag,'content');if(!value)continue;
+    try{return new URL(value,baseUrl).href}catch{}
+  }
+  const link=(text.match(/<link\b[^>]*rel\s*=\s*["'][^"']*(?:image_src|preload)[^"']*["'][^>]*>/i)||[])[0];
+  if(link){
+    const h=link.match(/href\s*=\s*["']([^"']+)["']/i);
+    if(h)try{return new URL(htmlEntityDecode(h[1]),baseUrl).href}catch{}
+  }
+  return '';
+}
 async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=20_000}={}){
   let current=(await assertPublicRemoteUrl(raw)).href;
+  let pageReferrer='';
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    let r;
-    for(let redirects=0;redirects<=3;redirects++){
-      r=await fetch(current,{redirect:'manual',signal:controller.signal,headers:{'User-Agent':'Mozilla/5.0 ZARBULOQ-ImageProxy/1.1','Accept':'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'}});
-      if([301,302,303,307,308].includes(r.status)){
-        const loc=r.headers.get('location');if(!loc)throw new Error('Rasm redirect noto‘g‘ri');
-        current=new URL(loc,current).href;
-        current=(await assertPublicRemoteUrl(current)).href;
+    for(let pageHop=0;pageHop<2;pageHop++){
+      let r;
+      for(let redirects=0;redirects<=5;redirects++){
+        const origin=new URL(current).origin+'/';
+        r=await fetch(current,{redirect:'manual',signal:controller.signal,headers:{
+          'User-Agent':'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36 ZARBULOQ-ImageRelay/2.0',
+          'Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Accept-Language':'uz-UZ,uz;q=0.9,ru;q=0.8,en;q=0.7',
+          'Referer':pageReferrer||origin
+        }});
+        if([301,302,303,307,308].includes(r.status)){
+          const loc=r.headers.get('location');if(!loc)throw new Error('Rasm redirect noto‘g‘ri');
+          current=new URL(loc,current).href;
+          current=(await assertPublicRemoteUrl(current)).href;
+          continue;
+        }
+        break;
+      }
+      if(!r||!r.ok)throw new Error(`Rasm serveri HTTP ${r?.status||0}`);
+      const declared=String(r.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+      const len=Number(r.headers.get('content-length')||0);
+      if(len&&len>maxBytes)throw new Error('Rasm juda katta');
+
+      const looksHtml=/^(?:text\/html|application\/xhtml\+xml)$/i.test(declared);
+      if(looksHtml){
+        if(pageHop>0)throw new Error('Rasm manzili yana HTML sahifaga olib bordi');
+        if(len&&len>2_000_000)throw new Error('Rasm sahifasi juda katta');
+        const ab=await r.arrayBuffer();
+        if(ab.byteLength>2_000_000)throw new Error('Rasm sahifasi juda katta');
+        const next=extractHtmlImageUrl(Buffer.from(ab).toString('utf8'),current);
+        if(!next)throw new Error('URL rasm fayli emas va sahifada og:image topilmadi');
+        pageReferrer=current;
+        current=(await assertPublicRemoteUrl(next)).href;
         continue;
       }
-      break;
+
+      const ab=await r.arrayBuffer();
+      if(ab.byteLength>maxBytes)throw new Error('Rasm juda katta');
+      const buffer=Buffer.from(ab),type=detectImageMime(buffer,declared);
+      if(!type)throw new Error(`URL rasm fayliga olib bormadi (Content-Type: ${declared||'noma’lum'})`);
+      return {buffer,type,url:current};
     }
-    if(!r||!r.ok)throw new Error(`Rasm serveri HTTP ${r?.status||0}`);
-    const type=String(r.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
-    if(!/^image\/(?:jpeg|jpg|png|webp|gif|avif)$/i.test(type))throw new Error('URL rasm fayliga olib bormadi');
-    const len=Number(r.headers.get('content-length')||0);if(len&&len>maxBytes)throw new Error('Rasm juda katta');
-    const ab=await r.arrayBuffer();if(ab.byteLength>maxBytes)throw new Error('Rasm juda katta');
-    return {buffer:Buffer.from(ab),type:type==='image/jpg'?'image/jpeg':type,url:current};
+    throw new Error('Rasm manbasini aniqlab bo‘lmadi');
   }finally{clearTimeout(timer)}
 }
 app.get('/api/image-proxy',async(req,res)=>{
@@ -212,7 +278,9 @@ app.get('/api/image-proxy',async(req,res)=>{
     res.setHeader('Access-Control-Allow-Origin','*');
     res.setHeader('X-Content-Type-Options','nosniff');
     res.send(img.buffer);
-  }catch(e){res.status(404).type('text/plain').send('Rasm yuklanmadi')}
+  }catch(e){
+    res.status(404).type('text/plain; charset=utf-8').send('Rasm yuklanmadi: '+String(e?.message||e).slice(0,220));
+  }
 });
 
 // V13.16 PRODUCT SEO — har bir mahsulot uchun Google indekslaydigan alohida sahifa.
@@ -1055,7 +1123,7 @@ app.get('/api/admin/products/:id/image',requireAdmin,async(req,res)=>{
   return res.redirect('/'+raw.replace(/^\/+/,''));
  }catch(e){
   console.warn('Admin product image relay failed:',req.params.id,e?.message||e);
-  return res.status(404).type('text/plain').send('Rasm yuklanmadi');
+  return res.status(404).type('text/plain; charset=utf-8').send('Rasm yuklanmadi: '+String(e?.message||e).slice(0,220));
  }
 });
 
@@ -1099,7 +1167,7 @@ function excelCell(row,names){
  return '';
 }
 function excelNumber(v){const n=Number(String(v??'').replace(/\s/g,'').replace(/,/g,'.').replace(/[^\d.-]/g,''));return Number.isFinite(n)?n:0}
-function normalizeImportRow(row,rowNo){
+function normalizeImportRow(row,rowNo,imageOverride=''){
  const sku=clean(excelCell(row,['Mahsulot kodi','Kod','SKU','Артикул']),60);
  const nameUz=clean(excelCell(row,['Nomi UZ','Mahsulot nomi UZ','Nomi','Mahsulot nomi']),120);
  const nameRu=clean(excelCell(row,['Nomi RU','Название RU','Название товара','Название']),120);
@@ -1112,14 +1180,38 @@ function normalizeImportRow(row,rowNo){
  const unitRu=clean(excelCell(row,['Birlik RU','Единица RU','Единица']),30)||'шт';
  const descriptionUz=clean(excelCell(row,['Tavsif UZ','Mahsulot ma’lumoti UZ','Tavsif']),1200);
  const descriptionRu=clean(excelCell(row,['Tavsif RU','Описание RU','Описание']),1200);
- const image=String(excelCell(row,['Rasm URL','Rasm','Фото URL','Image URL'])||'').trim().slice(0,2000);
+ const image=String(imageOverride||excelCell(row,['Rasm URL','Rasm','Фото URL','Image URL'])||'').trim().slice(0,4000);
  return {rowNo,sku,nameUz,nameRu,catUz,catRu,price,cost,qty,unitUz,unitRu,descriptionUz,descriptionRu,image};
+}
+function excelHyperlinkTarget(ws,rowIndex,colIndex){
+ const cell=ws[XLSX.utils.encode_cell({r:rowIndex,c:colIndex})];
+ if(!cell)return '';
+ const direct=String(cell.l?.Target||cell.l?.target||'').trim();
+ if(direct)return direct;
+ const f=String(cell.f||'').trim();
+ const m=f.match(/^HYPERLINK\s*\(\s*["']([^"']+)["']/i);
+ return m?m[1].trim():'';
 }
 function parseProductExcel(buffer){
  const wb=XLSX.read(buffer,{type:'buffer',cellDates:false});
  const first=wb.SheetNames[0];if(!first)throw new Error('Excel ichida varaq topilmadi');
- const rows=XLSX.utils.sheet_to_json(wb.Sheets[first],{defval:'',raw:false}).slice(0,2000);
- return rows.map((r,i)=>normalizeImportRow(r,i+2)).filter(r=>r.nameUz||r.sku);
+ const ws=wb.Sheets[first];
+ const matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:false});
+ if(!matrix.length)return [];
+ const headers=(matrix[0]||[]).map(x=>String(x??'').trim());
+ const imageNames=new Set(['rasm url','rasm','фото url','image url']);
+ const imageCols=headers.map((h,i)=>imageNames.has(h.toLowerCase())?i:-1).filter(i=>i>=0);
+ const rows=[];
+ for(let ri=1;ri<matrix.length;ri++){
+  const values=matrix[ri]||[],obj={};
+  headers.forEach((h,ci)=>{if(h)obj[h]=values[ci]??''});
+  let hyperlink='';
+  for(const ci of imageCols){hyperlink=excelHyperlinkTarget(ws,ri,ci);if(hyperlink)break}
+  const normalized=normalizeImportRow(obj,ri+1,hyperlink);
+  if(normalized.nameUz||normalized.sku)rows.push(normalized);
+  if(rows.length>=2000)break;
+ }
+ return rows;
 }
 function importMatch(db,r){
  if(r.sku){const bySku=(db.products||[]).find(p=>String(p.sku||'').trim().toLowerCase()===r.sku.toLowerCase());if(bySku)return bySku;}
