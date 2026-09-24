@@ -200,23 +200,25 @@ function htmlEntityDecode(s=''){
 }
 function extractHtmlImageUrl(html,baseUrl){
   const text=String(html||'');
-  const tags=text.match(/<meta\b[^>]*>/gi)||[];
-  const readAttr=(tag,name)=>{
-    const m=tag.match(new RegExp('\\\\b'+name+'\\\\s*=\\\\s*(["\\\'])((?:.(?!\\\\1))*.?)\\\\1','i'));
-    if(m)return htmlEntityDecode(m[2]).trim();
-    const u=tag.match(new RegExp('\\\\b'+name+'\\\\s*=\\\\s*([^\\\\s>]+)','i'));
-    return u?htmlEntityDecode(u[1]).trim():'';
+  const attrMap=tag=>{
+    const out={};
+    String(tag||'').replace(/([:\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g,(_,k,a,b,c)=>{
+      out[String(k).toLowerCase()]=htmlEntityDecode(a??b??c??'').trim();return _;
+    });
+    return out;
   };
+  const tags=text.match(/<meta\b[^>]*>/gi)||[];
   for(const tag of tags){
-    const key=(readAttr(tag,'property')||readAttr(tag,'name')||readAttr(tag,'itemprop')).toLowerCase();
+    const a=attrMap(tag),key=String(a.property||a.name||a.itemprop||'').toLowerCase();
     if(!['og:image','og:image:url','twitter:image','twitter:image:src','image'].includes(key))continue;
-    const value=readAttr(tag,'content');if(!value)continue;
+    const value=a.content;if(!value)continue;
     try{return new URL(value,baseUrl).href}catch{}
   }
-  const link=(text.match(/<link\b[^>]*rel\s*=\s*["'][^"']*(?:image_src|preload)[^"']*["'][^>]*>/i)||[])[0];
-  if(link){
-    const h=link.match(/href\s*=\s*["']([^"']+)["']/i);
-    if(h)try{return new URL(htmlEntityDecode(h[1]),baseUrl).href}catch{}
+  const links=text.match(/<link\b[^>]*>/gi)||[];
+  for(const tag of links){
+    const a=attrMap(tag),rel=String(a.rel||'').toLowerCase();
+    if(!/(?:^|\s)(?:image_src|preload)(?:\s|$)/.test(rel)||!a.href)continue;
+    try{return new URL(a.href,baseUrl).href}catch{}
   }
   return '';
 }
