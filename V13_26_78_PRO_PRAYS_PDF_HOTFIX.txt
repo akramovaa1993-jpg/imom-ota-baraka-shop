@@ -1,0 +1,10 @@
+ZARBULOQ.UZ v13.26.78 — PRO PRAYS PDF HOTFIX
+
+Tuzatildi:
+1) Ombordan prays olganda kategoriya bo‘yicha majburiy sahifa ajratilishi olib tashlandi. Endi mahsulotlar sahifaga uzluksiz to‘ldiriladi.
+2) 6 ta / varoq rejimida 50 ta mahsulot 11 emas, 9 ta A4 landscape sahifaga joylanadi.
+3) Kategoriya nomi kartaning o‘zida ixcham chip sifatida ko‘rinadi.
+4) html2canvas va jsPDF yuklanishi xatoga chidamli qilindi: jsDelivr + unpkg fallback.
+5) Bir marta script yuklanmay qolsa, keyingi urinishda eski xato script qayta ishlatilmaydi.
+6) Direct PDF ishlamasa preview orqali Save as PDF fallback taklif qilinadi.
+7) Adminning qolgan ombor, mahsulot, buyurtma, FINANS va ma’lumotlar logikasiga tegilmadi.
