@@ -222,7 +222,26 @@ function extractHtmlImageUrl(html,baseUrl){
   }
   return '';
 }
-async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=20_000}={}){
+const remoteImageCache=new Map();
+const remoteImagePending=new Map();
+const REMOTE_IMAGE_CACHE_TTL=6*60*60*1000;
+const REMOTE_IMAGE_CACHE_MAX=250;
+function remoteImageCacheGet(key){
+ const row=remoteImageCache.get(key);
+ if(!row)return null;
+ if(Date.now()-row.at>REMOTE_IMAGE_CACHE_TTL){remoteImageCache.delete(key);return null}
+ remoteImageCache.delete(key);remoteImageCache.set(key,row);
+ return row.value;
+}
+function remoteImageCacheSet(key,value){
+ remoteImageCache.set(key,{at:Date.now(),value});
+ while(remoteImageCache.size>REMOTE_IMAGE_CACHE_MAX){
+  const first=remoteImageCache.keys().next().value;
+  if(first===undefined)break;
+  remoteImageCache.delete(first);
+ }
+}
+async function fetchRemoteImageUncached(raw,{maxBytes=12_000_000,timeoutMs=10_000}={}){
   let current=(await assertPublicRemoteUrl(raw)).href;
   let pageReferrer='';
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
@@ -272,9 +291,21 @@ async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=20_000}={}){
     throw new Error('Rasm manbasini aniqlab bo‘lmadi');
   }finally{clearTimeout(timer)}
 }
+async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=10_000}={}){
+ const safe=safeRemoteImageUrl(raw);if(!safe)throw new Error('Rasm URL xavfsiz yoki to‘g‘ri emas');
+ const key=safe;
+ const cached=remoteImageCacheGet(key);if(cached)return cached;
+ if(remoteImagePending.has(key))return remoteImagePending.get(key);
+ const job=fetchRemoteImageUncached(safe,{maxBytes,timeoutMs}).then(img=>{
+  const value={buffer:img.buffer,type:img.type,url:img.url};
+  remoteImageCacheSet(key,value);return value;
+ }).finally(()=>remoteImagePending.delete(key));
+ remoteImagePending.set(key,job);return job;
+}
+
 app.get('/api/image-proxy',async(req,res)=>{
   try{
-    const img=await fetchRemoteImage(req.query.url,{maxBytes:12_000_000,timeoutMs:20_000});
+    const img=await fetchRemoteImage(req.query.url,{maxBytes:12_000_000,timeoutMs:10_000});
     res.setHeader('Content-Type',img.type);
     res.setHeader('Cache-Control','public, max-age=86400, stale-while-revalidate=604800');
     res.setHeader('Access-Control-Allow-Origin','*');
@@ -1124,7 +1155,7 @@ app.get('/api/admin/price-image-diagnostics',requireAdmin,async(req,res)=>{
 
    if(/^https?:\/\//i.test(raw)){
     try{
-     const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:15_000});
+     const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:8_000});
      return {...base,status:'ready',error:'',type:img.type||'',bytes:img.buffer?.length||0};
     }catch(e){
      return {...base,status:'failed',error:String(e?.message||e).slice(0,220),type:'',bytes:0};
@@ -1178,7 +1209,7 @@ app.get('/api/admin/products/:id/image',requireAdmin,async(req,res)=>{
    return res.end(buf);
   }
   if(/^https?:\/\//i.test(raw)){
-   const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:20_000});
+   const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:10_000});
    res.setHeader('Content-Type',img.type);
    res.setHeader('Cache-Control','private, max-age=3600, stale-while-revalidate=86400');
    res.setHeader('X-Content-Type-Options','nosniff');
