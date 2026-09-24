@@ -1,0 +1,35 @@
+name: Price Image Lab Tests
+
+on:
+  push:
+    branches:
+      - price-image-fix-lab
+    paths:
+      - 'server.js'
+      - 'admin.html'
+      - 'scripts/price-image-lab-test.js'
+      - '.github/workflows/price-image-lab.yml'
+  workflow_dispatch:
+
+jobs:
+  test-price-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout lab branch
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check server syntax
+        run: node --check server.js
+
+      - name: Test price image pipeline
+        run: node scripts/price-image-lab-test.js
