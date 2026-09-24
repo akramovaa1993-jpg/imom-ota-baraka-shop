@@ -752,6 +752,13 @@ function catalogPriceFallbackImage(p={}){
 function adminProductPayload(p){
  const out=cloneProductSafe(p||{});
  out.image=adminProductImageUrl(p);
+ const raw=String(p?.image||'').trim();
+ // The PRO price can reuse exactly the same product image that the public site uses.
+ out.siteImage=raw
+  ? (/^data:image\//i.test(raw)
+      ? `/mahsulot-rasm/${encodeURIComponent(String(p.id))}?v=${encodeURIComponent(String(p.updatedAt||p.createdAt||''))}`
+      : raw)
+  : '';
  out.priceFallbackImage=catalogPriceFallbackImage(p);
  return out;
 }
