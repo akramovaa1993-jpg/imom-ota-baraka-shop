@@ -667,19 +667,19 @@ async function downloadPricePdf(btn){
   const pageEls=[...root.querySelectorAll('.pro-price-page')],imgState=await waitForPriceImages(root,10000);
   if(imgState.failed.length){
     const names=imgState.failed.map(x=>x.alt||'Mahsulot').filter(Boolean).slice(0,10);
-    const extra=imgState.failed.length>10?\`\n… yana \${imgState.failed.length-10} ta\`:'';
-    if(!confirm(\`\${imgState.failed.length} ta rasm yuklanmadi:\n• \${names.join('\\n• ')}\${extra}\n\nRasmsiz joylar bilan PDF davom ettirilsinmi?\`))return;
+    const extra=imgState.failed.length>10?`\n… yana ${imgState.failed.length-10} ta`:'';
+    if(!confirm(`${imgState.failed.length} ta rasm yuklanmadi:\n• ${names.join('\\n• ')}${extra}\n\nRasmsiz joylar bilan PDF davom ettirilsinmi?`))return;
   }
   const jsPDF=window.jspdf?.jsPDF;if(!jsPDF)throw new Error('PDF moduli ishga tushmadi.');
   const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
   const renderScale=Math.min(2.25,Math.max(2,Number(window.devicePixelRatio||2)));
   for(let i=0;i<pageEls.length;i++){
-   if(btn)btn.textContent=\`PDF \${i+1}/\${pageEls.length}...\`;
+   if(btn)btn.textContent=`PDF ${i+1}/${pageEls.length}...`;
    const canvas=await window.html2canvas(pageEls[i],{scale:renderScale,useCORS:false,allowTaint:false,backgroundColor:'#eef4f0',logging:false,imageTimeout:10000});
    const img=canvas.toDataURL('image/jpeg',0.95);if(i>0)pdf.addPage('a4','landscape');pdf.addImage(img,'JPEG',0,0,297,210,undefined,'FAST');canvas.width=1;canvas.height=1;
   }
   const stamp=($('#warehouseMonth')?.value||new Date().toISOString().slice(0,7)).replace(/[^0-9-]/g,'');
-  pdf.save(\`IMOM_OTA_BARAKA_PRO_PRAYS_\${stamp}.pdf\`);
+  pdf.save(`IMOM_OTA_BARAKA_PRO_PRAYS_${stamp}.pdf`);
  }catch(e){
   console.error(e);const msg=e&&e.message?e.message:String(e);
   if(confirm(msg+'\n\nPDF yuklashda muammo bo‘ldi. Previewni ochib tekshirishni xohlaysizmi?'))previewPricePdf();
