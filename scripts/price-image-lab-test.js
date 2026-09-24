@@ -72,6 +72,30 @@ async function main(){
     assert(preview.rows&&preview.rows.length===1,'Excel preview row missing');
     assert(preview.rows[0].image==='https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png','Excel hyperlink Target was not extracted: '+preview.rows[0].image);
 
+    // 4) Import one product, then run read-only server diagnostics and verify product count is unchanged.
+    r=await fetch('http://127.0.0.1:3123/api/admin/products-import-excel',{
+      method:'POST',
+      headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','cookie':cookie,'origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},
+      body
+    });
+    const imported=await r.json();
+    assert(r.ok,'Excel import HTTP '+r.status+' '+JSON.stringify(imported));
+
+    r=await fetch('http://127.0.0.1:3123/api/admin/products',{headers:{cookie}});
+    const before=await r.json();
+    assert(r.ok&&before.productCount>=1,'Admin products before diagnostics missing');
+
+    r=await fetch('http://127.0.0.1:3123/api/admin/price-image-diagnostics?scope=price',{headers:{cookie}});
+    const diag=await r.json();
+    assert(r.ok,'Diagnostics HTTP '+r.status+' '+JSON.stringify(diag));
+    const labDiag=(diag.rows||[]).find(x=>x.sku==='LAB-001');
+    assert(labDiag&&labDiag.status==='ready','Imported image diagnostic was not ready: '+JSON.stringify(labDiag));
+
+    r=await fetch('http://127.0.0.1:3123/api/admin/products',{headers:{cookie}});
+    const after=await r.json();
+    assert(r.ok,'Admin products after diagnostics HTTP '+r.status);
+    assert(after.productCount===before.productCount,'Diagnostics changed product count: '+before.productCount+' -> '+after.productCount);
+
     console.log('PRICE IMAGE LAB TESTS: PASS');
     console.log(JSON.stringify({directImageBytes:direct.length,htmlFallbackBytes:pageImage.length,excelHyperlink:preview.rows[0].image},null,2));
   }finally{
