@@ -604,6 +604,7 @@ function priceProductImageCandidates(p={}){
  else if(Number(p.id)&&rawImage)add('/api/admin/products/'+encodeURIComponent(String(p.id))+'/image?v='+encodeURIComponent(String(p.updatedAt||p.createdAt||'')));
  else add(rawImage);
  // Alternative fields are tried only when they are genuinely different sources.
+ add(p.siteImage); // first reuse the exact image already shown on ZARBULOQ.UZ
  add(p.imageUrl);add(p.image_url);add(p.photo);add(p.thumbnail);
  if(Array.isArray(p.images))p.images.forEach(add);
  add(p.priceFallbackImage);
