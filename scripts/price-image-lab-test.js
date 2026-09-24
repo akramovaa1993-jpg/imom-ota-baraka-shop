@@ -55,6 +55,24 @@ async function main(){
     assert(String(r.headers.get('content-type')||'').startsWith('image/'),'HTML fallback content-type');
     assert(pageImage.length>100,'HTML fallback image too small');
 
+    // 2b) Smoke-test every catalog fallback source used by the PRO price.
+    const catalogFallbacks=[
+      ['z180','https://joinpoint.fra1.cdn.digitaloceanspaces.com/production/suvgo/products/image-b579c33f-e7b3-4535-b881-22f731216732.png'],
+      ['zeco','https://glotr.uz/salfetka-z-eco-elma-dlya-dispensera-180-sht-202-p-1162199/'],
+      ['panda6','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/3333.png?fit=1000%2C750&ssl=1'],
+      ['panda8','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/2222.png?fit=1000%2C750&ssl=1'],
+      ['euro','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/Euro-pack.png?fit=1000%2C750&ssl=1'],
+      ['ecoBig','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/salfetka66-min.png?fit=2080%2C2080&ssl=1'],
+      ['big','https://i0.wp.com/elma.uz/wp-content/uploads/2021/07/salfetka59.png?fit=1000%2C1000&ssl=1']
+    ];
+    for(const [key,url] of catalogFallbacks){
+      const rr=await fetch('http://127.0.0.1:3123/api/image-proxy?url='+encodeURIComponent(url));
+      const bb=Buffer.from(await rr.arrayBuffer());
+      if(!rr.ok)throw new Error('Catalog fallback '+key+' HTTP '+rr.status+' '+bb.toString('utf8').slice(0,250));
+      assert(String(rr.headers.get('content-type')||'').startsWith('image/'),'Catalog fallback '+key+' content-type');
+      assert(bb.length>500,'Catalog fallback '+key+' image too small');
+    }
+
     // 3) Login and Excel hyperlink preview.
     r=await fetch('http://127.0.0.1:3123/api/admin/login',{method:'POST',headers:{'content-type':'application/json','origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},body:JSON.stringify({username:'admin',password:'test-pass-123'})});
     assert(r.ok,'Admin login HTTP '+r.status);
@@ -95,6 +113,24 @@ async function main(){
     const after=await r.json();
     assert(r.ok,'Admin products after diagnostics HTTP '+r.status);
     assert(after.productCount===before.productCount,'Diagnostics changed product count: '+before.productCount+' -> '+after.productCount);
+
+    // 5) A known catalog item without its own image must receive a price-only fallback.
+    const ws2=XLSX.utils.aoa_to_sheet([headers,['EURO-108',"Tualet qog'oz Elma Euro",'Туалетная бумага Elma Euro Pack 4 шт.','Test','Тест',25000,18000,2,'dona','шт','','','']]);
+    const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws2,'Mahsulot importi');
+    const euroPath=path.join('/tmp','zarbuloq-euro-fallback.xlsx');XLSX.writeFile(wb2,euroPath);
+    r=await fetch('http://127.0.0.1:3123/api/admin/products-import-excel',{
+      method:'POST',
+      headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','cookie':cookie,'origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},
+      body:fs.readFileSync(euroPath)
+    });
+    assert(r.ok,'Euro fallback import HTTP '+r.status);
+    r=await fetch('http://127.0.0.1:3123/api/admin/products',{headers:{cookie}});
+    const withFallback=await r.json(),euro=(withFallback.products||[]).find(x=>x.sku==='EURO-108');
+    assert(euro&&/Euro-pack\.png/i.test(String(euro.priceFallbackImage||'')),'Euro price fallback missing: '+JSON.stringify(euro));
+
+    // 6) Admin payload must expose the site's own image as an additional price source.
+    const lab=(withFallback.products||[]).find(x=>x.sku==='LAB-001');
+    assert(lab&&String(lab.siteImage||'').includes('raw.githubusercontent.com/github/explore'),'Site image passthrough missing: '+JSON.stringify(lab));
 
     console.log('PRICE IMAGE LAB TESTS: PASS');
     console.log(JSON.stringify({directImageBytes:direct.length,htmlFallbackBytes:pageImage.length,excelHyperlink:preview.rows[0].image},null,2));

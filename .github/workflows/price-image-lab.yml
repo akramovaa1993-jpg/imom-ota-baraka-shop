@@ -6,6 +6,7 @@ on:
       - price-image-fix-lab
       - price-image-diagnostic-hotfix
       - price-pdf-fast-clear
+      - price-missing-image-fallbacks
     paths:
       - 'server.js'
       - 'admin.html'
