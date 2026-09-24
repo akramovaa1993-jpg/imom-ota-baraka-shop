@@ -55,6 +55,24 @@ async function main(){
     assert(String(r.headers.get('content-type')||'').startsWith('image/'),'HTML fallback content-type');
     assert(pageImage.length>100,'HTML fallback image too small');
 
+    // 2b) Smoke-test every catalog fallback source used by the PRO price.
+    const catalogFallbacks=[
+      ['z180','https://joinpoint.fra1.cdn.digitaloceanspaces.com/production/suvgo/products/image-b579c33f-e7b3-4535-b881-22f731216732.png'],
+      ['zeco','https://glotr.uz/salfetka-z-eco-elma-dlya-dispensera-180-sht-202-p-1162199/'],
+      ['panda6','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/3333.png?fit=1000%2C750&ssl=1'],
+      ['panda8','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/2222.png?fit=1000%2C750&ssl=1'],
+      ['euro','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/Euro-pack.png?fit=1000%2C750&ssl=1'],
+      ['ecoBig','https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/salfetka66-min.png?fit=2080%2C2080&ssl=1'],
+      ['big','https://i0.wp.com/elma.uz/wp-content/uploads/2021/07/salfetka59.png?fit=1000%2C1000&ssl=1']
+    ];
+    for(const [key,url] of catalogFallbacks){
+      const rr=await fetch('http://127.0.0.1:3123/api/image-proxy?url='+encodeURIComponent(url));
+      const bb=Buffer.from(await rr.arrayBuffer());
+      if(!rr.ok)throw new Error('Catalog fallback '+key+' HTTP '+rr.status+' '+bb.toString('utf8').slice(0,250));
+      assert(String(rr.headers.get('content-type')||'').startsWith('image/'),'Catalog fallback '+key+' content-type');
+      assert(bb.length>500,'Catalog fallback '+key+' image too small');
+    }
+
     // 3) Login and Excel hyperlink preview.
     r=await fetch('http://127.0.0.1:3123/api/admin/login',{method:'POST',headers:{'content-type':'application/json','origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},body:JSON.stringify({username:'admin',password:'test-pass-123'})});
     assert(r.ok,'Admin login HTTP '+r.status);
