@@ -22,7 +22,7 @@ async function main(){
   // Excel fixture: visible text is "Rasm", real URL is a hyperlink Target.
   const headers=['Mahsulot kodi','Nomi UZ','Nomi RU','Kategoriya UZ','Kategoriya RU',"Sotuv narxi (so'm)","Tannarx (so'm)",'Omborga miqdor','Birlik UZ','Birlik RU','Tavsif UZ','Tavsif RU','Rasm URL'];
   const ws=XLSX.utils.aoa_to_sheet([headers,['LAB-001','Lab mahsulot','Лаб товар','Test','Тест',10000,7000,1,'dona','шт','','','Rasm']]);
-  ws.M2.l={Target:'https://httpbin.org/image/png',Tooltip:'Test image'};
+  ws.M2.l={Target:'https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png',Tooltip:'Test image'};
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Mahsulot importi');
   const xlsxPath=path.join('/tmp','zarbuloq-price-hyperlink.xlsx');
   XLSX.writeFile(wb,xlsxPath);
@@ -40,16 +40,18 @@ async function main(){
     await waitFor('http://127.0.0.1:3123/api/status');
 
     // 1) Direct image URL through server relay.
-    let r=await fetch('http://127.0.0.1:3123/api/image-proxy?url='+encodeURIComponent('https://httpbin.org/image/png'));
-    const direct=Buffer.from(await r.arrayBuffer());
-    assert(r.ok,'Direct image proxy HTTP '+r.status);
+    let r=await fetch('http://127.0.0.1:3123/api/image-proxy?url='+encodeURIComponent('https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png'));
+    const directRaw=Buffer.from(await r.arrayBuffer());
+    if(!r.ok)throw new Error('Direct image proxy HTTP '+r.status+' '+directRaw.toString('utf8').slice(0,300)+'\nSERVER LOGS:\n'+logs.slice(-3000));
+    const direct=directRaw;
     assert(String(r.headers.get('content-type')||'').startsWith('image/'),'Direct image content-type');
     assert(direct.length>100,'Direct image too small');
 
     // 2) HTML product/page URL -> og:image -> image bytes.
     r=await fetch('http://127.0.0.1:3123/api/image-proxy?url='+encodeURIComponent('https://github.com/'));
-    const pageImage=Buffer.from(await r.arrayBuffer());
-    assert(r.ok,'HTML og:image fallback HTTP '+r.status);
+    const pageRaw=Buffer.from(await r.arrayBuffer());
+    if(!r.ok)throw new Error('HTML og:image fallback HTTP '+r.status+' '+pageRaw.toString('utf8').slice(0,300)+'\nSERVER LOGS:\n'+logs.slice(-3000));
+    const pageImage=pageRaw;
     assert(String(r.headers.get('content-type')||'').startsWith('image/'),'HTML fallback content-type');
     assert(pageImage.length>100,'HTML fallback image too small');
 
@@ -68,7 +70,7 @@ async function main(){
     const preview=await r.json();
     assert(r.ok,'Excel preview HTTP '+r.status+' '+JSON.stringify(preview));
     assert(preview.rows&&preview.rows.length===1,'Excel preview row missing');
-    assert(preview.rows[0].image==='https://httpbin.org/image/png','Excel hyperlink Target was not extracted: '+preview.rows[0].image);
+    assert(preview.rows[0].image==='https://raw.githubusercontent.com/github/explore/main/topics/nodejs/nodejs.png','Excel hyperlink Target was not extracted: '+preview.rows[0].image);
 
     console.log('PRICE IMAGE LAB TESTS: PASS');
     console.log(JSON.stringify({directImageBytes:direct.length,htmlFallbackBytes:pageImage.length,excelHyperlink:preview.rows[0].image},null,2));
