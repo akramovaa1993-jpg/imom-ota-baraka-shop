@@ -34,7 +34,7 @@ const pool = DATABASE_URL ? new Pool({
  keepAlive:true,
  keepAliveInitialDelayMillis:10000,
  allowExitOnIdle:false,
- application_name:'zarbuloq-v13.26.78'
+ application_name:'zarbuloq-v13.26.79'
 }) : null;
 if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.code||'',err.message));
 
@@ -181,7 +181,7 @@ async function assertPublicRemoteUrl(raw){
   if(!rows.length || rows.some(x=>isPrivateIpAddress(x.address)))throw new Error('Rasm manzili ichki tarmoqqa olib boradi');
   return u;
 }
-async function fetchRemoteImage(raw,{maxBytes=6_000_000,timeoutMs=12_000}={}){
+async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=20_000}={}){
   let current=(await assertPublicRemoteUrl(raw)).href;
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
@@ -206,7 +206,7 @@ async function fetchRemoteImage(raw,{maxBytes=6_000_000,timeoutMs=12_000}={}){
 }
 app.get('/api/image-proxy',async(req,res)=>{
   try{
-    const img=await fetchRemoteImage(req.query.url,{maxBytes:6_000_000,timeoutMs:12_000});
+    const img=await fetchRemoteImage(req.query.url,{maxBytes:12_000_000,timeoutMs:20_000});
     res.setHeader('Content-Type',img.type);
     res.setHeader('Cache-Control','public, max-age=86400, stale-while-revalidate=604800');
     res.setHeader('Access-Control-Allow-Origin','*');
@@ -841,7 +841,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.78',adminFix:'realtime-app-control-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.79',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -863,14 +863,14 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.78',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.79',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/healthz',async(req,res)=>{
  try{
   if(pool)await dbQuery('SELECT 1',[],{retries:1});
   res.setHeader('Cache-Control','no-store');
-  res.json({ok:true,version:'13.26.78',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
+  res.json({ok:true,version:'13.26.79',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
  }catch(e){
-  res.status(503).json({ok:false,version:'13.26.78',error:e.message||'database_unavailable',at:new Date().toISOString()});
+  res.status(503).json({ok:false,version:'13.26.79',error:e.message||'database_unavailable',at:new Date().toISOString()});
  }
 });
 app.get('/api/admin/storage-diagnostics',requireAdmin,async(req,res)=>{
@@ -908,10 +908,10 @@ app.get('/api/app-events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
-app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.78',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.79',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
 
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.74',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.79',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
