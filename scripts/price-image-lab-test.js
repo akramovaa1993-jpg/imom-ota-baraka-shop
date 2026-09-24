@@ -96,6 +96,20 @@ async function main(){
     assert(r.ok,'Admin products after diagnostics HTTP '+r.status);
     assert(after.productCount===before.productCount,'Diagnostics changed product count: '+before.productCount+' -> '+after.productCount);
 
+    // 5) A known catalog item without its own image must receive a price-only fallback.
+    const ws2=XLSX.utils.aoa_to_sheet([headers,['EURO-108',"Tualet qog'oz Elma Euro",'Туалетная бумага Elma Euro Pack 4 шт.','Test','Тест',25000,18000,2,'dona','шт','','','']]);
+    const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws2,'Mahsulot importi');
+    const euroPath=path.join('/tmp','zarbuloq-euro-fallback.xlsx');XLSX.writeFile(wb2,euroPath);
+    r=await fetch('http://127.0.0.1:3123/api/admin/products-import-excel',{
+      method:'POST',
+      headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','cookie':cookie,'origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},
+      body:fs.readFileSync(euroPath)
+    });
+    assert(r.ok,'Euro fallback import HTTP '+r.status);
+    r=await fetch('http://127.0.0.1:3123/api/admin/products',{headers:{cookie}});
+    const withFallback=await r.json(),euro=(withFallback.products||[]).find(x=>x.sku==='EURO-108');
+    assert(euro&&/Euro-pack\.png/i.test(String(euro.priceFallbackImage||'')),'Euro price fallback missing: '+JSON.stringify(euro));
+
     console.log('PRICE IMAGE LAB TESTS: PASS');
     console.log(JSON.stringify({directImageBytes:direct.length,htmlFallbackBytes:pageImage.length,excelHyperlink:preview.rows[0].image},null,2));
   }finally{
