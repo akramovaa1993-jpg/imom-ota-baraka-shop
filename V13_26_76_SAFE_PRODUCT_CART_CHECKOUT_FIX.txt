@@ -1,0 +1,10 @@
+ZARBULOQ v13.26.76 SAFE PRODUCT CART + CHECKOUT FIX
+
+Base: v13.26.75 ADMIN_PRODUCT_SYNC_FIX_FULL
+Changes only:
+1) style.css: legacy topbar hidden with CSS; DOM kept for existing JS/admin settings compatibility.
+2) server.js: product SEO page keeps original card styling and opens a right-side cart without leaving the product page.
+3) Product-page cart Checkout goes to /?checkout=1.
+4) script.js: after the normal catalog/settings load, ?checkout=1 opens the existing real checkout modal, then removes the query flag from the URL.
+
+Admin panel/database/API/storage logic unchanged.

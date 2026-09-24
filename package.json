@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.74",
+  "version": "13.26.77",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.74 — security hardened: login rate limit, secure cookie-only admin session, origin guard, security headers, static-file blocking, SSRF hardening; full PostgreSQL backend preserved.",
+  "description": "ZARBULOQ.UZ v13.26.77 \u2014 cart, checkout and inventory status fixes",
   "scripts": {
     "start": "node server.js"
   },
