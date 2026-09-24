@@ -606,6 +606,7 @@ function priceProductImageCandidates(p={}){
  // Alternative fields are tried only when they are genuinely different sources.
  add(p.imageUrl);add(p.image_url);add(p.photo);add(p.thumbnail);
  if(Array.isArray(p.images))p.images.forEach(add);
+ add(p.priceFallbackImage);
  return out;
 }
 function priceProductImage(p={}){return priceProductImageCandidates(p)[0]||''}
@@ -630,7 +631,7 @@ async function diagnosePriceImages(btn){
  try{
   if(btn){btn.disabled=true;btn.dataset.prevText=btn.textContent;btn.textContent='Rasmlar tekshirilmoqda...'}
   const d=await api('/api/admin/price-image-diagnostics?scope=price');
-  const lines=[`Prays rasm tekshiruvi: ${Number(d.ready||0)}/${Number(d.total||0)} tayyor`];
+  const lines=[`Prays rasm tekshiruvi: ${Number(d.ready||0)}/${Number(d.total||0)} tayyor`];if(Number(d.fallbackReady||0))lines.push(`Avtomatik tiklangan rasm: ${d.fallbackReady} ta`);
   if(Number(d.missing||0))lines.push(`Rasm biriktirilmagan: ${d.missing} ta`);
   if(Number(d.failed||0)){
    lines.push(`Yuklanmagan rasm: ${d.failed} ta`);
