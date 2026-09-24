@@ -1100,6 +1100,69 @@ app.get('/api/admin/products',requireAdmin,(req,res)=>{
  const products=(db.products||[]).map(adminProductPayload);
  res.json({ok:true,products,categories:db.categories||[],productCount:products.length,storage:pool?'postgresql':'local-json',revision:realtimeRevision,updatedAt:new Date().toISOString()});
 });
+app.get('/api/admin/price-image-diagnostics',requireAdmin,async(req,res)=>{
+ try{
+  const db=normalizeDb(readDb()||initialDb());
+  const scope=String(req.query.scope||'price');
+  const products=(db.products||[]).filter(p=>scope==='all'||Number(p.stock||0)>0).slice(0,2000);
+
+  async function inspectProduct(p){
+   const raw=String(p?.image||'').trim();
+   const base={id:p.id,sku:p.sku||'',name:p.name?.uz||p.name?.ru||'Mahsulot'};
+   if(!raw)return {...base,status:'missing',error:'Rasm biriktirilmagan',type:'',bytes:0};
+
+   const m=raw.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif|avif));base64,(.+)$/i);
+   if(m){
+    try{
+     const buf=Buffer.from(m[2],'base64');
+     const type=detectImageMime(buf,m[1]);
+     if(!type||!buf.length)return {...base,status:'failed',error:'Data rasm formati noto‘g‘ri',type:'',bytes:0};
+     if(buf.length>12_000_000)return {...base,status:'failed',error:'Rasm juda katta',type,bytes:buf.length};
+     return {...base,status:'ready',error:'',type,bytes:buf.length};
+    }catch(e){return {...base,status:'failed',error:'Data rasmni o‘qib bo‘lmadi',type:'',bytes:0}}
+   }
+
+   if(/^https?:\/\//i.test(raw)){
+    try{
+     const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:15_000});
+     return {...base,status:'ready',error:'',type:img.type||'',bytes:img.buffer?.length||0};
+    }catch(e){
+     return {...base,status:'failed',error:String(e?.message||e).slice(0,220),type:'',bytes:0};
+    }
+   }
+
+   try{
+    const rel=raw.replace(/^\/+/,''),root=path.resolve(__dirname),full=path.resolve(root,rel);
+    if(full!==root&&!full.startsWith(root+path.sep))return {...base,status:'failed',error:'Lokal rasm yo‘li noto‘g‘ri',type:'',bytes:0};
+    if(!fs.existsSync(full)||!fs.statSync(full).isFile())return {...base,status:'failed',error:'Lokal rasm fayli topilmadi',type:'',bytes:0};
+    const stat=fs.statSync(full);
+    if(stat.size>12_000_000)return {...base,status:'failed',error:'Rasm juda katta',type:'',bytes:stat.size};
+    const buf=fs.readFileSync(full),type=detectImageMime(buf,'');
+    if(!type)return {...base,status:'failed',error:'Lokal fayl rasm formatida emas',type:'',bytes:stat.size};
+    return {...base,status:'ready',error:'',type,bytes:stat.size};
+   }catch(e){
+    return {...base,status:'failed',error:String(e?.message||e).slice(0,220),type:'',bytes:0};
+   }
+  }
+
+  const rows=new Array(products.length),concurrency=Math.min(4,Math.max(1,products.length));
+  let cursor=0;
+  async function worker(){
+   while(true){
+    const i=cursor++;if(i>=products.length)break;
+    rows[i]=await inspectProduct(products[i]);
+   }
+  }
+  await Promise.all(Array.from({length:concurrency},worker));
+  const ready=rows.filter(x=>x.status==='ready').length,missing=rows.filter(x=>x.status==='missing').length,failed=rows.filter(x=>x.status==='failed').length;
+  res.setHeader('Cache-Control','no-store');
+  res.json({ok:true,total:rows.length,ready,missing,failed,rows});
+ }catch(e){
+  console.error('Price image diagnostics:',e);
+  res.status(500).json({error:'Rasm diagnostikasini bajarib bo‘lmadi'});
+ }
+});
+
 app.get('/api/admin/products/:id/image',requireAdmin,async(req,res)=>{
  try{
   const db=readDb(),id=Number(req.params.id),p=(db.products||[]).find(x=>Number(x.id)===id);
