@@ -170,7 +170,7 @@ function safeRemoteImageUrl(raw=''){
     if(!['http:','https:'].includes(u.protocol))return null;
     if(u.username||u.password)return null;
     const h=String(u.hostname||'').toLowerCase();
-    if(!h || h==='localhost' || h.endsWith('.local') || isPrivateIpAddress(h))return null;
+    if(!h || h==='localhost' || h.endsWith('.local') || (net.isIP(h)&&isPrivateIpAddress(h)))return null;
     return u.href;
   }catch{return null}
 }
