@@ -505,12 +505,78 @@ function pricePdfImage(src=''){
  }catch{return raw}
 }
 function waitForPriceImages(root,timeoutMs=20000){
- const imgs=[...root.querySelectorAll('img')];if(!imgs.length)return Promise.resolve();
+ const imgs=[...root.querySelectorAll('img')];if(!imgs.length)return Promise.resolve({total:0,ready:0,failed:[]});
  return Promise.all(imgs.map(img=>new Promise(resolve=>{
-  if(img.complete&&img.naturalWidth>0)return resolve();
-  let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(timer);resolve()};
-  const timer=setTimeout(finish,timeoutMs);img.addEventListener('load',finish,{once:true});img.addEventListener('error',finish,{once:true});
- }))).then(()=>undefined)
+  if(img.complete)return resolve(img.naturalWidth>0);
+  let done=false;const finish=ok=>{if(done)return;done=true;clearTimeout(timer);resolve(Boolean(ok&&img.naturalWidth>0))};
+  const timer=setTimeout(()=>finish(false),timeoutMs);
+  img.addEventListener('load',()=>finish(true),{once:true});
+  img.addEventListener('error',()=>finish(false),{once:true});
+ }))).then(rows=>({total:imgs.length,ready:rows.filter(Boolean).length,failed:rows.map((ok,i)=>ok?null:imgs[i]).filter(Boolean)}))
+}
+function priceImageKey(p={}){return String(p.id??p.sku??p.name?.uz??'')}
+function blobToDataUrl(blob){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(String(fr.result||''));fr.onerror=()=>reject(new Error('Rasmni Data URL ga aylantirib bo‘lmadi'));fr.readAsDataURL(blob)})}
+async function fetchPriceImageDataUrl(src,timeoutMs=20000){
+ const url=pricePdfImage(src);if(!url)throw new Error('Rasm manzili bo‘sh');
+ if(url.startsWith('data:image/'))return url;
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),timeoutMs);
+ try{
+  const r=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:ctrl.signal,headers:{Accept:'image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8'}});
+  if(!r.ok){
+   let msg='';try{msg=(await r.text()).slice(0,180)}catch{}
+   throw new Error(msg||('HTTP '+r.status));
+  }
+  const blob=await r.blob();
+  if(!String(blob.type||'').toLowerCase().startsWith('image/'))throw new Error('Server rasm o‘rniga '+(blob.type||'noma’lum format')+' qaytardi');
+  return await blobToDataUrl(blob);
+ }catch(err){
+  if(err?.name==='AbortError')throw new Error('Rasm yuklanishi 20 soniyadan oshdi');
+  throw err;
+ }finally{clearTimeout(timer)}
+}
+async function resolvePriceProductImage(p={}){
+ const sources=priceProductImageCandidates(p);
+ if(!sources.length)return {status:'missing',dataUrl:'',source:'',error:'Rasm biriktirilmagan'};
+ let last='';
+ for(const src of sources){
+  try{
+   const dataUrl=await fetchPriceImageDataUrl(src,20000);
+   return {status:'ready',dataUrl,source:src,error:''};
+  }catch(err){last=String(err?.message||err)}
+ }
+ return {status:'failed',dataUrl:'',source:sources[0]||'',error:last||'Rasm yuklanmadi'};
+}
+async function preparePriceImages(pages){
+ const products=[],seen=new Set();
+ (pages||[]).forEach(page=>(page.items||[]).forEach(p=>{const k=priceImageKey(p);if(k&&!seen.has(k)){seen.add(k);products.push(p)}}));
+ const images=new Map(),ready=[],missing=[],failed=[];
+ let cursor=0;
+ async function worker(){
+  while(cursor<products.length){
+   const p=products[cursor++],r=await resolvePriceProductImage(p),row={id:p.id,name:p.name?.uz||p.sku||'Mahsulot',source:r.source,error:r.error};
+   if(r.status==='ready'){images.set(priceImageKey(p),r.dataUrl);ready.push(row)}
+   else if(r.status==='missing')missing.push(row);
+   else failed.push(row);
+  }
+ }
+ const workers=Math.min(4,Math.max(1,products.length));
+ await Promise.all(Array.from({length:workers},worker));
+ return {images,total:products.length,ready,missing,failed};
+}
+function priceImageReportText(r){
+ const lines=[`Prays rasm tekshiruvi: ${r.ready.length}/${r.total} tayyor`];
+ if(r.missing.length)lines.push(`Rasm biriktirilmagan: ${r.missing.length} ta`);
+ if(r.failed.length){
+  lines.push(`Yuklanmagan rasm: ${r.failed.length} ta`);
+  r.failed.slice(0,12).forEach(x=>lines.push('• '+x.name+' — '+x.error));
+  if(r.failed.length>12)lines.push(`… yana ${r.failed.length-12} ta`);
+ }
+ return lines.join('\n');
+}
+function confirmPriceImageReport(r){
+ const text=priceImageReportText(r);
+ if(!r.failed.length){showAdminToast?.(text.replace(/\n/g,' • '));return true}
+ return confirm(text+'\n\nYuklanmagan rasmlar o‘rniga “Rasm mavjud emas” bilan davom etilsinmi?');
 }
 function pricePerPageValue(){return Math.max(2,Math.min(6,Number($('#pricePerPage')?.value||$('#reportPricePerPage')?.value)||6))}
 function priceGroups(){const products=(D.products||[]).filter(p=>Number(p.stock||0)>0).slice().sort((a,b)=>String(a.name?.uz||'').localeCompare(String(b.name?.uz||''),'uz'));const groups=[];const used=new Set();(D.categories||[]).forEach(c=>{const items=products.filter(p=>String(p.cat||'')===String(c.id||''));if(items.length){groups.push({id:c.id,name:c.name?.uz||'Kategoriya',nameRu:c.name?.ru||'',emoji:c.emoji||c.icon||'📦',items});used.add(String(c.id||''))}});const other=products.filter(p=>!used.has(String(p.cat||'')));if(other.length)groups.push({id:'other',name:'Boshqa mahsulotlar',nameRu:'Прочие товары',emoji:'📦',items:other});if(!groups.length&&products.length)groups.push({id:'all',name:'Mahsulotlar praysi',nameRu:'Прайс товаров',emoji:'📦',items:products});return groups}
@@ -529,34 +595,69 @@ function priceProductImageCandidates(p={}){
  return out;
 }
 function priceProductImage(p={}){return priceProductImageCandidates(p)[0]||''}
-function priceCardHtml(p){
- const cat=p._priceCategory||{},sources=priceProductImageCandidates(p).map(pricePdfImage),img=sources[0]||'';
- const encoded=esc(JSON.stringify(sources));
- const onerr="try{var a=JSON.parse(this.dataset.priceImages||'[]'),i=Number(this.dataset.priceIndex||0)+1;if(i<a.length){this.dataset.priceIndex=String(i);this.src=a[i];return;}this.style.display='none';var n=this.parentNode.querySelector('.pro-price-noimg');if(n)n.style.display='flex';}catch(e){this.style.display='none';var n=this.parentNode.querySelector('.pro-price-noimg');if(n)n.style.display='flex';}";
- return `<article class="pro-price-card"><div class="pro-price-image-wrap">${img?`<img class="pro-price-image" src="${img}" data-price-images="${encoded}" data-price-index="0" onerror="${onerr}" alt="${esc(p.name?.uz||'Mahsulot')}" loading="eager" decoding="async"><div class="pro-price-noimg" style="display:none"><span>IMOM OTA BARAKA</span><small>Rasm mavjud emas</small></div>`:`<div class="pro-price-noimg"><span>IMOM OTA BARAKA</span><small>Rasm mavjud emas</small></div>`}</div><div class="pro-price-body">${cat.name?`<div class="pro-price-category">${esc(cat.name)}</div>`:''}<div class="pro-price-name">${esc(p.name?.uz||'Mahsulot')}</div><div class="pro-price-name-ru">${esc(p.name?.ru||'')}</div><div class="pro-price-meta"><span class="pro-chip unit">${esc(p.unit?.uz||'dona')}</span><span class="pro-chip stock">Omborda: ${Number(p.stock||0)}</span></div><div class="pro-price-bottom"><div><div class="pro-price-label">Sotuv narxi</div><div class="pro-price-value">${money(p.price||0)}</div></div><div class="pro-sku-tag">${esc(p.badge||p.sku||'MAVJUD')}</div></div></div></article>`
+function priceCardHtml(p,imageMap=null){
+ const cat=p._priceCategory||{},img=imageMap?.get?.(priceImageKey(p))||'';
+ return `<article class="pro-price-card"><div class="pro-price-image-wrap">${img?`<img class="pro-price-image" src="${img}" alt="${esc(p.name?.uz||'Mahsulot')}" loading="eager" decoding="sync">`:`<div class="pro-price-noimg"><span>IMOM OTA BARAKA</span><small>Rasm mavjud emas</small></div>`}</div><div class="pro-price-body">${cat.name?`<div class="pro-price-category">${esc(cat.name)}</div>`:''}<div class="pro-price-name">${esc(p.name?.uz||'Mahsulot')}</div><div class="pro-price-name-ru">${esc(p.name?.ru||'')}</div><div class="pro-price-meta"><span class="pro-chip unit">${esc(p.unit?.uz||'dona')}</span><span class="pro-chip stock">Omborda: ${Number(p.stock||0)}</span></div><div class="pro-price-bottom"><div><div class="pro-price-label">Sotuv narxi</div><div class="pro-price-value">${money(p.price||0)}</div></div><div class="pro-sku-tag">${esc(p.badge||p.sku||'MAVJUD')}</div></div></div></article>`
 }
 function buildPricePages(){const perPage=pricePerPageValue(),flat=[];priceGroups().forEach(group=>group.items.forEach(p=>flat.push({...p,_priceCategory:{id:group.id,name:group.name,nameRu:group.nameRu}})));const pages=[];for(let i=0;i<flat.length;i+=perPage)pages.push({items:flat.slice(i,i+perPage)});return pages}
 function priceDocumentStyles(){return `<style>@page{size:297mm 210mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;background:#edf3ef;color:#12372d;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pro-price-doc{padding:0;margin:0}.pro-price-page{width:297mm;height:210mm;min-height:210mm;max-height:210mm;background:linear-gradient(180deg,#fefefe 0%,#f3f7f4 100%);position:relative;overflow:hidden;border:1px solid #d8e4dd;border-radius:18px;padding:10mm 10mm 16mm;break-after:page;page-break-after:always;break-inside:avoid-page;page-break-inside:avoid}.pro-price-page:last-child{break-after:auto;page-break-after:auto}.pro-price-page:before,.pro-price-page:after{content:'';position:absolute;border-radius:50%;pointer-events:none}.pro-price-page:before{width:165mm;height:165mm;right:-55mm;top:-75mm;background:radial-gradient(circle,rgba(7,88,76,.13),rgba(7,88,76,0))}.pro-price-page:after{width:125mm;height:125mm;left:-40mm;bottom:-55mm;background:radial-gradient(circle,rgba(214,174,59,.11),rgba(214,174,59,0))}.pro-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10mm;position:relative;z-index:1}.pro-brand{display:flex;gap:5mm;align-items:center}.pro-logo{width:24mm;height:24mm;border-radius:50%;padding:2mm;background:radial-gradient(circle at 30% 20%,#fff,#dcefe6 65%,#95bfaf);border:1px solid #d8e6df;object-fit:contain}.pro-eyebrow{font-size:10px;letter-spacing:3px;color:#0a6852;font-weight:800;text-transform:uppercase}.pro-title{font:800 24px Georgia,serif;color:#07584c;line-height:1.06;margin:1mm 0 1mm}.pro-sub{font-size:11px;color:#5f746c;max-width:120mm}.pro-datebox{padding:4mm 5mm;border-radius:14px;background:linear-gradient(135deg,#0b6c57,#0d4c40);color:#fff;min-width:56mm;box-shadow:0 12px 24px rgba(7,88,76,.14)}.pro-datebox .small{font-size:10px;opacity:.82}.pro-datebox b{display:block;margin-top:1.5mm;font-size:13px}.pro-catbar{margin-top:5mm;background:linear-gradient(135deg,#0d704f,#0a5948 68%,#e1b641 150%);color:#fff;border-radius:16px;padding:5mm 6mm;display:flex;justify-content:space-between;align-items:center;gap:6mm;position:relative;z-index:1;box-shadow:0 12px 24px rgba(7,88,76,.10)}.pro-cat-left{display:flex;align-items:center;gap:4mm}.pro-cat-icon{width:14mm;height:14mm;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);font-size:22px}.pro-cat-title{font:800 17px Georgia,serif;line-height:1.1}.pro-cat-ru{font-size:11px;opacity:.84;margin-top:1mm}.pro-cat-right{display:flex;gap:3mm;flex-wrap:wrap;justify-content:flex-end}.pro-mini-chip{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);padding:2.3mm 3.5mm;border-radius:999px;font-size:10px;font-weight:700}.pro-price-grid{margin-top:6mm;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:58mm;gap:5mm;position:relative;z-index:1}.pro-price-card{background:rgba(255,255,255,.96);border:1px solid #dde8e2;border-radius:16px;overflow:hidden;box-shadow:0 8px 22px rgba(15,74,55,.08);display:flex;height:58mm;min-height:58mm;max-height:58mm}.pro-price-image-wrap{width:44%;height:100%;background:#fff;display:flex;align-items:center;justify-content:center;padding:2mm;overflow:hidden}.pro-price-image{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center;mix-blend-mode:normal;display:block}.pro-price-noimg{width:100%;height:100%;border:1px dashed #bfd7cd;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#7b9088;padding:4mm}.pro-price-noimg span{font-weight:800;font-size:12px}.pro-price-noimg small{margin-top:1mm;font-size:10px}.pro-price-body{flex:1;min-width:0;padding:4.2mm;display:flex;flex-direction:column;overflow:hidden}.pro-price-name{font-size:14px;font-weight:800;color:#12372d;line-height:1.18;min-height:11mm;max-height:12mm;overflow:hidden}.pro-price-name-ru{font-size:10px;color:#6d8178;min-height:5mm;max-height:8mm;overflow:hidden;margin-top:1mm}.pro-price-category{display:inline-flex;align-self:flex-start;max-width:100%;padding:1.1mm 2.4mm;margin-bottom:1.5mm;border-radius:999px;background:#edf6f2;color:#0b6c57;font-size:8px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pro-price-meta{display:flex;gap:2.5mm;flex-wrap:wrap;margin-top:2.2mm}.pro-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2mm 3.2mm;font-size:10px;font-weight:700}.pro-chip.unit{background:#edf6f2;color:#0d6a54}.pro-chip.stock{background:#fff2d8;color:#946300}.pro-price-bottom{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:4mm;border-top:1px solid #e6efea;padding-top:3mm}.pro-price-label{font-size:9px;text-transform:uppercase;color:#70837b;letter-spacing:.8px}.pro-price-value{margin-top:1mm;font-size:18px;font-weight:900;color:#07584c;line-height:1}.pro-sku-tag{padding:2.2mm 3.5mm;border-radius:999px;background:linear-gradient(135deg,#f0f5f2,#e4efe9);color:#47675c;font-size:9px;font-weight:800;text-transform:uppercase}.pro-footer{position:absolute;left:10mm;right:10mm;bottom:7mm;margin:0;border-top:1px solid #dce9e2;padding-top:3mm;display:flex;justify-content:space-between;align-items:center;gap:5mm;color:#587067;font-size:10px;z-index:1}.pro-footer b{color:#12372d}.pro-page-no{font-weight:800;color:#07584c}.pro-actions{position:sticky;top:0;z-index:3;display:flex;justify-content:flex-end;gap:8px;padding:12px;background:#edf3ef;border-bottom:1px solid #d9e7e0}.pro-actions button{border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:800}.pro-actions .ghost{background:#fff;color:#275347;border:1px solid #cfe0d8}.pro-actions .primary{background:#07584c;color:#fff}.pro-hero-note{display:flex;gap:3mm;align-items:center;margin-top:4mm;color:#4f665e;font-size:11px;position:relative;z-index:1}.pro-hero-note span{display:inline-flex;width:9mm;height:9mm;border-radius:50%;align-items:center;justify-content:center;background:#e9f4ef;color:#0d6a54;font-weight:900}@media print{html,body{width:297mm!important;margin:0!important;padding:0!important;background:#fff!important}.pro-preview-toolbar,.pro-actions{display:none!important}.pro-price-doc{margin:0!important;padding:0!important}.pro-price-page{width:297mm!important;height:210mm!important;min-height:210mm!important;max-height:210mm!important;margin:0!important;padding:10mm 10mm 16mm!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important;break-after:page!important;page-break-after:always!important;break-inside:avoid-page!important;page-break-inside:avoid!important}.pro-price-page:last-child{break-after:auto!important;page-break-after:auto!important}}</style>`}
-function buildPriceMarkup(){const pages=buildPricePages(),perPage=pricePerPageValue(),cols=perPage>=5?3:2,logo=pricePdfImage(D.logo||'logo.png'),siteName=esc(D.settings?.siteName||'IMOM OTA BARAKA'),domain=esc(D.settings?.siteDomain||window.location.host||''),phone=esc(D.settings?.phone||''),today=esc(new Date().toLocaleDateString('uz-UZ'));return {pages,markup:`<div class="pro-price-doc">${pages.map((page,idx)=>`<section class="pro-price-page">${idx===0?`<div class="pro-head"><div class="pro-brand"><img class="pro-logo" src="${logo}" alt="Logo"><div><div class="pro-eyebrow">Premium Price List</div><div class="pro-title">${siteName}</div></div></div><div class="pro-datebox"><div class="small">Yangilangan sana</div><b>${today}</b></div></div>`:''}<div class="pro-price-grid" style="grid-template-columns:repeat(${cols},1fr);${idx===0?'margin-top:7mm':'margin-top:0'}">${page.items.map(priceCardHtml).join('')}</div><div class="pro-footer"><div><b>${siteName}</b>${domain?` • ${domain}`:''}${phone?` • ${phone}`:''}</div><div class="pro-page-no">${idx+1} / ${pages.length}</div></div></section>`).join('')}</div>`}}
+function buildPriceMarkup(imageMap=new Map(),pages=buildPricePages()){
+ const perPage=pricePerPageValue(),cols=perPage>=5?3:2,logo=pricePdfImage(D.logo||'logo.png'),siteName=esc(D.settings?.siteName||'IMOM OTA BARAKA'),domain=esc(D.settings?.siteDomain||window.location.host||''),phone=esc(D.settings?.phone||''),today=esc(new Date().toLocaleDateString('uz-UZ'));
+ return {pages,markup:`<div class="pro-price-doc">${pages.map((page,idx)=>`<section class="pro-price-page">${idx===0?`<div class="pro-head"><div class="pro-brand"><img class="pro-logo" src="${logo}" alt="Logo"><div><div class="pro-eyebrow">Premium Price List</div><div class="pro-title">${siteName}</div></div></div><div class="pro-datebox"><div class="small">Yangilangan sana</div><b>${today}</b></div></div>`:''}<div class="pro-price-grid" style="grid-template-columns:repeat(${cols},1fr);${idx===0?'margin-top:7mm':'margin-top:0'}">${page.items.map(p=>priceCardHtml(p,imageMap)).join('')}</div><div class="pro-footer"><div><b>${siteName}</b>${domain?` • ${domain}`:''}${phone?` • ${phone}`:''}</div><div class="pro-page-no">${idx+1} / ${pages.length}</div></div></section>`).join('')}</div>`}
+}
 function loadRemoteScript(src){return new Promise((resolve,reject)=>{const abs=new URL(src,window.location.href).href;let old=[...document.scripts].find(x=>x.src===abs);if(old&&old.dataset.loadState==='ok')return resolve();if(old&&old.dataset.loadState==='error'){old.remove();old=null}if(old){const ok=()=>{old.dataset.loadState='ok';resolve()};const bad=()=>{old.dataset.loadState='error';old.remove();reject(new Error('Skript yuklanmadi: '+src))};old.addEventListener('load',ok,{once:true});old.addEventListener('error',bad,{once:true});return}const el=document.createElement('script');el.src=abs;el.async=true;el.onload=()=>{el.dataset.loadState='ok';resolve()};el.onerror=()=>{el.dataset.loadState='error';el.remove();reject(new Error('Skript yuklanmadi: '+src))};document.head.appendChild(el)})}
 async function loadScriptFallback(urls,label='Modul'){let last=null;for(const u of urls){try{await loadRemoteScript(u);return}catch(e){last=e}}throw new Error(label+' yuklanmadi. Internet ulanishini tekshiring.'+(last?.message?' '+last.message:''))}
 async function ensurePricePdfLibs(){if(window.jspdf?.jsPDF&&window.html2canvas)return;if(!window.__pricePdfLibPromise){window.__pricePdfLibPromise=(async()=>{if(!window.html2canvas)await loadScriptFallback(['https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js','https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js'],'PDF rasm moduli');if(!window.jspdf?.jsPDF)await loadScriptFallback(['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js','https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'],'PDF moduli');if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('PDF modullari to‘liq yuklanmadi.')})().catch(err=>{window.__pricePdfLibPromise=null;throw err})}return window.__pricePdfLibPromise}
-function previewPricePdf(){
+async function previewPricePdf(){
+  const pages=buildPricePages();
+  if(!pages.length){alert('Prays uchun mahsulotlar topilmadi.');return}
+  const w=window.open('','_blank');
+  if(!w){alert('Preview oynasi brauzer tomonidan bloklandi. Pop-upga ruxsat bering.');return}
+  w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>PRO prays tayyorlanmoqda</title></head><body style="font-family:Arial;padding:30px;color:#07584c"><h2>Prays rasmlari tekshirilmoqda…</h2><p>Rasmlar serverdan olinib PDF uchun tayyorlanmoqda. Oynani yopmang.</p></body></html>');w.document.close();
   try{
-    const {markup,pages}=buildPriceMarkup();
-    if(!pages.length)throw new Error('Prays uchun mahsulotlar topilmadi.');
-    const w=window.open('','_blank');
-    if(!w)throw new Error('Preview oynasi brauzer tomonidan bloklandi. Pop-upga ruxsat bering.');
+    const prep=await preparePriceImages(pages);
+    if(!confirmPriceImageReport(prep)){w.close();return}
+    const {markup}=buildPriceMarkup(prep.images,pages);
     const css=priceDocumentStyles().replace('</style>',`
 body{padding:0}.pro-preview-toolbar{position:sticky;top:0;z-index:999;display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:10px 14px;background:#07584c;box-shadow:0 3px 14px rgba(0,0,0,.14)}.pro-preview-toolbar .hint{margin-right:auto;color:#d9efe8;font-size:12px;font-weight:700}.pro-preview-toolbar button{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}.pro-preview-toolbar .download{background:#d9f7e8;color:#07584c}.pro-preview-toolbar .print{background:#fff;color:#07584c}.pro-preview-toolbar .close{background:#ffecec;color:#a42828}
 </style>`);
+    const hint=esc(`Rasmlar: ${prep.ready.length}/${prep.total} tayyor${prep.failed.length?` • ${prep.failed.length} muammo`:''}${prep.missing.length?` • ${prep.missing.length} rasmsiz`:''}`);
     w.document.open();
-    w.document.write(`<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IMOM OTA BARAKA — PRO prays preview</title>${css}</head><body><div class="pro-preview-toolbar"><span class="hint">1 dizayn sahifa = 1 A4 sahifa</span><button class="download" onclick="if(window.opener&&typeof window.opener.downloadPricePdf==='function'){window.opener.downloadPricePdf()}else{window.print()}">⬇ Toza PDF yuklab olish</button><button class="print" onclick="window.print()">🖨 Chop etish</button><button class="close" onclick="window.close()">✕ Yopish</button></div>${markup}</body></html>`);
-    w.document.close();
-    w.focus();
-  }catch(e){alert(e&&e.message?e.message:String(e));console.error(e)}
+    w.document.write(`<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IMOM OTA BARAKA — PRO prays preview</title>${css}</head><body><div class="pro-preview-toolbar"><span class="hint">${hint}</span><button class="download" onclick="if(window.opener&&typeof window.opener.downloadPricePdf==='function'){window.opener.downloadPricePdf()}else{window.print()}">⬇ Toza PDF yuklab olish</button><button class="print" onclick="window.print()">🖨 Chop etish</button><button class="close" onclick="window.close()">✕ Yopish</button></div>${markup}</body></html>`);
+    w.document.close();w.focus();
+  }catch(e){
+    console.error(e);w.close();alert(e&&e.message?e.message:String(e));
+  }
 }
-async function downloadPricePdf(btn){let root=null;try{if(btn){btn.disabled=true;btn.dataset.prevText=btn.textContent;btn.textContent='PDF tayyorlanmoqda...'}await ensurePricePdfLibs();const {markup,pages}=buildPriceMarkup();if(!pages.length)throw new Error('Prays uchun mahsulotlar topilmadi.');root=document.createElement('div');root.style.position='fixed';root.style.left='-20000px';root.style.top='0';root.style.width='297mm';root.style.zIndex='-1';root.innerHTML=priceDocumentStyles()+markup;document.body.appendChild(root);const pageEls=[...root.querySelectorAll('.pro-price-page')];await waitForPriceImages(root,20000);const jsPDF=window.jspdf?.jsPDF;if(!jsPDF)throw new Error('PDF moduli ishga tushmadi.');const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});for(let i=0;i<pageEls.length;i++){const canvas=await window.html2canvas(pageEls[i],{scale:2,useCORS:true,allowTaint:false,backgroundColor:'#eef4f0',logging:false,imageTimeout:12000});const img=canvas.toDataURL('image/jpeg',0.92);if(i>0)pdf.addPage('a4','landscape');pdf.addImage(img,'JPEG',0,0,297,210,undefined,'FAST');canvas.width=1;canvas.height=1}const stamp=($('#warehouseMonth')?.value||new Date().toISOString().slice(0,7)).replace(/[^0-9-]/g,'');pdf.save(`IMOM_OTA_BARAKA_PRO_PRAYS_${stamp}.pdf`)}catch(e){console.error(e);const msg=e&&e.message?e.message:String(e);if(confirm(msg+'\n\nTo‘g‘ridan-to‘g‘ri yuklash ishlamadi. Prays previewni ochib, brauzer orqali PDF saqlashni xohlaysizmi?'))previewPricePdf()}finally{root?.remove();if(btn){btn.disabled=false;btn.textContent=btn.dataset.prevText||'PRO PDF yuklab olish'}}}
+async function downloadPricePdf(btn){
+ let root=null;
+ try{
+  if(btn){btn.disabled=true;btn.dataset.prevText=btn.textContent;btn.textContent='Rasmlar tekshirilmoqda...'}
+  const pages=buildPricePages();if(!pages.length)throw new Error('Prays uchun mahsulotlar topilmadi.');
+  const prep=await preparePriceImages(pages);
+  if(!confirmPriceImageReport(prep))return;
+  if(btn)btn.textContent='PDF tayyorlanmoqda...';
+  await ensurePricePdfLibs();
+  const {markup}=buildPriceMarkup(prep.images,pages);
+  root=document.createElement('div');root.style.position='fixed';root.style.left='-20000px';root.style.top='0';root.style.width='297mm';root.style.zIndex='-1';root.innerHTML=priceDocumentStyles()+markup;document.body.appendChild(root);
+  const pageEls=[...root.querySelectorAll('.pro-price-page')],imgState=await waitForPriceImages(root,12000);
+  if(imgState.failed.length)throw new Error('PDF maketidagi '+imgState.failed.length+' ta rasm renderga tayyor bo‘lmadi.');
+  const jsPDF=window.jspdf?.jsPDF;if(!jsPDF)throw new Error('PDF moduli ishga tushmadi.');
+  const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+  for(let i=0;i<pageEls.length;i++){
+   const canvas=await window.html2canvas(pageEls[i],{scale:2,useCORS:false,allowTaint:false,backgroundColor:'#eef4f0',logging:false,imageTimeout:12000});
+   const img=canvas.toDataURL('image/jpeg',0.92);if(i>0)pdf.addPage('a4','landscape');pdf.addImage(img,'JPEG',0,0,297,210,undefined,'FAST');canvas.width=1;canvas.height=1;
+  }
+  const stamp=($('#warehouseMonth')?.value||new Date().toISOString().slice(0,7)).replace(/[^0-9-]/g,'');
+  pdf.save(`IMOM_OTA_BARAKA_PRO_PRAYS_${stamp}.pdf`);
+ }catch(e){
+  console.error(e);const msg=e&&e.message?e.message:String(e);
+  if(confirm(msg+'\n\nPDF yuklashda muammo bo‘ldi. Previewni ochib tekshirishni xohlaysizmi?'))previewPricePdf();
+ }finally{
+  root?.remove();
+  if(btn){btn.disabled=false;btn.textContent=btn.dataset.prevText||'PRO PDF yuklab olish'}
+ }
+}
 function reportsPane(){const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);return `<div class="report-grid"><div class="report-card"><h3>Kunlik hisobot</h3><input id="rday" type="date" value="${today}"><button class="btn primary sm" onclick="report('daily',$('#rday').value)">Excel yuklash</button></div><div class="report-card"><h3>Oylik hisobot</h3><input id="rmonth" type="month" value="${month}"><button class="btn primary sm" onclick="report('monthly',$('#rmonth').value)">Excel yuklash</button></div><div class="report-card"><h3>Yillik hisobot</h3><input id="ryear" type="number" value="${year}" min="2020" max="2100"><button class="btn primary sm" onclick="report('yearly',$('#ryear').value)">Excel yuklash</button></div><div class="report-card"><h3>Sana oralig‘i</h3><input id="rfrom" type="date"><input id="rto" type="date"><select id="rstatus"><option value="">Barcha statuslar</option><option value="completed">Yakunlangan</option><option value="delivered">Yetkazildi</option><option value="cancelled">Bekor qilingan</option></select><button class="btn primary sm" onclick="customReport()">Excel yuklash</button></div><div class="report-card"><h3>PRO prays PDF</h3><select id="reportPricePerPage"><option value="2">2 ta / varoq</option><option value="3">3 ta / varoq</option><option value="4">4 ta / varoq</option><option value="6" selected>6 ta / varoq</option></select><div style="display:grid;gap:8px"><button class="btn ghost sm" onclick="previewPricePdf()">Preview ochish</button><button class="btn primary sm js-price-download" onclick="downloadPricePdf(this)">PDF yuklab olish</button></div></div></div><div class="panel"><h3>Hisobot tarkibi</h3><p class="muted">Buyurtma, sana, mijoz, telefon, Parkent hududi, manzil, yetkazish vaqti, mahsulotlar, chegirma, tushum, tannarx, foyda va status. Alohida “PRO prays PDF” bo‘limida kategoriya bo‘yicha premium katalog ko‘rinishidagi PDF to‘g‘ridan-to‘g‘ri yuklab olinadi.</p></div>`}
 function report(period,value){window.location=`/api/admin/reports.xls?period=${encodeURIComponent(period)}&value=${encodeURIComponent(value)}`}
 function customReport(){window.location=`/api/admin/reports.xls?period=custom&from=${encodeURIComponent($('#rfrom').value)}&to=${encodeURIComponent($('#rto').value)}&status=${encodeURIComponent($('#rstatus').value)}`}
