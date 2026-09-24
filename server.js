@@ -721,9 +721,38 @@ function adminProductImageUrl(p){
  if(/^data:image\//i.test(raw))return `/api/admin/products/${encodeURIComponent(String(p.id))}/image?v=${encodeURIComponent(String(p.updatedAt||p.createdAt||''))}`;
  return raw;
 }
+function normalizePriceLookup(v=''){
+ return String(v||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[ʻʼ‘’`´']/g,'').replace(/[^a-z0-9а-яё]+/gi,' ').replace(/\s+/g,' ').trim();
+}
+const PRICE_IMAGE_FALLBACKS={
+ z180:'https://joinpoint.fra1.cdn.digitaloceanspaces.com/production/suvgo/products/image-b579c33f-e7b3-4535-b881-22f731216732.png',
+ zeco:'https://glotr.uz/salfetka-z-eco-elma-dlya-dispensera-180-sht-202-p-1162199/',
+ panda6:'https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/3333.png?fit=1000%2C750&ssl=1',
+ panda8:'https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/2222.png?fit=1000%2C750&ssl=1',
+ euro:'https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/Euro-pack.png?fit=1000%2C750&ssl=1',
+ ecoBig:'https://i0.wp.com/elma.uz/wp-content/uploads/2024/04/salfetka66-min.png?fit=2080%2C2080&ssl=1',
+ big:'https://i0.wp.com/elma.uz/wp-content/uploads/2021/07/salfetka59.png?fit=1000%2C1000&ssl=1'
+};
+function catalogPriceFallbackImage(p={}){
+ const text=normalizePriceLookup([p.sku,p.name?.uz,p.name?.ru,p.description?.uz,p.description?.ru].filter(Boolean).join(' '));
+ const price=Number(p.price||0);
+ // Specific variants must be checked before generic names.
+ if(/(?:^| )243(?: |$)/.test(text)||text.includes('z eco'))return PRICE_IMAGE_FALLBACKS.zeco;
+ if(/(?:^| )(?:205|245|246)(?: |$)/.test(text)||text.includes('qogoz salfetkalar z')||text.includes('бумажные салфетки elma z'))return PRICE_IMAGE_FALLBACKS.z180;
+ if(/(?:^| )407(?: |$)/.test(text)||text.includes('eko katta olchamli elma')||text.includes('eco big size'))return PRICE_IMAGE_FALLBACKS.ecoBig;
+ if(/(?:^| )408(?: |$)/.test(text)||text.includes('qogoz sochiqlar big size')||text.includes('paper towels big size')||text.includes('бумажное полотенце elma big size'))return PRICE_IMAGE_FALLBACKS.big;
+ if(/(?:^| )108(?: |$)/.test(text)||text.includes('tualet qogoz elma euro')||text.includes('euro pack'))return PRICE_IMAGE_FALLBACKS.euro;
+ if(text.includes('panda asian pack')){
+  if(/(?:^| )(?:100|107)(?: |$)/.test(text)||text.includes('econom 6')||text.includes('economy 6'))return PRICE_IMAGE_FALLBACKS.panda6;
+  if(/(?:^| )(?:101|102)(?: |$)/.test(text)||text.includes('comfort 8'))return PRICE_IMAGE_FALLBACKS.panda8;
+  return price>0&&price<=18000?PRICE_IMAGE_FALLBACKS.panda6:PRICE_IMAGE_FALLBACKS.panda8;
+ }
+ return '';
+}
 function adminProductPayload(p){
  const out=cloneProductSafe(p||{});
  out.image=adminProductImageUrl(p);
+ out.priceFallbackImage=catalogPriceFallbackImage(p);
  return out;
 }
 function isAdminImageProxy(raw,id){
@@ -1137,46 +1166,51 @@ app.get('/api/admin/price-image-diagnostics',requireAdmin,async(req,res)=>{
   const scope=String(req.query.scope||'price');
   const products=(db.products||[]).filter(p=>scope==='all'||Number(p.stock||0)>0).slice(0,2000);
 
-  async function inspectProduct(p){
-   const raw=String(p?.image||'').trim();
-   const base={id:p.id,sku:p.sku||'',name:p.name?.uz||p.name?.ru||'Mahsulot'};
-   if(!raw)return {...base,status:'missing',error:'Rasm biriktirilmagan',type:'',bytes:0};
-
+  async function inspectSource(raw){
+   raw=String(raw||'').trim();
+   if(!raw)return {ok:false,error:'Rasm biriktirilmagan',type:'',bytes:0};
    const m=raw.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif|avif));base64,(.+)$/i);
    if(m){
     try{
-     const buf=Buffer.from(m[2],'base64');
-     const type=detectImageMime(buf,m[1]);
-     if(!type||!buf.length)return {...base,status:'failed',error:'Data rasm formati noto‘g‘ri',type:'',bytes:0};
-     if(buf.length>12_000_000)return {...base,status:'failed',error:'Rasm juda katta',type,bytes:buf.length};
-     return {...base,status:'ready',error:'',type,bytes:buf.length};
-    }catch(e){return {...base,status:'failed',error:'Data rasmni o‘qib bo‘lmadi',type:'',bytes:0}}
+     const buf=Buffer.from(m[2],'base64'),type=detectImageMime(buf,m[1]);
+     if(!type||!buf.length)return {ok:false,error:'Data rasm formati noto‘g‘ri',type:'',bytes:0};
+     if(buf.length>12_000_000)return {ok:false,error:'Rasm juda katta',type,bytes:buf.length};
+     return {ok:true,type,bytes:buf.length};
+    }catch{return {ok:false,error:'Data rasmni o‘qib bo‘lmadi',type:'',bytes:0}}
    }
-
    if(/^https?:\/\//i.test(raw)){
     try{
      const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:8_000});
-     return {...base,status:'ready',error:'',type:img.type||'',bytes:img.buffer?.length||0};
-    }catch(e){
-     return {...base,status:'failed',error:String(e?.message||e).slice(0,220),type:'',bytes:0};
-    }
+     return {ok:true,type:img.type||'',bytes:img.buffer?.length||0};
+    }catch(e){return {ok:false,error:String(e?.message||e).slice(0,220),type:'',bytes:0}}
    }
-
    try{
     const rel=raw.replace(/^\/+/,''),root=path.resolve(__dirname),full=path.resolve(root,rel);
-    if(full!==root&&!full.startsWith(root+path.sep))return {...base,status:'failed',error:'Lokal rasm yo‘li noto‘g‘ri',type:'',bytes:0};
-    if(!fs.existsSync(full)||!fs.statSync(full).isFile())return {...base,status:'failed',error:'Lokal rasm fayli topilmadi',type:'',bytes:0};
+    if(full!==root&&!full.startsWith(root+path.sep))return {ok:false,error:'Lokal rasm yo‘li noto‘g‘ri',type:'',bytes:0};
+    if(!fs.existsSync(full)||!fs.statSync(full).isFile())return {ok:false,error:'Lokal rasm fayli topilmadi',type:'',bytes:0};
     const stat=fs.statSync(full);
-    if(stat.size>12_000_000)return {...base,status:'failed',error:'Rasm juda katta',type:'',bytes:stat.size};
+    if(stat.size>12_000_000)return {ok:false,error:'Rasm juda katta',type:'',bytes:stat.size};
     const buf=fs.readFileSync(full),type=detectImageMime(buf,'');
-    if(!type)return {...base,status:'failed',error:'Lokal fayl rasm formatida emas',type:'',bytes:stat.size};
-    return {...base,status:'ready',error:'',type,bytes:stat.size};
-   }catch(e){
-    return {...base,status:'failed',error:String(e?.message||e).slice(0,220),type:'',bytes:0};
-   }
+    if(!type)return {ok:false,error:'Lokal fayl rasm formatida emas',type:'',bytes:stat.size};
+    return {ok:true,type,bytes:stat.size};
+   }catch(e){return {ok:false,error:String(e?.message||e).slice(0,220),type:'',bytes:0}}
   }
 
-  const rows=new Array(products.length),concurrency=Math.min(4,Math.max(1,products.length));
+  async function inspectProduct(p){
+   const raw=String(p?.image||'').trim(),fallback=catalogPriceFallbackImage(p);
+   const base={id:p.id,sku:p.sku||'',name:p.name?.uz||p.name?.ru||'Mahsulot',fallback:feedbackSafeUrl(fallback)};
+   const primary=await inspectSource(raw);
+   if(primary.ok)return {...base,status:'ready',source:'primary',error:'',type:primary.type,bytes:primary.bytes};
+   if(fallback&&fallback!==raw){
+    const secondary=await inspectSource(fallback);
+    if(secondary.ok)return {...base,status:'ready',source:'fallback',error:'',type:secondary.type,bytes:secondary.bytes};
+    return {...base,status:raw?'failed':'missing',source:'fallback-failed',error:secondary.error||primary.error,type:'',bytes:0};
+   }
+   return {...base,status:raw?'failed':'missing',source:'primary',error:primary.error,type:'',bytes:0};
+  }
+  function feedbackSafeUrl(u=''){return String(u||'').slice(0,500)}
+
+  const rows=new Array(products.length),concurrency=Math.min(6,Math.max(1,products.length));
   let cursor=0;
   async function worker(){
    while(true){
@@ -1187,7 +1221,7 @@ app.get('/api/admin/price-image-diagnostics',requireAdmin,async(req,res)=>{
   await Promise.all(Array.from({length:concurrency},worker));
   const ready=rows.filter(x=>x.status==='ready').length,missing=rows.filter(x=>x.status==='missing').length,failed=rows.filter(x=>x.status==='failed').length;
   res.setHeader('Cache-Control','no-store');
-  res.json({ok:true,total:rows.length,ready,missing,failed,rows});
+  res.json({ok:true,total:rows.length,ready,missing,failed,fallbackReady:rows.filter(x=>x.source==='fallback').length,rows});
  }catch(e){
   console.error('Price image diagnostics:',e);
   res.status(500).json({error:'Rasm diagnostikasini bajarib bo‘lmadi'});
