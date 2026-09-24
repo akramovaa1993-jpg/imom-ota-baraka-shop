@@ -34,7 +34,7 @@ const pool = DATABASE_URL ? new Pool({
  keepAlive:true,
  keepAliveInitialDelayMillis:10000,
  allowExitOnIdle:false,
- application_name:'zarbuloq-v13.26.80'
+ application_name:'zarbuloq-v13.26.81'
 }) : null;
 if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.code||'',err.message));
 
@@ -222,7 +222,26 @@ function extractHtmlImageUrl(html,baseUrl){
   }
   return '';
 }
-async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=20_000}={}){
+const remoteImageCache=new Map();
+const remoteImagePending=new Map();
+const REMOTE_IMAGE_CACHE_TTL=6*60*60*1000;
+const REMOTE_IMAGE_CACHE_MAX=250;
+function remoteImageCacheGet(key){
+ const row=remoteImageCache.get(key);
+ if(!row)return null;
+ if(Date.now()-row.at>REMOTE_IMAGE_CACHE_TTL){remoteImageCache.delete(key);return null}
+ remoteImageCache.delete(key);remoteImageCache.set(key,row);
+ return row.value;
+}
+function remoteImageCacheSet(key,value){
+ remoteImageCache.set(key,{at:Date.now(),value});
+ while(remoteImageCache.size>REMOTE_IMAGE_CACHE_MAX){
+  const first=remoteImageCache.keys().next().value;
+  if(first===undefined)break;
+  remoteImageCache.delete(first);
+ }
+}
+async function fetchRemoteImageUncached(raw,{maxBytes=12_000_000,timeoutMs=10_000}={}){
   let current=(await assertPublicRemoteUrl(raw)).href;
   let pageReferrer='';
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
@@ -272,9 +291,21 @@ async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=20_000}={}){
     throw new Error('Rasm manbasini aniqlab bo‘lmadi');
   }finally{clearTimeout(timer)}
 }
+async function fetchRemoteImage(raw,{maxBytes=12_000_000,timeoutMs=10_000}={}){
+ const safe=safeRemoteImageUrl(raw);if(!safe)throw new Error('Rasm URL xavfsiz yoki to‘g‘ri emas');
+ const key=safe;
+ const cached=remoteImageCacheGet(key);if(cached)return cached;
+ if(remoteImagePending.has(key))return remoteImagePending.get(key);
+ const job=fetchRemoteImageUncached(safe,{maxBytes,timeoutMs}).then(img=>{
+  const value={buffer:img.buffer,type:img.type,url:img.url};
+  remoteImageCacheSet(key,value);return value;
+ }).finally(()=>remoteImagePending.delete(key));
+ remoteImagePending.set(key,job);return job;
+}
+
 app.get('/api/image-proxy',async(req,res)=>{
   try{
-    const img=await fetchRemoteImage(req.query.url,{maxBytes:12_000_000,timeoutMs:20_000});
+    const img=await fetchRemoteImage(req.query.url,{maxBytes:12_000_000,timeoutMs:10_000});
     res.setHeader('Content-Type',img.type);
     res.setHeader('Cache-Control','public, max-age=86400, stale-while-revalidate=604800');
     res.setHeader('Access-Control-Allow-Origin','*');
@@ -911,7 +942,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.80',adminFix:'realtime-app-control-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.81',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -933,14 +964,14 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.80',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.81',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/healthz',async(req,res)=>{
  try{
   if(pool)await dbQuery('SELECT 1',[],{retries:1});
   res.setHeader('Cache-Control','no-store');
-  res.json({ok:true,version:'13.26.80',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
+  res.json({ok:true,version:'13.26.81',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
  }catch(e){
-  res.status(503).json({ok:false,version:'13.26.80',error:e.message||'database_unavailable',at:new Date().toISOString()});
+  res.status(503).json({ok:false,version:'13.26.81',error:e.message||'database_unavailable',at:new Date().toISOString()});
  }
 });
 app.get('/api/admin/storage-diagnostics',requireAdmin,async(req,res)=>{
@@ -978,7 +1009,7 @@ app.get('/api/app-events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
-app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.80',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.81',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
 
 app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
 app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.80',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
@@ -1124,7 +1155,7 @@ app.get('/api/admin/price-image-diagnostics',requireAdmin,async(req,res)=>{
 
    if(/^https?:\/\//i.test(raw)){
     try{
-     const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:15_000});
+     const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:8_000});
      return {...base,status:'ready',error:'',type:img.type||'',bytes:img.buffer?.length||0};
     }catch(e){
      return {...base,status:'failed',error:String(e?.message||e).slice(0,220),type:'',bytes:0};
@@ -1178,7 +1209,7 @@ app.get('/api/admin/products/:id/image',requireAdmin,async(req,res)=>{
    return res.end(buf);
   }
   if(/^https?:\/\//i.test(raw)){
-   const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:20_000});
+   const img=await fetchRemoteImage(raw,{maxBytes:12_000_000,timeoutMs:10_000});
    res.setHeader('Content-Type',img.type);
    res.setHeader('Cache-Control','private, max-age=3600, stale-while-revalidate=86400');
    res.setHeader('X-Content-Type-Options','nosniff');
