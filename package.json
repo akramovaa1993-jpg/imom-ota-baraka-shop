@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.81",
+  "version": "13.26.82",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.81 — Faster and sharper PRO price PDF image pipeline",
+  "description": "ZARBULOQ.UZ v13.26.82 — PRO price missing-image fallbacks for ELMA catalog items",
   "scripts": {
     "start": "node server.js"
   },
