@@ -1,8 +1,8 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.79",
+  "version": "13.26.80",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.79 — PRO price full image fit and loading fixes",
+  "description": "ZARBULOQ.UZ v13.26.80 — Admin PRO price image relay and fallback fixes",
   "scripts": {
     "start": "node server.js"
   },
