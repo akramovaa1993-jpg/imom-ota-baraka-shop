@@ -56,7 +56,7 @@ async function main(){
     assert(pageImage.length>100,'HTML fallback image too small');
 
     // 3) Login and Excel hyperlink preview.
-    r=await fetch('http://127.0.0.1:3123/api/admin/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'admin',password:'test-pass-123'})});
+    r=await fetch('http://127.0.0.1:3123/api/admin/login',{method:'POST',headers:{'content-type':'application/json','origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},body:JSON.stringify({username:'admin',password:'test-pass-123'})});
     assert(r.ok,'Admin login HTTP '+r.status);
     const cookie=String(r.headers.get('set-cookie')||'').split(';')[0];
     assert(cookie.includes('iob_admin='),'Admin cookie missing');
@@ -64,7 +64,7 @@ async function main(){
     const body=fs.readFileSync(xlsxPath);
     r=await fetch('http://127.0.0.1:3123/api/admin/products-import-preview',{
       method:'POST',
-      headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','cookie':cookie},
+      headers:{'content-type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','cookie':cookie,'origin':'http://127.0.0.1:3123','sec-fetch-site':'same-origin'},
       body
     });
     const preview=await r.json();
