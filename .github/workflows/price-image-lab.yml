@@ -5,6 +5,7 @@ on:
     branches:
       - price-image-fix-lab
       - price-image-diagnostic-hotfix
+      - price-pdf-fast-clear
     paths:
       - 'server.js'
       - 'admin.html'
