@@ -128,6 +128,10 @@ async function main(){
     const withFallback=await r.json(),euro=(withFallback.products||[]).find(x=>x.sku==='EURO-108');
     assert(euro&&/Euro-pack\.png/i.test(String(euro.priceFallbackImage||'')),'Euro price fallback missing: '+JSON.stringify(euro));
 
+    // 6) Admin payload must expose the site's own image as an additional price source.
+    const lab=(withFallback.products||[]).find(x=>x.sku==='LAB-001');
+    assert(lab&&String(lab.siteImage||'').includes('raw.githubusercontent.com/github/explore'),'Site image passthrough missing: '+JSON.stringify(lab));
+
     console.log('PRICE IMAGE LAB TESTS: PASS');
     console.log(JSON.stringify({directImageBytes:direct.length,htmlFallbackBytes:pageImage.length,excelHyperlink:preview.rows[0].image},null,2));
   }finally{
