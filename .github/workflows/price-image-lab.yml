@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - price-image-fix-lab
+      - price-image-diagnostic-hotfix
     paths:
       - 'server.js'
       - 'admin.html'
