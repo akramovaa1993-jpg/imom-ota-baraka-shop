@@ -2,7 +2,7 @@
   "name": "imom-ota-baraka-shop",
   "version": "13.26.78",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.77 \u2014 cart, checkout and inventory status fixes",
+  "description": "ZARBULOQ.UZ v13.26.78 — PRO price PDF pagination and download fixes",
   "scripts": {
     "start": "node server.js"
   },
