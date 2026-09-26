@@ -34,7 +34,7 @@ const pool = DATABASE_URL ? new Pool({
  keepAlive:true,
  keepAliveInitialDelayMillis:10000,
  allowExitOnIdle:false,
- application_name:'zarbuloq-v13.26.82'
+ application_name:'zarbuloq-v13.26.83'
 }) : null;
 if(pool) pool.on('error',err=>console.error('PostgreSQL pool error:',err.code||'',err.message));
 
@@ -978,7 +978,7 @@ function financeCompanyBalances(db){
  const out=[];for(const c of db.financeCompanies||[]){const purchases=(db.financePurchases||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.total),0),paid=(db.financeCompanyPayments||[]).filter(x=>String(x.companyId)===String(c.id)).reduce((a,x)=>a+finNum(x.amount),0);out.push({...c,purchases,paid,debt:Math.max(0,purchases-paid)})}return out.sort((a,b)=>b.debt-a.debt);
 }
 
-app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.82',adminFix:'realtime-app-control-sync'}));
+app.get('/api/version',(req,res)=>res.json({ok:true,version:'13.26.83',adminFix:'realtime-app-control-sync'}));
 app.get('/health',async(req,res)=>{
  try{
   if(REQUIRE_DATABASE && !pool) throw new Error('database_not_configured');
@@ -1000,14 +1000,14 @@ app.post('/api/visit',async(req,res)=>{
 });
 app.post('/api/visit/ping',(req,res)=>{const visitorId=clean(req.body?.visitorId,80),sessionId=clean(req.body?.sessionId,80),page=clean(req.body?.page,240)||'/';if(visitorId)onlineVisitors.set(visitorId,{lastSeen:Date.now(),sessionId,page});res.json({ok:true});});
 
-app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.82',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
+app.get('/api/status',(req,res)=>res.json({ok:true,version:'13.26.83',telegramConfigured:Boolean(BOT_TOKEN&&CHAT_ID),adminOnline:true,storage:pool?'postgresql':'local-json',persistent:Boolean(pool),dataFile:DB_FILE}));
 app.get('/api/healthz',async(req,res)=>{
  try{
   if(pool)await dbQuery('SELECT 1',[],{retries:1});
   res.setHeader('Cache-Control','no-store');
-  res.json({ok:true,version:'13.26.82',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
+  res.json({ok:true,version:'13.26.83',storage:pool?'postgresql':'local-json',at:new Date().toISOString()});
  }catch(e){
-  res.status(503).json({ok:false,version:'13.26.82',error:e.message||'database_unavailable',at:new Date().toISOString()});
+  res.status(503).json({ok:false,version:'13.26.83',error:e.message||'database_unavailable',at:new Date().toISOString()});
  }
 });
 app.get('/api/admin/storage-diagnostics',requireAdmin,async(req,res)=>{
@@ -1045,10 +1045,22 @@ app.get('/api/app-events',(req,res)=>{
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
-app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.82',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
+app.get('/api/app-realtime/health',(req,res)=>res.json({ok:true,module:'zarbuloq-app-control-realtime',version:'13.26.83',revision:appRealtimeRevision,clients:appRealtimeClients.size}));
 
-app.get('/api/catalog',(req,res)=>{const db=readDb(),groups={};for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});res.json({products,categories:db.categories||[],settings:db.settings||defaultSettings,logo:db.logo||'',promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))});});
-app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.80',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
+app.get('/api/catalog',(req,res)=>{
+ const db=readDb(),groups={};
+ for(const r of db.productReviews||[]){const k=String(r.productId||'');if(k)(groups[k]??=[]).push(r)}
+ const products=(db.products||[]).map(p=>{const rs=groups[String(p.id)]||[],sum=rs.length?reviewSummary(rs):{average:0,count:0};return {...publicProductWithPromotion(db,p),ratingAverage:sum.average,ratingCount:sum.count}});
+ const categories=Array.isArray(db.categories)?db.categories:[];
+ res.setHeader('Cache-Control','no-store');
+ res.json({
+  ok:true,catalogVersion:1,
+  catalogMeta:{schema:1,serverVersion:'13.26.83',productCount:products.length,categoryCount:categories.length,confirmedEmpty:products.length===0,generatedAt:new Date().toISOString()},
+  products,categories,settings:db.settings||defaultSettings,logo:db.logo||'',
+  promos:(db.promos||[]).filter(p=>p.active).map(p=>({code:p.code,minTotal:p.minTotal,type:p.type,value:p.value,expires:p.expires}))
+ });
+});
+app.get('/api/app-config',(req,res)=>{const db=readDb(),c={...defaultSettings.appControl,...(db.settings?.appControl||{})};res.setHeader('Cache-Control','no-store, no-cache, must-revalidate');res.json({ok:true,app:c,serverVersion:'13.26.83',revision:appRealtimeRevision,realtimeUrl:'/api/app-events'});});
 function localizedMessageField(v,lang='uz'){
  if(v&&typeof v==='object')return clean(v[lang]||v.uz||v.ru||v.en||'',1200);
  return clean(v,1200);
@@ -1823,8 +1835,26 @@ function validAppPhoneVerification(db,token,deviceId,phone){
  return row;
 }
 
+const orderRequestLocks=new Map();
+function findOrderByClientRequest(db,deviceId,clientRequestId){
+ if(!deviceId||!clientRequestId)return null;
+ return (db.orders||[]).find(o=>String(o.customerDeviceId||'')===deviceId&&String(o.clientRequestId||'')===clientRequestId)||null;
+}
+
 app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
- const db=readDb(),b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[];
+ const b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[],
+  deviceId=clean(b.deviceId,120),clientRequestId=clean(b.clientRequestId,100),
+  requestKey=deviceId&&clientRequestId?deviceId+'|'+clientRequestId:'';
+ if(requestKey){
+  const previous=orderRequestLocks.get(requestKey);
+  if(previous)await previous.catch(()=>{});
+  const existing=findOrderByClientRequest(readDb(),deviceId,clientRequestId);
+  if(existing)return res.json({ok:true,orderId:existing.orderId,total:existing.total,discount:existing.discount||0,order:existing,replayed:true});
+  let release;const gate=new Promise(resolve=>{release=resolve});orderRequestLocks.set(requestKey,gate);
+  let released=false;const done=()=>{if(released)return;released=true;try{release()}catch{};if(orderRequestLocks.get(requestKey)===gate)orderRequestLocks.delete(requestKey)};
+  res.once('finish',done);res.once('close',done);
+ }
+ const db=readDb();
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
  if(!(db.settings?.delivery?.areas||[]).includes(customer.area))return res.status(400).json({error:'Yetkazib berish hududini tanlang'});
  const hasLocation=customer.lat!==undefined&&customer.lat!==null&&String(customer.lat).trim()!==''&&customer.lng!==undefined&&customer.lng!==null&&String(customer.lng).trim()!=='';
@@ -1842,7 +1872,7 @@ app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
  const orderSource=['app','android','mobile'].includes(String(b.source||'').toLowerCase())?'app':'web';
  const verificationToken=clean(b.phoneVerificationToken,120),verificationRow=orderSource==='app'?validAppPhoneVerification(db,verificationToken,clean(b.deviceId,120),customer.phone):null;
  if(orderSource==='app'&&!verificationRow)return res.status(403).json({error:'Telefon raqamingizni Telegram orqali tasdiqlang'});
- const order={orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),phoneVerified:orderSource==='app',address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:'1 kun ichida',payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps'},items:finalItems,originalSubtotal,productDiscount,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:clean(b.deviceId,120),complaintOpen:false};
+ const order={orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),phoneVerified:orderSource==='app',address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:'1 kun ichida',payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps'},items:finalItems,originalSubtotal,productDiscount,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:deviceId,clientRequestId,complaintOpen:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,originalSubtotal:order.originalSubtotal,productDiscount:order.productDiscount,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:order.source||'web'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
  if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order,warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}
