@@ -37,3 +37,6 @@ jobs:
 
       - name: Test price image pipeline
         run: node scripts/price-image-lab-test.js
+
+      - name: Test order idempotency
+        run: node scripts/order-idempotency-test.js
