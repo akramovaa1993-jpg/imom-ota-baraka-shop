@@ -7,6 +7,7 @@ on:
       - price-image-diagnostic-hotfix
       - price-pdf-fast-clear
       - price-missing-image-fallbacks
+      - audit-order-idempotency
     paths:
       - 'server.js'
       - 'admin.html'
@@ -36,3 +37,6 @@ jobs:
 
       - name: Test price image pipeline
         run: node scripts/price-image-lab-test.js
+
+      - name: Test order idempotency
+        run: node scripts/order-idempotency-test.js
