@@ -1,10 +1,11 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.83",
+  "version": "13.26.84",
   "private": true,
   "description": "ZARBULOQ.UZ v13.26.83 — catalog integrity metadata and order idempotency",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:checkout": "node tests/checkout.test.cjs"
   },
   "engines": {
     "node": ">=18"

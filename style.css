@@ -435,3 +435,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 /* v13.26.76 SAFE UI FIX: hide legacy topbar without removing DOM */
 .topbar{display:none!important}
+
+/* Checkout required fields and interactive map */
+#checkoutForm label{display:grid;gap:6px;font-size:14px;font-weight:700}
+#checkoutForm small:empty{display:none}
+#orderSubmit:disabled{background:#a7b6af!important;cursor:not-allowed;transform:none;opacity:.8}
+#checkoutLeafletMap{position:relative;z-index:0}
+#locationMapBox>p,#checkoutPointText{padding:4px 12px;font-size:13px}
+#confirmCheckoutLocation{margin:8px 12px 12px}
+#confirmCheckoutLocation:disabled{opacity:.5;cursor:not-allowed}
