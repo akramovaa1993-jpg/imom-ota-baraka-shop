@@ -145,7 +145,7 @@ body{background:#f4f8f6!important;color:#0f2d25}.admin-wrap{max-width:none!impor
 @media(max-width:1000px){.category-row.v1369{grid-template-columns:1fr 1fr}.category-row.v1369 .category-icon-tools{grid-column:1/-1}}
 @media(max-width:700px){.category-row.v1369{grid-template-columns:1fr}}
 </style>
-</head><body><div id="app"><div class="panel login" id="adminBootFallback"><div style="display:flex;align-items:center;gap:16px"><img src="logo.png" class="logo-admin" alt="ZARBULOQ.UZ"><div><span class="eyebrow">ZARBULOQ.UZ</span><h1>IMOM OTA BARAKA</h1><p>Admin panel yuklanmoqda…</p></div></div><div class="notice" style="margin-top:18px">Agar panel ochilmasa, sahifani Ctrl + F5 bilan yangilang.</div></div></div><noscript><div class="panel login"><h1>JavaScript o‘chirilgan</h1><p>Admin panel ishlashi uchun brauzerda JavaScript yoqilgan bo‘lishi kerak.</p></div></noscript><script>
+</head><body><div style="padding:8px;text-align:right"><a href="/admin-security.html" style="color:#176e49">Hisob himoyasi / 2FA</a></div><div id="app"><div class="panel login" id="adminBootFallback"><div style="display:flex;align-items:center;gap:16px"><img src="logo.png" class="logo-admin" alt="ZARBULOQ.UZ"><div><span class="eyebrow">ZARBULOQ.UZ</span><h1>IMOM OTA BARAKA</h1><p>Admin panel yuklanmoqda…</p></div></div><div class="notice" style="margin-top:18px">Agar panel ochilmasa, sahifani Ctrl + F5 bilan yangilang.</div></div></div><noscript><div class="panel login"><h1>JavaScript o‘chirilgan</h1><p>Admin panel ishlashi uchun brauzerda JavaScript yoqilgan bo‘lishi kerak.</p></div></noscript><script>
 window.addEventListener('error',function(e){try{const app=document.getElementById('app');if(app&&!app.querySelector('.admin-layout')&&!app.querySelector('form')){app.innerHTML='<div class="panel login"><h1>Admin panelni yuklashda xatolik</h1><p>Sahifani Ctrl + F5 bilan yangilang. Muammo davom etsa, Render deploy logini tekshiring.</p><button class="btn primary" onclick="location.reload()">Qayta yuklash</button></div>'}}catch(_){} });
 const $=s=>document.querySelector(s), money=n=>new Intl.NumberFormat('ru-RU').format(Number(n)||0)+' so‘m', esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let D=null, me=null, currentTab='dashboard', reportAreas=[], financeMenuOpen=false;
@@ -210,7 +210,7 @@ async function api(url,opt={}){
  throw lastErr;
 }
 async function boot(){try{me=await api('/api/admin/me');await refresh();}catch(e){console.warn('Admin boot:',e);renderLogin()}}
-function renderLogin(){document.getElementById('app').innerHTML=`<div class="panel login"><div style="display:flex;align-items:center;gap:16px"><img src="logo.png" class="logo-admin"><div><span class="eyebrow">ZARBULOQ.UZ</span><h1>IMOM OTA BARAKA</h1><p>Boshqaruv markaziga kiring.</p><small style="display:block;margin-top:6px;color:#0a8069;font-weight:900">v13.26.41 FINAL REVIEW + BANNER ADMIN</small></div></div><form onsubmit="login(event)"><input name="username" placeholder="Foydalanuvchi nomi" required><input name="password" type="password" placeholder="Parol" required><button class="btn primary">Kirish</button></form></div>`}
+function renderLogin(){document.getElementById('app').innerHTML=`<div class="panel login"><div style="display:flex;align-items:center;gap:16px"><img src="logo.png" class="logo-admin"><div><span class="eyebrow">ZARBULOQ.UZ</span><h1>IMOM OTA BARAKA</h1><p>Boshqaruv markaziga kiring.</p><small style="display:block;margin-top:6px;color:#0a8069;font-weight:900">v13.26.41 FINAL REVIEW + BANNER ADMIN</small></div></div><form onsubmit="login(event)"><input name="username" placeholder="Foydalanuvchi nomi" required><input name="password" type="password" placeholder="Parol" required><input name="otp" autocomplete="one-time-code" placeholder="2FA kodi (yoqilgan bo‘lsa)"><button class="btn primary">Kirish</button></form></div>`}
 async function login(e){
  e.preventDefault();
  const f=new FormData(e.currentTarget);
@@ -220,7 +220,7 @@ async function login(e){
    method:'POST',
    body:JSON.stringify({
     username:f.get('username'),
-    password:f.get('password')
+    password:f.get('password'),otp:f.get('otp')
    })
   });
  }catch(err){
@@ -842,3 +842,4 @@ function exportOperationsCsv(){const rows=[['Buyurtma','Xaridor','Telefon','Sana
 renderLogin();
 boot().finally(()=>{try{initAdminRealtime()}catch(e){console.warn('Realtime init:',e)}});
 </script></body></html>
+

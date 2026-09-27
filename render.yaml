@@ -3,11 +3,14 @@ services:
     name: imom-ota-baraka
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /health
     autoDeployTrigger: commit
+    renderSubdomainPolicy: disabled
     envVars:
+      - key: NODE_ENV
+        value: production
       - key: NODE_VERSION
         value: 22
       - key: REQUIRE_DATABASE
@@ -21,6 +24,8 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: SESSION_SECRET
+        generateValue: true
+      - key: SECURITY_SECRET
         generateValue: true
       - key: TELEGRAM_BOT_TOKEN
         sync: false

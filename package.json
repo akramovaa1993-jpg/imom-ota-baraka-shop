@@ -1,19 +1,21 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.84",
+  "version": "13.26.85",
   "private": true,
-  "description": "ZARBULOQ.UZ v13.26.83 — catalog integrity metadata and order idempotency",
+  "description": "ZARBULOQ security: ownership, durable sessions, role isolation and bounded requests",
   "scripts": {
     "start": "node server.js",
-    "test:checkout": "node tests/checkout.test.cjs"
+    "test:checkout": "node tests/checkout.test.cjs",
+    "test:security": "node --test tests/security.test.cjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ipaddr.js": "2.2.0",
     "pg": "^8.13.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
