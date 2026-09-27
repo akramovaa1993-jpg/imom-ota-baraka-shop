@@ -604,6 +604,24 @@ app.get('/api/app-apk-info',async(req,res)=>{
  res.json({ok:true,available:meta.available,version:c.apkVersion||c.currentVersion||'',versionCode:Number(c.apkVersionCode||c.latestVersionCode||0),notes:c.apkNotes||'',updatedAt:c.apkUpdatedAt||meta.updatedAt||'',size:meta.size||Number(c.apkSize||0),sha256:c.apkSha256||meta.sha256||'',url:'/downloads/Zarbuloq.apk',storage:pool?'postgresql+cache':'local'});
 });
 
+// Catalog is readable before JavaScript loads, for people and crawlers alike.
+const homeTemplate=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+app.get(['/', '/index.html'],(req,res)=>{
+ const db=readDb(),products=db.products||[];
+ const cards=products.map(p=>{
+  const name=p.name?.uz||p.name?.ru||'Mahsulot';
+  const url='/mahsulot/'+productSlug(p,'uz');
+  const category=productCategory(db,p)?.name?.uz||'';
+  const price=Number(p.price||0).toLocaleString('ru-RU');
+  return `<article class="product-card"><a class="product-media" href="${htmlEsc(url)}"><img src="${htmlEsc(productImageUrl(p))}" alt="${htmlEsc(name)}" loading="lazy" decoding="async"></a><div class="product-body"><small>${htmlEsc(category)}</small><h3><a class="product-seo-link" href="${htmlEsc(url)}">${htmlEsc(name)}</a></h3><div class="price-row"><b>${htmlEsc(price)} so‘m</b><span>${Number(p.stock||0)>0?'Sotuvda mavjud':'Omborda yo‘q'}</span></div><a class="btn" href="${htmlEsc(url)}">Batafsil</a></div></article>`;
+ }).join('')||'<p>Hozircha katalogda mahsulot yo‘q.</p>';
+ const html=homeTemplate
+  .replace('<div class="products" id="productGrid"></div>',()=>`<div class="products" id="productGrid" data-server-catalog="true">${cards}</div>`)
+  .replace('Mahsulotlar yuklanmoqda...',()=>`${products.length} ta mahsulot`);
+ res.set('Cache-Control','no-store');
+ res.type('html').send(html);
+});
+
 const PUBLIC_ASSETS=new Set(require('./public-assets.json'));
 app.use((req,res,next)=>{
  let p;try{p=decodeURIComponent(req.path)}catch{return res.status(400).end()}

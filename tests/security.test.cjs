@@ -23,6 +23,13 @@ after(async()=>{await stop();fs.rmSync(dir,{recursive:true,force:true})});
 test('all sensitive static paths and encoded aliases are blocked; assets and headers work',async()=>{
  for(const p of ['/server.js','/security.js','/public-assets.json','/package.json','/package-lock.json','/.env','/data/shop.json','/security-state.json','/tests/security.test.cjs','/%73erver.js','/scripts/order-idempotency-test.js'])assert.equal((await request(p)).status,404,p);
  const home=await request('/');assert.equal(home.status,200);assert.equal(home.headers.get('x-powered-by'),null);assert.match(home.headers.get('content-security-policy'),/frame-ancestors 'none'/);
+
+ assert.match(home.data,/data-server-catalog="true"/);
+ assert.match(home.data,/href="\/mahsulot\/premium-guruch-1"/);
+ assert.match(home.data,/Premium guruch/);
+ assert.ok(!home.data.includes('Mahsulotlar yuklanmoqda...'));
+ const sitemap=await request('/sitemap.xml');assert.equal(sitemap.status,200);assert.match(sitemap.headers.get('content-type'),/application\/xml/);assert.match(sitemap.data,/https:\/\/zarbuloq.uz\/mahsulot\/premium-guruch-1/);
+ const detail=await request('/mahsulot/premium-guruch-1');assert.equal(detail.status,200);assert.match(detail.data,/Premium guruch/);
  assert.equal((await request('/api/image-proxy')).headers.get('x-frame-options'),'DENY');
  assert.equal((await request('/api/status')).data.dataFile,undefined);
 });
