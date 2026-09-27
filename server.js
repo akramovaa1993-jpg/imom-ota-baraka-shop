@@ -1263,6 +1263,16 @@ app.get('/api/admin/dashboard',requireAdmin,(req,res)=>{
  res.setHeader('Pragma','no-cache');
  res.setHeader('Expires','0');
  const db=normalizeDb(readDb()||initialDb()),orders=db.orders||[],products=db.products||[],receipts=Array.isArray(db.inventoryReceipts)?db.inventoryReceipts:[];const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),year=today.slice(0,4);const done=orders.filter(o=>['completed','done'].includes(o.status));
+ if(req.adminRole!=='admin'){
+  const operator=req.adminRole==='operator';
+  return res.json({role:req.adminRole,logo:db.logo||'',stats:{orders:operator?orders.length:0,today:0,month:0,revenue:0},
+   orders:operator?orders.slice().reverse().slice(0,300).map(({securityOwner,...o})=>o):[],
+   chats:operator?(db.chats||[]).slice(0,500).map(({securityOwner,...c})=>c):[],
+   orderComplaints:operator?(db.orderComplaints||[]).slice(0,500):[],
+   products:operator?[]:products.map(adminProductPayload),categories:operator?[]:db.categories||[],
+   settings:{phone:db.settings?.phone,telegram:db.settings?.telegram},
+   warehousePurchases:[],productReviews:[],productRequests:[],productPromotions:[],customers:[],promos:[],audit:[]});
+ }
  const costFor=o=>(o.items||[]).reduce((s,i)=>{const p=products.find(x=>Number(x.id)===Number(i.id));return s+(Number(p?.cost||0)*Number(i.qty||1));},0);
  const revenue=done.reduce((s,o)=>s+Number(o.total||0),0),profit=done.reduce((s,o)=>s+Number(o.total||0)-costFor(o),0);const avg=done.length?Math.round(revenue/done.length):0;
  const topMap={};for(const o of done)for(const i of o.items||[]){topMap[i.name]=(topMap[i.name]||0)+Number(i.qty||1)}

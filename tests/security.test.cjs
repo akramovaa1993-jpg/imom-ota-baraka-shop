@@ -47,6 +47,7 @@ test('admin role isolation and strict cross-origin requests',async()=>{
  assert.equal((await request('/api/admin/login',{username:'owner',password:'safe-test-password'},{origin:'https://evil.example','sec-fetch-site':'same-site'})).status,403);
  const r=await request('/api/admin/login',{username:'stock',password:'stock-password'});assert.equal(r.status,200);const cookie=r.headers.get('set-cookie').split(';')[0];
  assert.equal((await request('/api/admin/products',null,{cookie})).status,200);
+ const dash=await request('/api/admin/dashboard',null,{cookie});assert.equal(dash.status,200);assert.deepEqual(dash.data.orders,[]);assert.equal(dash.data.financeQuick,undefined);assert.equal(dash.data.visits,undefined);
  for(const p of ['/api/admin/backup.json','/api/admin/finance','/api/admin/security'])assert.equal((await request(p,null,{cookie})).status,403,p);
  assert.equal((await request('/api/admin/restore',{products:[],orders:[]},{cookie})).status,403);
  const owner=await request('/api/admin/login',{username:'owner',password:'safe-test-password'});adminCookie=owner.headers.get('set-cookie').split(';')[0];assert.equal((await request('/api/admin/me',null,{cookie:adminCookie})).status,200);
