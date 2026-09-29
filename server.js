@@ -1868,16 +1868,17 @@ app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
  const b=req.body||{},customer=b.customer||{},items=Array.isArray(b.items)?b.items:[],
   deviceId=clean(b.deviceId,120),clientRequestId=clean(b.clientRequestId,100),
   requestKey=deviceId&&clientRequestId?deviceId+'|'+clientRequestId:'';
+ let releaseRequest=()=>{};
  if(requestKey){
-  const previous=orderRequestLocks.get(requestKey);
-  if(previous)await previous.catch(()=>{});
+  while(orderRequestLocks.has(requestKey))await orderRequestLocks.get(requestKey).catch(()=>{});
   const existing=findOrderByClientRequest(readDb(),deviceId,clientRequestId);
   if(existing){if(!orderPermission(req,res,existing))return;return res.json({ok:true,orderId:existing.orderId,total:existing.total,discount:existing.discount||0,order:publicOrderView(existing),replayed:true})}
   let release;const gate=new Promise(resolve=>{release=resolve});orderRequestLocks.set(requestKey,gate);
   let released=false;const done=()=>{if(released)return;released=true;try{release()}catch{};if(orderRequestLocks.get(requestKey)===gate)orderRequestLocks.delete(requestKey)};
-  res.once('finish',done);res.once('close',done);
+  releaseRequest=done;
  }
- const db=readDb();
+ try{
+ let db=readDb();
  if(!clean(customer.name,80)||!clean(customer.phone,30)||!clean(customer.address,300)||!clean(customer.area,100)||!clean(customer.payment,80)||!items.length)return res.status(400).json({error:'Majburiy maydonlarni to‘ldiring'});
  const isWebCheckout=!['app','android','mobile'].includes(String(b.source||'').toLowerCase());
  const nameParts=String(customer.name||'').trim().split(/\s+/u);
@@ -1893,8 +1894,18 @@ app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
  if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180||!['gps','manual','map'].includes(locationMethod))return res.status(400).json({error:'Lokatsiya koordinatasi noto‘g‘ri'});
  if(locationMethod==='gps'&&(!Number.isFinite(accuracy)||accuracy<0||accuracy>20))return res.status(400).json({error:`GPS aniqligi yetarli emas${Number.isFinite(accuracy)?`: ±${Math.round(accuracy)} m`:''}. ±20 m yoki yaxshiroq aniqlik talab qilinadi`});
  if(!(await checkParkentLocation(lat,lng)))return res.status(400).json({error:'Yuborilgan lokatsiya Parkent tumani hududidan tashqarida'});
+ // Re-read after asynchronous geofencing so checkout uses the current catalog.
+ db=readDb();
+ const quantities=new Map();
+ for(const i of items){
+  const id=Number(i?.id),qty=Number(i?.qty);
+  if(!Number.isSafeInteger(id)||id<=0||!Number.isSafeInteger(qty)||qty<=0)return res.status(400).json({error:'Mahsulot yoki miqdor noto‘g‘ri'});
+  const sum=(quantities.get(id)||0)+qty;
+  if(!Number.isSafeInteger(sum))return res.status(400).json({error:'Mahsulot miqdori noto‘g‘ri'});
+  quantities.set(id,sum);
+ }
  const finalItems=[];let subtotal=0,originalSubtotal=0,productDiscount=0;
- for(const i of items){const p=(db.products||[]).find(x=>Number(x.id)===Number(i.id));if(!p)continue;const qty=Math.max(1,Math.floor(Number(i.qty)||1));if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});const sale=productSaleInfo(db,p),lineDiscount=sale.discount*qty;finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:sale.price,basePrice:sale.basePrice,promotionDiscount:lineDiscount,promotionId:sale.promotion?.id||'',qty});subtotal+=sale.price*qty;originalSubtotal+=sale.basePrice*qty;productDiscount+=lineDiscount;}
+ for(const [id,qty] of quantities){const p=(db.products||[]).find(x=>Number(x.id)===id);if(!p)return res.status(400).json({error:'Mahsulot topilmadi. Savatchani yangilang'});if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});const sale=productSaleInfo(db,p),lineDiscount=sale.discount*qty;finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:sale.price,basePrice:sale.basePrice,promotionDiscount:lineDiscount,promotionId:sale.promotion?.id||'',qty});subtotal+=sale.price*qty;originalSubtotal+=sale.basePrice*qty;productDiscount+=lineDiscount;}
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});
  if(subtotal<100000)return res.status(400).json({error:`Minimal buyurtma 100 000 so‘m. Yana ${money(100000-subtotal)}lik mahsulot qo‘shing`});
  const promoResult=validatePromo(db,b.promoCode,subtotal);if(!promoResult.ok)return res.status(400).json({error:promoResult.error});const discount=promoResult.discount,total=subtotal-discount;
@@ -1907,6 +1918,8 @@ app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,originalSubtotal:order.originalSubtotal,productDiscount:order.productDiscount,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:order.source||'web'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
  if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order:publicOrderView(order),warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}
  res.json({ok:true,orderId,total,discount,order:publicOrderView(order)});
+ }catch(e){console.error('Order save error:',e.message);if(!res.headersSent)res.status(500).json({error:'Buyurtmani saqlashda xato. Qayta urinib ko‘ring'});}
+ finally{releaseRequest();}
 });
 
 async function updateOrderStatus(orderId,status,actor='admin'){
@@ -1917,7 +1930,12 @@ async function updateOrderStatus(orderId,status,actor='admin'){
  if(!o)throw new Error('Order not found');
  const prev=normalizeOrderStatus(o.status),soldStatuses=['delivery','delivered','completed'],wasSold=soldStatuses.includes(prev)&&o.stockAdjusted===true,willSold=soldStatuses.includes(status);
  if(willSold&&!wasSold){
-  for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p){if(Number(p.stock||0)<Number(it.qty||0))throw new Error(`${p.name?.uz||'Mahsulot'} omborda yetarli emas`);p.stock=Math.max(0,Number(p.stock||0)-Number(it.qty||0));}}
+  // Validate every line before changing any cached stock value.
+  const quantities=new Map();
+  for(const it of o.items||[]){const id=Number(it.id),qty=Number(it.qty);if(!Number.isSafeInteger(qty)||qty<=0)throw new Error('Mahsulot miqdori noto‘g‘ri');quantities.set(id,(quantities.get(id)||0)+qty);}
+  const changes=[];
+  for(const [id,qty] of quantities){const p=(db.products||[]).find(x=>Number(x.id)===id);if(!p)throw new Error('Buyurtmadagi mahsulot topilmadi');const stock=Number(p.stock||0);if(!Number.isFinite(stock)||stock<qty)throw new Error(`${p.name?.uz||'Mahsulot'} omborda yetarli emas`);changes.push({p,stock:stock-qty});}
+  for(const change of changes)change.p.stock=change.stock;
   o.stockAdjusted=true;o.stockAdjustedAt=new Date().toISOString();
  }else if(!willSold&&wasSold){
   for(const it of o.items||[]){const p=(db.products||[]).find(x=>Number(x.id)===Number(it.id));if(p)p.stock=Number(p.stock||0)+Number(it.qty||0)}
