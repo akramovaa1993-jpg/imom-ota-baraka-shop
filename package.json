@@ -1,10 +1,11 @@
 {
   "name": "imom-ota-baraka-shop",
-  "version": "13.26.85",
+  "version": "13.26.86",
   "private": true,
   "description": "ZARBULOQ security: ownership, durable sessions, role isolation and bounded requests",
   "scripts": {
     "start": "node server.js",
+    "test:orders": "node --test tests/order-integrity.test.cjs",
     "test:checkout": "node tests/checkout.test.cjs",
     "test:security": "node --test tests/security.test.cjs"
   },
