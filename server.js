@@ -1501,7 +1501,8 @@ function sanitizeCatalogProduct(raw,current=null){
   lastReceivedAt:clean(p.lastReceivedAt!==undefined?p.lastReceivedAt:old.lastReceivedAt,40),
   image:(()=>{const incoming=String(p.image!==undefined?p.image:(old.image||''));return isAdminImageProxy(incoming,id)?String(old.image||''):incoming.slice(0,6_000_000)})(),
   badge:clean(p.badge!==undefined?p.badge:old.badge,30),
-  featured:p.featured!==undefined?Boolean(p.featured):Boolean(old.featured)
+  featured:p.featured!==undefined?Boolean(p.featured):Boolean(old.featured),
+  quickDelivery:p.quickDelivery!==undefined?Boolean(p.quickDelivery):Boolean(old.quickDelivery)
  };
 }
 
@@ -1764,6 +1765,8 @@ function publicOrderView(order){
   deliveryFee:Number(order.deliveryFee||0),
   total:Number(order.total||0),
   payment:order.customer?.payment||order.payment||'Naqd',
+  deliveryType:order.deliveryType||'standard',
+  deliverySlot:order.customer?.deliverySlot||'1 kun ichida',
   customerConfirmed:Boolean(order.customerConfirmed),
   customerConfirmedAt:order.customerConfirmedAt||'',
   adminConfirmed:Boolean(order.adminConfirmed),
@@ -1921,16 +1924,21 @@ app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
   if(!Number.isSafeInteger(sum))return res.status(400).json({error:'Mahsulot miqdori noto‘g‘ri'});
   quantities.set(id,sum);
  }
- const finalItems=[];let subtotal=0,originalSubtotal=0,productDiscount=0;
- for(const [id,qty] of quantities){const p=(db.products||[]).find(x=>Number(x.id)===id);if(!p)return res.status(400).json({error:'Mahsulot topilmadi. Savatchani yangilang'});if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});const sale=productSaleInfo(db,p),lineDiscount=sale.discount*qty;finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:sale.price,basePrice:sale.basePrice,promotionDiscount:lineDiscount,promotionId:sale.promotion?.id||'',qty});subtotal+=sale.price*qty;originalSubtotal+=sale.basePrice*qty;productDiscount+=lineDiscount;}
+ const finalItems=[];let subtotal=0,originalSubtotal=0,productDiscount=0,hasQuickDelivery=false;
+ for(const [id,qty] of quantities){const p=(db.products||[]).find(x=>Number(x.id)===id);if(!p)return res.status(400).json({error:'Mahsulot topilmadi. Savatchani yangilang'});if(qty>Number(p.stock||0))return res.status(400).json({error:`${p.name?.uz||'Mahsulot'} omborda yetarli emas`});const sale=productSaleInfo(db,p),lineDiscount=sale.discount*qty;if(p.quickDelivery===true)hasQuickDelivery=true;finalItems.push({id:p.id,name:p.name?.[b.language]||p.name?.uz||'',price:sale.price,basePrice:sale.basePrice,promotionDiscount:lineDiscount,promotionId:sale.promotion?.id||'',qty});subtotal+=sale.price*qty;originalSubtotal+=sale.basePrice*qty;productDiscount+=lineDiscount;}
  if(!finalItems.length)return res.status(400).json({error:'Mahsulot topilmadi'});
  if(subtotal<100000)return res.status(400).json({error:`Minimal buyurtma 100 000 so‘m. Yana ${money(100000-subtotal)}lik mahsulot qo‘shing`});
  const promoResult=validatePromo(db,b.promoCode,subtotal);if(!promoResult.ok)return res.status(400).json({error:promoResult.error});const discount=promoResult.discount,total=subtotal-discount;
  const orderId='IOB-'+crypto.randomBytes(12).toString('hex').toUpperCase(),createdAt=new Date().toISOString();
  const orderSource=['app','android','mobile'].includes(String(b.source||'').toLowerCase())?'app':'web';
+ const orderLanguage=clean(b.language,5)==='ru'?'ru':'uz';
+ const deliveryType=hasQuickDelivery?'fast':'standard';
+ const deliverySlot=deliveryType==='fast'
+  ? (orderLanguage==='ru'?'Срочная доставка — оператор свяжется с вами':'Tezkor yetkazib berish — operator siz bilan bog‘lanadi')
+  : (orderLanguage==='ru'?'В течение 1 дня':'1 kun ichida');
  const verificationToken=clean(b.phoneVerificationToken,120),verificationRow=orderSource==='app'?validAppPhoneVerification(db,verificationToken,clean(b.deviceId,120),customer.phone):null;
  if(orderSource==='app'&&!verificationRow)return res.status(403).json({error:'Telefon raqamingizni Telegram orqali tasdiqlang'});
- const order={securityOwner:security.client(req,res,true),orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),phoneVerified:orderSource==='app',address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot:'1 kun ichida',payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps',locationConfirmed:customer.locationConfirmed===true},items:finalItems,originalSubtotal,productDiscount,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:clean(b.language,5)||'uz',telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:deviceId,clientRequestId,complaintOpen:false};
+ const order={securityOwner:security.client(req,res,true),orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],deliveryType,customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),phoneVerified:orderSource==='app',address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot,payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps',locationConfirmed:customer.locationConfirmed===true},items:finalItems,originalSubtotal,productDiscount,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:orderLanguage,telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:deviceId,clientRequestId,complaintOpen:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,originalSubtotal:order.originalSubtotal,productDiscount:order.productDiscount,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:order.source||'web'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
  if(BOT_TOKEN&&CHAT_ID){try{const msg=await tgCall('sendMessage',{chat_id:CHAT_ID,text:orderText(order),reply_markup:statusKeyboard(orderId,'new')});const db2=readDb(),o=db2.orders.find(x=>x.orderId===orderId);if(o){o.telegram={chatId:String(msg.chat.id),messageId:msg.message_id};await writeDb(db2);}}catch(e){console.error('Telegram send error:',e.message);return res.json({ok:true,orderId,total,discount,order:publicOrderView(order),warning:'Buyurtma saqlandi, lekin Telegramga yuborilmadi'});}}
