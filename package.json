@@ -5,6 +5,7 @@
   "description": "ZARBULOQ security: ownership, durable sessions, role isolation and bounded requests",
   "scripts": {
     "start": "node server.js",
+    "test:integration": "node --test tests/realtime-integration.test.cjs",
     "test:orders": "node --test tests/order-integrity.test.cjs",
     "test:checkout": "node tests/checkout.test.cjs",
     "test:security": "node --test tests/security.test.cjs"
@@ -20,3 +21,4 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }
+

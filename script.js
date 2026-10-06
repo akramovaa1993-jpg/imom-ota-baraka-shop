@@ -24,14 +24,17 @@ function total(){return Math.max(0,subtotal()-Number(promo.discount||0))}
 const MIN_ORDER_TOTAL=100000;
 function minimumOrderMessage(){const left=Math.max(0,MIN_ORDER_TOTAL-subtotal());if(lang==='ru')return left>0?`Минимальный заказ — ${money(MIN_ORDER_TOTAL)}. Добавьте ещё на ${money(left)}.`:`Минимальная сумма заказа выполнена.`;if(lang==='en')return left>0?`Minimum order is ${money(MIN_ORDER_TOTAL)}. Add ${money(left)} more.`:`Minimum order reached.`;return left>0?`Minimal buyurtma — ${money(MIN_ORDER_TOTAL)}. Yana ${money(left)}lik mahsulot qo‘shing.`:`Minimal buyurtma summasi yetarli.`}
 
-async function loadCatalog(retry=0){
+let catalogLoadGeneration=0;
+async function loadCatalog(retry=0,generation=++catalogLoadGeneration){
  const grid=$('#productGrid');
  if(grid && retry===0 && !grid.innerHTML.trim()) grid.innerHTML=Array.from({length:6},()=>'<div class="product-skeleton"><div class="sk-media"></div><div class="sk-line w70"></div><div class="sk-line w90"></div><div class="sk-line w45"></div><div class="sk-btn"></div></div>').join('');
  try{
   const r=await fetch('/api/catalog?ts='+Date.now(),{cache:'no-store'});
   if(!r.ok) throw new Error('Catalog HTTP '+r.status);
   const d=await r.json();
-  products=Array.isArray(d.products)?d.products:[];categories=Array.isArray(d.categories)?d.categories:[];settings=d.settings||{};logo=d.logo||'';
+  if(generation!==catalogLoadGeneration)return;
+  if(!Array.isArray(d.products)||!Array.isArray(d.categories))throw new Error('Katalog javobi to‘liq emas');
+  products=d.products;categories=Array.isArray(d.categories)?d.categories:[];settings=d.settings||{};logo=d.logo||'';
   applySite();renderAll();initParkentBoundaryMap();
   try{
    const qs=new URLSearchParams(location.search);
@@ -41,8 +44,10 @@ async function loadCatalog(retry=0){
    }
   }catch(e){}
  }catch(e){
+  if(generation!==catalogLoadGeneration)return;
   console.error('Catalog load:',e);
-  if(retry<4){setTimeout(()=>loadCatalog(retry+1),700*(retry+1));return}
+  if(retry<4){setTimeout(()=>{if(generation===catalogLoadGeneration)loadCatalog(retry+1,generation)},700*(retry+1));return}
+  if(products.length)return;
   if(grid) grid.innerHTML=`<div class="empty-state request-empty"><h3>${lang==='ru'?'Не удалось загрузить товары':lang==='en'?'Could not load products':'Mahsulotlarni yuklab bo‘lmadi'}</h3><button class="btn primary" onclick="loadCatalog(0)">${lang==='ru'?'Повторить':lang==='en'?'Retry':'Qayta yuklash'}</button></div>`;updateCatalogMeta(0);
  }
 }
@@ -272,7 +277,7 @@ function updateChatIdentityState(){const {name,phone}=chatIdentity(),ok=name.len
 document.addEventListener('input',e=>{if(e.target?.id==='chatName'||e.target?.id==='chatPhone')updateChatIdentityState()})
 async function sendSiteChat(e){e.preventDefault();const inp=$('#siteChatInput'),text=inp.value.trim(),identity=chatIdentity();if(!updateChatIdentityState()){alert('Chat yozish uchun ism va to‘g‘ri telefon raqamini kiriting.');return}if(!text)return;const btn=e.currentTarget.querySelector('button');btn.disabled=true;try{const r=await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:siteChatId,name:identity.name,phone:identity.phone,message:text})}),d=await r.json();if(!r.ok)throw new Error(d.error||'Xatolik');localStorage.setItem('zarbuloq_customer_identity',JSON.stringify(identity));inp.value='';renderSiteChat(d.chat)}catch(err){alert(err.message)}finally{updateChatIdentityState()}}
 
-let realtimeSource=null,realtimeTimer=null,realtimeReloading=false,realtimeLastEvent=Date.now();
+let realtimeSource=null,realtimeTimer=null,realtimeReloading=false,realtimePending=false,realtimeLastEvent=Date.now();
 function initRealtime(){
  if(!window.EventSource||realtimeSource)return;
  realtimeSource=new EventSource('/api/events');
@@ -282,17 +287,19 @@ function initRealtime(){
   realtimeTimer=setTimeout(refreshRealtimeStore,180);
   loadSiteChat();
  });
- realtimeSource.onopen=()=>{realtimeLastEvent=Date.now()};
+ realtimeSource.addEventListener('ready',()=>{realtimeLastEvent=Date.now();refreshRealtimeStore();loadSiteChat()});
  realtimeSource.onerror=()=>{}; // EventSource reconnects automatically
 }
 async function refreshRealtimeStore(){
- if(realtimeReloading)return;
+ if(realtimeReloading){realtimePending=true;return}
  realtimeReloading=true;
  try{
   await loadCatalog();
   if(lastTrackQuery && $('#trackingPanel')?.classList.contains('open')) await fetchTrackedOrder(lastTrackQuery.id,lastTrackQuery.phone,{silent:true});
- }finally{realtimeReloading=false}
+ }finally{realtimeReloading=false;if(realtimePending){realtimePending=false;refreshRealtimeStore()}}
 }
+window.addEventListener('online',()=>{refreshRealtimeStore();loadSiteChat()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshRealtimeStore();loadSiteChat()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeReviewModal();closeCheckout();closeCart();closeSiteChat()}});$('#modal').addEventListener('click',e=>{if(e.target===$('#modal'))closeModal()});$('#reviewModal')?.addEventListener('click',e=>{if(e.target===$('#reviewModal'))closeReviewModal()});
 $('#language').onchange=e=>{lang=e.target.value;localStorage.setItem('lang',lang);applySite();renderAll()};$('#searchInput').addEventListener('input',e=>{search=e.target.value;renderProducts()});$('#searchBtn').onclick=()=>{search=$('#searchInput').value;renderProducts();$('#products').scrollIntoView({behavior:'smooth'})};$$('.sort-pill').forEach(btn=>btn.onclick=()=>{sort=btn.dataset.sort;$$('.sort-pill').forEach(b=>b.classList.toggle('active',b===btn));renderProducts()});$('#homeSliderPrev')&&($('#homeSliderPrev').onclick=()=>shiftHeroSlide(-1));$('#homeSliderNext')&&($('#homeSliderNext').onclick=()=>shiftHeroSlide(1));$('#homeSlider')&&($('#homeSlider').addEventListener('mouseenter',()=>{if(heroSlideTimer)clearInterval(heroSlideTimer)}));$('#homeSlider')&&($('#homeSlider').addEventListener('mouseleave',startHeroAutoplay));$('#cartBtn').onclick=openCart;$('#mobileStickyCart').onclick=openCart;$('#closeCart').onclick=closeCart;$('#closeTracking').onclick=closeTracking;$('#overlay').onclick=closeSidePanels;$('#checkout').onclick=openCheckout;$('#applyPromo').onclick=applyPromo;$('#favoritesBtn').onclick=showFavorites;$('#trackBtn').onclick=openTracking;$('#heroTrackBtn')&&($('#heroTrackBtn').onclick=openTracking);$('#footerTrack').onclick=e=>{e.preventDefault();openTracking()};$('#menuBtn').onclick=()=>$('#mobileNav').classList.toggle('open');$$('.mobile-nav a').forEach(a=>a.onclick=()=>$('#mobileNav').classList.remove('open'));
 const obs=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('visible')),{threshold:.08});$$('.reveal').forEach(x=>obs.observe(x));
@@ -316,4 +323,5 @@ setInterval(()=>{if(Date.now()-realtimeLastEvent>8000){refreshRealtimeStore();lo
     setInterval(()=>fetch('/api/visit/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload()),keepalive:true}).catch(()=>{}),60000);
   }catch(_){ }
 })();
+
 

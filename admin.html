@@ -154,7 +154,8 @@ let adminRealtimeSource=null,adminRealtimeTimer=null,adminRealtimeBusy=false,adm
 function setLiveState(state){adminRealtimeState=state;const el=document.getElementById('liveBadge');if(!el)return;el.className='live-badge '+(state==='live'?'':state);el.textContent=state==='live'?'LIVE • Online':state==='offline'?'Ulanish tiklanmoqda':'LIVE • Kutilmoqda'}
 function adminIsEditing(){const ae=document.activeElement,tag=ae?.tagName;return Boolean(document.querySelector('#productModalRoot .product-modal')||['INPUT','TEXTAREA','SELECT'].includes(tag))}
 async function realtimeAdminRefresh(){
- if(!me||adminRealtimeBusy)return;
+ if(!me)return;
+ if(adminRealtimeBusy){adminRealtimePending=true;return}
  if(adminIsEditing()){
   adminRealtimePending=true;
   return;
@@ -175,10 +176,14 @@ async function realtimeAdminRefresh(){
   }
  }finally{
   adminRealtimeBusy=false;
+  if(adminRealtimePending&&!adminIsEditing())scheduleAdminRealtime();
  }
 }
 function scheduleAdminRealtime(){clearTimeout(adminRealtimeTimer);adminRealtimeTimer=setTimeout(realtimeAdminRefresh,800)}
-function initAdminRealtime(){if(!window.EventSource||adminRealtimeSource)return;adminRealtimeSource=new EventSource('/api/events');adminRealtimeSource.addEventListener('ready',()=>setLiveState('live'));adminRealtimeSource.addEventListener('update',scheduleAdminRealtime);adminRealtimeSource.onopen=()=>setLiveState('live');adminRealtimeSource.onerror=()=>setLiveState('offline')}
+function initAdminRealtime(){if(!window.EventSource||adminRealtimeSource)return;adminRealtimeSource=new EventSource('/api/events');adminRealtimeSource.addEventListener('ready',()=>{setLiveState('live');scheduleAdminRealtime()});adminRealtimeSource.addEventListener('update',scheduleAdminRealtime);adminRealtimeSource.onopen=()=>setLiveState('live');adminRealtimeSource.onerror=()=>setLiveState('offline')}
+window.addEventListener('online',scheduleAdminRealtime);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleAdminRealtime()});
+setInterval(()=>{if(!document.hidden)realtimeAdminRefresh()},15000);
 document.addEventListener('focusout',()=>{if(adminRealtimePending)setTimeout(()=>{if(!adminIsEditing())realtimeAdminRefresh()},80)});
 async function api(url,opt={}){
  const method=String(opt.method||'GET').toUpperCase();
@@ -842,4 +847,5 @@ function exportOperationsCsv(){const rows=[['Buyurtma','Xaridor','Telefon','Sana
 renderLogin();
 boot().finally(()=>{try{initAdminRealtime()}catch(e){console.warn('Realtime init:',e)}});
 </script></body></html>
+
 

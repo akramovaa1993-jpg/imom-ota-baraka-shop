@@ -1047,7 +1047,7 @@ app.get('/api/app-events',sseLimit,(req,res)=>{
  res.setHeader('X-Accel-Buffering','no');
  res.flushHeaders?.();
  appRealtimeClients.add(res);
- res.write(`event: ready\ndata: ${JSON.stringify({revision:appRealtimeRevision,at:new Date().toISOString()})}\n\n`);
+ res.write(`event: ready\ndata: ${JSON.stringify({reason:"catalog-reconnect",revision:appRealtimeRevision,at:new Date().toISOString()})}\n\n`);
  const ping=setInterval(()=>{try{res.write(`: app-ping ${Date.now()}\n\n`)}catch{}},20000);
  req.on('close',()=>{clearInterval(ping);appRealtimeClients.delete(res)});
 });
@@ -2165,3 +2165,4 @@ async function start(){
  }
 }
 start();
+
