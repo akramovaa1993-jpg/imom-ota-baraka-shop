@@ -71,7 +71,12 @@ let persistChain = Promise.resolve();
 // Keeps the last successfully committed product snapshots separately from dbCache so an
 // accidental full-state overwrite can never silently remove products.
 let committedProducts = new Map();
-function cloneProductSafe(p){ try{return JSON.parse(JSON.stringify(p))}catch{return {...p}} }
+// Copy mutable metadata without serializing and duplicating large immutable image strings.
+function cloneProductSafe(p){
+ if(Array.isArray(p))return p.map(cloneProductSafe);
+ if(p&&typeof p==='object')return Object.fromEntries(Object.entries(p).map(([k,v])=>[k,cloneProductSafe(v)]));
+ return p;
+}
 function rememberCommittedProducts(db){
   committedProducts = new Map((db?.products||[]).map(p=>[String(Number(p.id)),cloneProductSafe(p)]));
 }
@@ -754,10 +759,10 @@ function normalizeDb(db){
  }
  return merged;
 }
-function writeLocal(db){
+function writeLocal(db,snapshot){
  fs.mkdirSync(DATA_DIR,{recursive:true});
  const tmp=DB_FILE+'.tmp';
- fs.writeFileSync(tmp,JSON.stringify(db,null,2));
+ fs.writeFileSync(tmp,snapshot===undefined?JSON.stringify(db):snapshot);
  fs.renameSync(tmp,DB_FILE);
 }
 function readLocal(){
@@ -842,7 +847,7 @@ async function writeDb(db,opts={}){
   await persistChain;
  }
  dbCache=normalized;
- writeLocal(normalized);
+ writeLocal(normalized,snapshot);
  rememberCommittedProducts(normalized);
  broadcastRealtime('data-changed');
 }
