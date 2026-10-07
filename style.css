@@ -444,3 +444,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 #locationMapBox>p,#checkoutPointText{padding:4px 12px;font-size:13px}
 #confirmCheckoutLocation{margin:8px 12px 12px}
 #confirmCheckoutLocation:disabled{opacity:.5;cursor:not-allowed}
+
+/* Discount sits beside the rating, including narrow two-column product grids. */
+.product-rating-discount{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:2px 0 8px;min-height:24px}
+.product-rating-discount .product-rating-line{width:auto;min-width:0;flex:1;flex-wrap:wrap;gap:2px 5px;padding:0}
+.product-rating-discount .product-rating-line span{font-size:11px}
+.product-discount{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:#e8f5ed;color:#07584c;border:1px solid #b9dfc9;border-radius:7px;padding:4px 7px;font-size:12px;font-weight:800;line-height:1.15;white-space:nowrap}
+.lightbox-price .product-discount{align-self:flex-start}.lightbox-price del{color:#74837c;font-size:14px}

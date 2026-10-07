@@ -34,3 +34,24 @@ test('UZ and RU pages match price, stock, brand and visible local delivery witho
   if(lang==='ru')assert(schema.description.includes('Цена'));
  }
 });
+
+test('discount is visible with old and current price on both localized product pages',()=>{
+ for(const lang of ['uz','ru'])for(const discounted of [false,true]){
+  const p={...product,oldPrice:discounted?15000:0};const c=fixture(p);let html='';
+  c.renderProductSeoPage({params:{slug:'test-1'}},{setHeader(){},send:s=>html=s},lang);
+  assert.equal(html.includes('<span class="product-discount">'),discounted);
+  if(discounted)assert(html.includes((lang==='ru'?'Скидка':'Chegirma')+' −20%'));
+ }
+});
+test('catalog discount is next to rating and image details show the same discount',()=>{
+ const s=fs.readFileSync(path.join(__dirname,'../script.js'),'utf8');const grid={};let modal='';
+ const p={...product,oldPrice:15000};
+ const c={Number,Math,lang:'uz',productList:()=>[p],products:[p],qtyPick:{},categoryById:()=>({name:{uz:'Uy ro‘zg‘or'}}),favorites:[],esc:String,nameOf:p=>p.name.uz,productSeoSlug:()=> 'test-1',tr:k=>k,money:String,$:()=>grid,updateCatalogMeta(){},showModal:v=>modal=v,T:{uz:{stock:'Omborda'}}};
+ vm.createContext(c);
+ vm.runInContext(s.slice(s.indexOf('function productDiscountBadge('),s.indexOf('\n',s.indexOf('function renderProducts(){'))),c);
+ vm.runInContext(s.slice(s.indexOf('function openProductImage('),s.indexOf('\n',s.indexOf('function openProductImage('))),c);
+ c.renderProducts();assert.match(grid.innerHTML,/product-rating-discount[\s\S]*<\/button><span class="product-discount"[^>]*>−20%/);
+ c.openProductImage(1);assert.match(modal,/−20%/);assert.match(modal,/<del>15000<\/del>/);
+ assert.equal(c.productDiscountBadge({...p,oldPrice:0}),'');assert.equal(c.productDiscountBadge({...p,oldPrice:12000}),'');
+ c.lang='ru';assert.match(c.productDiscountBadge(p),/Скидка 20%/);
+});
