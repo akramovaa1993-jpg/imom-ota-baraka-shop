@@ -1,0 +1,35 @@
+name: Backend offline security tests
+
+on:
+  push:
+    branches:
+      - feature/android-mobile-checkout-otp
+    paths:
+      - server.js
+      - sms-otp.js
+      - tests/**
+      - .github/workflows/backend-offline-tests.yml
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check server.js
+          node --check sms-otp.js
+          node --check tests/sms-otp-mobile.test.cjs
+      - name: Mock OTP and order tests
+        run: node --test tests/sms-otp-mobile.test.cjs tests/order-integrity.test.cjs
+      - name: Mock checkout tests
+        run: node tests/checkout.test.cjs
