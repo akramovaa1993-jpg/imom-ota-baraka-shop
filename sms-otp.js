@@ -284,7 +284,7 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
           const rememberedToken=crypto.randomBytes(32).toString('hex');
           await client.query("INSERT INTO mobile_checkout_devices(token_hash,phone_e164,device_id,expires_at) VALUES($1,$2,$3,NOW()+INTERVAL '30 days')",[mobileTokenHash(rememberedToken),phone,deviceId]);
           checkoutResponse.rememberedToken=rememberedToken;
-          checkoutResponse.rememberExpiresInSeconds:30*24*60*60;
+          checkoutResponse.rememberExpiresInSeconds=30*24*60*60;
         }
       }
       await client.query('COMMIT');
@@ -303,7 +303,7 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
     return verificationToken;
   }
   async function restoreCheckout(req,res){
-    const phone=String(req.body?.phone||'').replace(/[\\s()-]/g,'');
+    const phone=String(req.body?.phone||'').replace(/[\s()-]/g,'');
     const deviceId=String(req.body?.deviceId||''),rememberedToken=String(req.body?.rememberedToken||'');
     if(!PHONE_RE.test(phone)||!(/^[A-Za-z0-9._:-]{8,120}$/.test(deviceId))||!(/^[a-f0-9]{64}$/.test(rememberedToken)))return res.status(400).json({error:'Qurilma tasdiqlash ma’lumotlari noto‘g‘ri'});
     const client=await pool.connect();
@@ -317,7 +317,7 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
     }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
   }
   async function logoutCheckout(req,res){
-    const phone=String(req.body?.phone||'').replace(/[\\s()-]/g,''),deviceId=String(req.body?.deviceId||''),rememberedToken=String(req.body?.rememberedToken||'');
+    const phone=String(req.body?.phone||'').replace(/[\s()-]/g,''),deviceId=String(req.body?.deviceId||''),rememberedToken=String(req.body?.rememberedToken||'');
     if(!PHONE_RE.test(phone)||!(/^[A-Za-z0-9._:-]{8,120}$/.test(deviceId))||!(/^[a-f0-9]{64}$/.test(rememberedToken)))return res.status(400).json({error:'Qurilma tasdiqlash ma’lumotlari noto‘g‘ri'});
     await pool.query('UPDATE mobile_checkout_devices SET revoked_at=COALESCE(revoked_at,NOW()) WHERE token_hash=$1 AND phone_e164=$2 AND device_id=$3',[mobileTokenHash(rememberedToken),phone,deviceId]);
     res.set('Cache-Control','no-store');return res.json({ok:true});
