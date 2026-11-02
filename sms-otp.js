@@ -63,6 +63,17 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
       )
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS otp_phone_idx ON otp_challenges(phone_e164,purpose,created_at DESC)');
+    await pool.query("ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS device_id TEXT NOT NULL DEFAULT ''");
+    await pool.query("ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ");
+    await pool.query(`CREATE TABLE IF NOT EXISTS mobile_checkout_proofs (
+      token_hash TEXT PRIMARY KEY, phone_e164 TEXT NOT NULL, device_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL
+    )`);
+    await pool.query('CREATE INDEX IF NOT EXISTS mobile_checkout_proofs_expiry_idx ON mobile_checkout_proofs(expires_at)');
+    await pool.query(`CREATE TABLE IF NOT EXISTS mobile_checkout_devices (
+      token_hash TEXT PRIMARY KEY, phone_e164 TEXT NOT NULL, device_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ
+    )`);
     await pool.query(`CREATE TABLE IF NOT EXISTS otp_cooldowns (
       phone_e164 TEXT NOT NULL,
       purpose TEXT NOT NULL,
@@ -169,10 +180,10 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
     }finally{client.release();}
   }
 
-  async function requestOtp(req,res){
+  async function requestOtp(req,res,{purpose='register',deviceId=''}={}){
     const phone=String(req.body?.phone||'').replace(/[\s()-]/g,'');
     if(!PHONE_RE.test(phone)) return res.status(400).json({error:'Telefon raqami noto‘g‘ri'});
-    const purpose='register';
+    if(purpose==='checkout'&&!/^[A-Za-z0-9._:-]{8,120}$/.test(deviceId)) return res.status(400).json({error:'Qurilma identifikatori noto‘g‘ri'});
     const challengeId=crypto.randomBytes(24).toString('hex');
     const jobId=crypto.randomBytes(24).toString('hex');
     const code=String(crypto.randomInt(0,1000000)).padStart(6,'0');
@@ -209,9 +220,9 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
         WHERE phone_e164=$1 AND status IN ('queued','claimed') AND expires_at>NOW()
       `,[phone]);
       await client.query(`
-        INSERT INTO otp_challenges(challenge_id,phone_e164,purpose,verifier,expires_at,resend_after)
-        VALUES($1,$2,$3,$4,$5,NOW()+INTERVAL '60 seconds')
-      `,[challengeId,phone,purpose,verifier,expiresAt]);
+        INSERT INTO otp_challenges(challenge_id,phone_e164,purpose,verifier,expires_at,resend_after,device_id)
+        VALUES($1,$2,$3,$4,$5,NOW()+INTERVAL '60 seconds',$6)
+      `,[challengeId,phone,purpose,verifier,expiresAt,deviceId]);
       await client.query(`
         INSERT INTO sms_jobs(job_id,phone_e164,message,status,expires_at)
         VALUES($1,$2,$3,'queued',$4)
@@ -223,20 +234,21 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
     }finally{client.release();}
 
     res.set('Cache-Control','no-store');
-    return res.json({ok:true,challengeId,expiresIn:180,resendAfter:60});
+    return res.json({ok:true,challengeId,expiresIn:180,resendAfter:60,expiresInSeconds:180,resendAfterSeconds:60});
   }
 
-  async function verifyOtp(req,res){
+  async function verifyOtp(req,res,{purpose='register',deviceId='',mobileCheckout=false}={}){
     const challengeId=String(req.body?.challengeId||'');
     const phone=String(req.body?.phone||'').replace(/[\s()-]/g,'');
     const code=String(req.body?.code||'').trim();
+    if(mobileCheckout&&!/^[A-Za-z0-9._:-]{8,120}$/.test(deviceId)) return res.status(400).json({error:'Qurilma identifikatori noto‘g‘ri'});
     if(!/^[a-f0-9]{48}$/.test(challengeId)||!PHONE_RE.test(phone)||!/^\d{6}$/.test(code)){
       return res.status(400).json({error:'Tasdiqlash ma’lumotlari noto‘g‘ri'});
     }
     const client=await pool.connect();
     try{
       await client.query('BEGIN');
-      const r=await client.query('SELECT * FROM otp_challenges WHERE challenge_id=$1 AND phone_e164=$2 FOR UPDATE',[challengeId,phone]);
+      const r=await client.query('SELECT * FROM otp_challenges WHERE challenge_id=$1 AND phone_e164=$2 AND purpose=$3 AND device_id=$4 FOR UPDATE',[challengeId,phone,purpose,deviceId]);
       const row=r.rows[0];
       if(!row || row.consumed_at || new Date(row.expires_at)<=new Date()){
         await client.query('ROLLBACK');
@@ -262,24 +274,72 @@ function createSmsOtp({pool,security,otpSecret,gatewayTokenDigest}){
           attemptsRemaining:Math.max(0,5-attempts)
         });
       }
-      await client.query('UPDATE otp_challenges SET consumed_at=NOW() WHERE challenge_id=$1',[challengeId]);
+      await client.query('UPDATE otp_challenges SET consumed_at=NOW(),verified_at=NOW() WHERE challenge_id=$1',[challengeId]);
+      let checkoutResponse={};
+      if(mobileCheckout){
+        const verificationToken=crypto.randomBytes(32).toString('hex');
+        await client.query("INSERT INTO mobile_checkout_proofs(token_hash,phone_e164,device_id,expires_at) VALUES($1,$2,$3,NOW()+INTERVAL '5 minutes')",[mobileTokenHash(verificationToken),phone,deviceId]);
+        checkoutResponse={verificationToken,expiresInSeconds:300};
+        if(req.body?.rememberDevice===true){
+          const rememberedToken=crypto.randomBytes(32).toString('hex');
+          await client.query("INSERT INTO mobile_checkout_devices(token_hash,phone_e164,device_id,expires_at) VALUES($1,$2,$3,NOW()+INTERVAL '30 days')",[mobileTokenHash(rememberedToken),phone,deviceId]);
+          checkoutResponse.rememberedToken=rememberedToken;
+          checkoutResponse.rememberExpiresInSeconds=30*24*60*60;
+        }
+      }
       await client.query('COMMIT');
-      return res.json({ok:true,phoneVerified:true});
+      res.set('Cache-Control','no-store');
+      return res.json({ok:true,phoneVerified:true,...checkoutResponse});
     }catch(e){
       await client.query('ROLLBACK').catch(()=>{});
       throw e;
     }finally{client.release();}
   }
 
+  function mobileTokenHash(token){return crypto.createHmac('sha256',otpSecret).update(`mobile-checkout|${String(token||'')}`).digest('hex');}
+  async function issueCheckoutProof(client,phone,deviceId){
+    const verificationToken=crypto.randomBytes(32).toString('hex');
+    await client.query("INSERT INTO mobile_checkout_proofs(token_hash,phone_e164,device_id,expires_at) VALUES($1,$2,$3,NOW()+INTERVAL '5 minutes')",[mobileTokenHash(verificationToken),phone,deviceId]);
+    return verificationToken;
+  }
+  async function restoreCheckout(req,res){
+    const phone=String(req.body?.phone||'').replace(/[\s()-]/g,'');
+    const deviceId=String(req.body?.deviceId||''),rememberedToken=String(req.body?.rememberedToken||'');
+    if(!PHONE_RE.test(phone)||!(/^[A-Za-z0-9._:-]{8,120}$/.test(deviceId))||!(/^[a-f0-9]{64}$/.test(rememberedToken)))return res.status(400).json({error:'Qurilma tasdiqlash ma’lumotlari noto‘g‘ri'});
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const valid=await client.query('SELECT 1 FROM mobile_checkout_devices WHERE token_hash=$1 AND phone_e164=$2 AND device_id=$3 AND revoked_at IS NULL AND expires_at>NOW() FOR UPDATE',[mobileTokenHash(rememberedToken),phone,deviceId]);
+      if(!valid.rows[0]){await client.query('ROLLBACK');return res.status(403).json({error:'Qurilma tasdiqlashi topilmadi'});}
+      const verificationToken=await issueCheckoutProof(client,phone,deviceId);
+      await client.query('COMMIT');res.set('Cache-Control','no-store');
+      return res.json({ok:true,remembered:true,verificationToken,expiresInSeconds:300});
+    }catch(e){await client.query('ROLLBACK').catch(()=>{});throw e;}finally{client.release();}
+  }
+  async function logoutCheckout(req,res){
+    const phone=String(req.body?.phone||'').replace(/[\s()-]/g,''),deviceId=String(req.body?.deviceId||''),rememberedToken=String(req.body?.rememberedToken||'');
+    if(!PHONE_RE.test(phone)||!(/^[A-Za-z0-9._:-]{8,120}$/.test(deviceId))||!(/^[a-f0-9]{64}$/.test(rememberedToken)))return res.status(400).json({error:'Qurilma tasdiqlash ma’lumotlari noto‘g‘ri'});
+    await pool.query('UPDATE mobile_checkout_devices SET revoked_at=COALESCE(revoked_at,NOW()) WHERE token_hash=$1 AND phone_e164=$2 AND device_id=$3',[mobileTokenHash(rememberedToken),phone,deviceId]);
+    res.set('Cache-Control','no-store');return res.json({ok:true});
+  }
+  async function validCheckoutProof(phone,deviceId,token){
+    if(!PHONE_RE.test(String(phone||''))||!(/^[A-Za-z0-9._:-]{8,120}$/.test(String(deviceId||'')))||!(/^[a-f0-9]{64}$/.test(String(token||''))))return false;
+    const result=await pool.query('SELECT 1 FROM mobile_checkout_proofs WHERE token_hash=$1 AND phone_e164=$2 AND device_id=$3 AND expires_at>NOW()',[mobileTokenHash(token),phone,deviceId]);
+    return !!result.rows[0];
+  }
   function routes(app){
     const asyncRoute=security.asyncRoute || (fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next));
     app.post('/api/sms-gateway/jobs/claim',security.limiter('sms-gateway-claim',30),asyncRoute(requireGateway),asyncRoute(claim));
     app.post('/api/sms-gateway/jobs/:id/ack',security.limiter('sms-gateway-ack',120),asyncRoute(requireGateway),asyncRoute(ack));
     app.post('/api/auth/otp/request',security.limiter('otp-request-ip',8,10*60*1000),asyncRoute(requestOtp));
     app.post('/api/auth/otp/verify',security.limiter('otp-verify-ip',20,10*60*1000),asyncRoute(verifyOtp));
+    app.post('/api/mobile/checkout/otp/request',security.limiter('mobile-otp-request-ip',8,10*60*1000),asyncRoute((req,res)=>requestOtp(req,res,{purpose:'checkout',deviceId:String(req.body?.deviceId||'')})));
+    app.post('/api/mobile/checkout/otp/verify',security.limiter('mobile-otp-verify-ip',20,10*60*1000),asyncRoute((req,res)=>verifyOtp(req,res,{purpose:'checkout',deviceId:String(req.body?.deviceId||''),mobileCheckout:true})));
+    app.post('/api/mobile/checkout/otp/restore',security.limiter('mobile-otp-restore-ip',20,10*60*1000),asyncRoute(restoreCheckout));
+    app.post('/api/mobile/checkout/otp/logout',security.limiter('mobile-otp-logout-ip',20,10*60*1000),asyncRoute(logoutCheckout));
   }
 
-  return {init,routes};
+  return {init,routes,validCheckoutProof};
 }
 
 module.exports={createSmsOtp};

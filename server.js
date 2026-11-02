@@ -6,6 +6,7 @@ const dns = require('dns').promises;
 const net = require('net');
 const XLSX = require('xlsx');
 const {createSecurity, publicIp} = require('./security');
+const {createSmsOtp} = require('./sms-otp');
 const {safeImageFetch} = require('./remote-image');
 const { Pool } = require('pg');
 require('dotenv').config();
@@ -160,6 +161,11 @@ app.use((req,res,next)=>{
 const SECURITY_SECRET=String(process.env.SECURITY_SECRET||'').trim();
 if(process.env.NODE_ENV==='production'&&SECURITY_SECRET.length<32)throw new Error('SECURITY_SECRET must contain at least 32 random characters');
 const security=createSecurity({pool,dataDir:DATA_DIR,secret:SECURITY_SECRET||SESSION_SECRET,users:USERS});
+const SMS_OTP_SECRET=String(process.env.SMS_OTP_SECRET||'');
+const SMS_GATEWAY_TOKEN_SHA256=String(process.env.SMS_GATEWAY_TOKEN_SHA256||'').trim().toLowerCase();
+const smsOtp=pool&&SMS_OTP_SECRET.length>=32&&/^[a-f0-9]{64}$/.test(SMS_GATEWAY_TOKEN_SHA256)
+ ? createSmsOtp({pool,security,otpSecret:SMS_OTP_SECRET,gatewayTokenDigest:SMS_GATEWAY_TOKEN_SHA256})
+ : null;
 app.use(security.originGuard);
 app.use('/api',security.limiter('api',360));
 app.use((req,res,next)=>{
@@ -178,6 +184,7 @@ app.use((req,res,next)=>{
  next();
 });
 security.routes(app);
+if(smsOtp)smsOtp.routes(app);
 app.use((req,res,next)=>{
  if(!['POST','PUT','PATCH','DELETE'].includes(req.method)||req.path.startsWith('/api/admin/')||req.path==='/api/telegram/webhook')return next();
  return security.limiter('public-mutations',35)(req,res,next);
@@ -1944,7 +1951,10 @@ app.post('/api/orders',publicWriteLimiter,async(req,res)=>{
   ? (orderLanguage==='ru'?'Срочная доставка — оператор свяжется с вами':'Tezkor yetkazib berish — operator siz bilan bog‘lanadi')
   : (orderLanguage==='ru'?'В течение 1 дня':'1 kun ichida');
  const verificationToken=clean(b.phoneVerificationToken,120),verificationRow=orderSource==='app'?validAppPhoneVerification(db,verificationToken,clean(b.deviceId,120),customer.phone):null;
- if(orderSource==='app'&&!verificationRow)return res.status(403).json({error:'Telefon raqamingizni Telegram orqali tasdiqlang'});
+ const phoneDigits=String(customer.phone||'').replace(/\D/g,'');
+ const smsPhoneE164=phoneDigits.length===12&&phoneDigits.startsWith('998')?'+'+phoneDigits:phoneDigits.length===9?'+998'+phoneDigits:'';
+ const smsVerified=orderSource==='app'&&smsOtp?await smsOtp.validCheckoutProof(smsPhoneE164,deviceId,clean(b.smsCheckoutProof,128)):false;
+ if(orderSource==='app'&&!verificationRow&&!smsVerified)return res.status(smsOtp?403:503).json({error:smsOtp?'Telefon raqamingizni SMS orqali tasdiqlang':'SMS tasdiqlash xizmati sozlanmagan'});
  const order={securityOwner:security.client(req,res,true),orderId,createdAt,source:orderSource,status:'new',statusUpdatedAt:createdAt,statusHistory:[{status:'new',at:createdAt,source:'customer'}],deliveryType,customer:{name:clean(customer.name,80),phone:clean(customer.phone,30),phoneVerified:orderSource==='app',address:clean(customer.address,300),area:clean(customer.area,100),deliverySlot,payment:clean(customer.payment,80),comment:clean(customer.comment,500),lat:Number(customer.lat),lng:Number(customer.lng),accuracy:Number(customer.accuracy),locationMethod:clean(customer.locationMethod,20)||'gps',locationConfirmed:customer.locationConfirmed===true},items:finalItems,originalSubtotal,productDiscount,subtotal,discount,total,promoCode:promoResult.promo?.code||'',language:orderLanguage,telegram:null,stockAdjusted:false,customerConfirmed:false,adminConfirmed:false,completionSource:'',completedBy:'',customerDeviceId:deviceId,clientRequestId,complaintOpen:false};
  if(promoResult.promo)promoResult.promo.used=Number(promoResult.promo.used||0)+1;
  db.orders=db.orders||[];db.orders.push(order);db.receiptHistory=db.receiptHistory||[];db.receiptHistory.push({orderId:order.orderId,createdAt:order.createdAt,status:order.status,customer:order.customer,items:order.items,originalSubtotal:order.originalSubtotal,productDiscount:order.productDiscount,subtotal:order.subtotal,discount:order.discount,deliveryFee:Number(order.deliveryFee||0),total:order.total,payment:order.customer?.payment||'Naqd',source:order.source||'web'});audit(db,'customer','Yangi buyurtma',`${orderId} • ${money(total)}`);await writeDb(db);
@@ -2182,9 +2192,11 @@ async function start(){
  try{
   await initStorage();
   await security.init();
+  if(smsOtp)await smsOtp.init();
   const server=app.listen(PORT,()=>{
    console.log(`IMOM OTA BARAKA v13.26.74 SECURITY HARDENED / zarbuloq.uz: http://localhost:${PORT}`);
    console.log(`Storage: ${pool?'PostgreSQL persistent':'local JSON fallback'}`);
+   console.log(`Mobile SMS OTP: ${smsOtp?'configured':'unavailable'}`);
    console.log(`Telegram CHAT_ID: ${CHAT_ID?'configured':'MISSING'}`);
    console.log(`Telegram BOT_TOKEN: ${BOT_TOKEN?'configured':'MISSING'}`);
    console.log(`Online admin: /admin.html | DATA_DIR=${DATA_DIR}`);
